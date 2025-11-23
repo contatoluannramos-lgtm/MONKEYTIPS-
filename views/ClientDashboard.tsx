@@ -30,6 +30,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
 
   return (
     <div className="min-h-screen bg-surface-950 text-gray-100 font-sans flex flex-col">
+      <div className="scanline"></div>
       <div className="fixed inset-0 pointer-events-none bg-grid opacity-20 z-0"></div>
       
       <ClientHeader activeSport={activeSport} onSportChange={setActiveSport} />
