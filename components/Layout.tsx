@@ -23,7 +23,7 @@ export const ClientHeader: React.FC<ClientHeaderProps> = ({ activeSport, onSport
             </div>
             <div className="flex flex-col">
               <span className="font-display font-bold text-xl tracking-tight text-white leading-none">MONKEY<span className="text-brand-500">TIPS</span></span>
-              <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-mono">Strategic Intelligence</span>
+              <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-mono">Inteligência Estratégica</span>
             </div>
           </div>
           
@@ -79,7 +79,7 @@ export const Footer = () => (
         </svg>
       </div>
       <p className="text-gray-500 text-sm font-display tracking-wide">© 2024 MONKEY TIPS INTEL.</p>
-      <p className="text-gray-600 text-xs mt-3 font-mono">ALGORITHMIC SPORTS FORECASTING SYSTEM. 18+</p>
+      <p className="text-gray-600 text-xs mt-3 font-mono">SISTEMA DE PREVISÃO ESPORTIVA ALGORÍTMICA. 18+</p>
     </div>
   </footer>
 );

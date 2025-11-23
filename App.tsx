@@ -44,10 +44,10 @@ const INITIAL_TIPS: Tip[] = [
     matchId: 'm1',
     matchTitle: 'Flamengo x Palmeiras',
     sport: SportType.FOOTBALL,
-    prediction: 'Under 2.5 Cards',
+    prediction: 'Menos de 2.5 Cartões',
     confidence: 72,
     odds: 1.85,
-    reasoning: 'Referee averages 2.1 cards/game. High tactical rigidity expected reducing chaotic play.',
+    reasoning: 'O árbitro tem média de 2.1 cartões/jogo. Espera-se alta rigidez tática reduzindo o caos do jogo.',
     createdAt: new Date().toISOString(),
     isPremium: false
   }
@@ -64,7 +64,7 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
     if (email === 'admin@monkeytips.com' && password === 'admin') {
       onLogin();
     } else {
-      setError('ACCESS DENIED: INVALID CREDENTIALS');
+      setError('ACESSO NEGADO: CREDENCIAIS INVÁLIDAS');
     }
   };
 
@@ -79,13 +79,13 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
            <div className="inline-block p-3 border border-brand-500/30 rounded-full mb-4 bg-brand-500/5">
              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-brand-500"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
            </div>
-           <h2 className="text-xl font-display font-medium text-white tracking-wide">SYSTEM ACCESS</h2>
-           <p className="text-gray-500 text-xs mt-2 uppercase tracking-widest">Authorized Personnel Only</p>
+           <h2 className="text-xl font-display font-medium text-white tracking-wide">ACESSO AO SISTEMA</h2>
+           <p className="text-gray-500 text-xs mt-2 uppercase tracking-widest">Apenas Pessoal Autorizado</p>
          </div>
          
          <form onSubmit={handleSubmit} className="space-y-6">
            <div className="space-y-1">
-             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest">Identifier</label>
+             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest">Identificador</label>
              <input 
                type="email" 
                value={email}
@@ -95,7 +95,7 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
              />
            </div>
            <div className="space-y-1">
-             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest">Passcode</label>
+             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest">Código de Acesso</label>
              <input 
                type="password" 
                value={password}
@@ -106,11 +106,11 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
            </div>
            {error && <p className="text-red-500 text-xs border border-red-900/50 bg-red-900/10 p-2 text-center">{error}</p>}
            <button type="submit" className="w-full bg-white text-black hover:bg-brand-400 font-bold py-3 text-xs uppercase tracking-widest transition-colors mt-2 rounded-none">
-             Authenticate
+             Autenticar
            </button>
          </form>
          <div className="mt-8 text-center pt-6 border-t border-white/5">
-            <a href="#/" className="text-xs text-gray-600 hover:text-brand-500 transition-colors">Return to Public View</a>
+            <a href="#/" className="text-xs text-gray-600 hover:text-brand-500 transition-colors">Retornar à Visão Pública</a>
          </div>
        </div>
     </div>

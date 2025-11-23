@@ -48,6 +48,12 @@ export interface ImprovementProposal {
   status: 'Pending' | 'Approved' | 'Implemented';
 }
 
+export interface ChecklistItem {
+  id: string;
+  label: string;
+  checked: boolean;
+}
+
 export interface User {
   email: string;
   role: 'admin' | 'user';

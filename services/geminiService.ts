@@ -8,10 +8,10 @@ const ai = new GoogleGenAI({ apiKey });
 const tipSchema: Schema = {
   type: Type.OBJECT,
   properties: {
-    prediction: { type: Type.STRING, description: "The betting tip, e.g., 'Over 2.5 Goals' or 'Lakers -5.5'" },
-    confidence: { type: Type.INTEGER, description: "Confidence percentage 0-100" },
-    reasoning: { type: Type.STRING, description: "Brief analysis explaining the tip based on stats." },
-    odds: { type: Type.NUMBER, description: "Estimated decimal odds for this market." }
+    prediction: { type: Type.STRING, description: "O palpite de aposta, ex: 'Over 2.5 Gols' ou 'Lakers -5.5'. Em Português." },
+    confidence: { type: Type.INTEGER, description: "Porcentagem de confiança 0-100" },
+    reasoning: { type: Type.STRING, description: "Breve análise tática explicando o palpite baseado nas estatísticas. Em Português." },
+    odds: { type: Type.NUMBER, description: "Odds decimais estimadas para este mercado." }
   },
   required: ["prediction", "confidence", "reasoning", "odds"],
 };
@@ -26,16 +26,17 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
     const modelId = "gemini-2.5-flash"; // Efficient for structured data tasks
     
     const prompt = `
-      Act as a professional high-stakes sports analyst for the 'Monkey Tips' system.
-      Analyze the following match data and generate a high-value betting tip.
+      Atue como um analista esportivo profissional de alto nível para o sistema 'Monkey Tips'.
+      Analise os dados da partida a seguir e gere um palpite de aposta de alto valor (Tip).
       
-      Sport: ${match.sport}
-      Match: ${match.teamA} vs ${match.teamB}
-      League: ${match.league}
-      Stats: ${JSON.stringify(match.stats)}
+      Esporte: ${match.sport}
+      Partida: ${match.teamA} vs ${match.teamB}
+      Liga: ${match.league}
+      Estatísticas: ${JSON.stringify(match.stats)}
       
-      Consider tactical setups, recent form, and specific sport metrics (xG for football, Pace for basketball, etc).
-      Return JSON only.
+      Considere configurações táticas, forma recente, desfalques e métricas específicas do esporte (xG para futebol, Pace para basquete, etc).
+      A resposta deve ser estritamente em Português do Brasil.
+      Retorne apenas JSON.
     `;
 
     const response = await ai.models.generateContent({
@@ -80,7 +81,7 @@ export const generateBulkInsights = async (matches: Match[]): Promise<Tip[]> => 
         sport: match.sport,
         prediction: analysis.prediction || "N/A",
         confidence: analysis.confidence || 0,
-        reasoning: analysis.reasoning || "No analysis available.",
+        reasoning: analysis.reasoning || "Análise indisponível.",
         odds: analysis.odds || 1.5,
         createdAt: new Date().toISOString(),
         isPremium: false

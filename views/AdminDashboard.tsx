@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { generateBulkInsights } from '../services/geminiService';
 import { Match, Tip, SportType } from '../types';
-import { StatCard, ImprovementsPanel } from '../components/AdminComponents';
+import { StatCard, ImprovementsPanel, OperationalChecklist } from '../components/AdminComponents';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface AdminDashboardProps {
@@ -16,7 +16,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
 
   const handleGenerateIntelligence = async () => {
     if (!process.env.API_KEY) {
-        alert("System Error: Environment Key Missing.");
+        alert("Erro de Sistema: Chave de Ambiente Ausente.");
         return;
     }
     
@@ -53,10 +53,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         
         <nav className="mt-8 space-y-1 px-3">
           {[
-            { name: 'Overview', icon: '⚡' },
-            { name: 'Intel. Engine', icon: '🧠' },
-            { name: 'Analysts', icon: '👥' },
-            { name: 'Data Streams', icon: '📡' }
+            { name: 'Visão Geral', icon: '⚡' },
+            { name: 'Motor de IA', icon: '🧠' },
+            { name: 'Analistas', icon: '👥' },
+            { name: 'Feeds de Dados', icon: '📡' }
           ].map((item, idx) => (
              <button key={idx} className={`w-full flex items-center gap-3 px-3 py-3 rounded-none border-l-2 transition-all group ${idx === 0 ? 'bg-white/5 border-brand-500 text-white' : 'border-transparent text-gray-500 hover:text-white hover:bg-white/5'}`}>
                <span className="text-lg opacity-70">{item.icon}</span>
@@ -69,7 +69,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
           <div className="flex items-center gap-3">
              <div className="w-8 h-8 rounded bg-gradient-to-tr from-gray-700 to-gray-600 border border-white/10"></div>
              <div className="hidden lg:block">
-               <p className="text-sm font-medium text-white">Administrator</p>
+               <p className="text-sm font-medium text-white">Administrador</p>
                <p className="text-[10px] text-brand-500 font-mono tracking-wider">ROOT_ACCESS</p>
              </div>
           </div>
@@ -82,23 +82,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
 
         <header className="flex justify-between items-end mb-10 relative z-10">
           <div>
-            <h2 className="text-2xl font-display font-medium text-white">System Dashboard</h2>
-            <p className="text-gray-500 text-sm mt-1 font-mono">SERVER_TIME: {new Date().toLocaleTimeString()}</p>
+            <h2 className="text-2xl font-display font-medium text-white">Dashboard do Sistema</h2>
+            <p className="text-gray-500 text-sm mt-1 font-mono">SERVER_TIME: {new Date().toLocaleTimeString('pt-BR')}</p>
           </div>
           <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full">
              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
              <span className="text-green-500 text-[10px] font-mono font-bold tracking-widest uppercase">
-               System Operational
+               Sistema Operacional
              </span>
           </div>
         </header>
 
         {/* Stats Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 relative z-10">
-          <StatCard title="Generated Insights" value={tips.length.toString()} change="+12%" icon="📊" />
-          <StatCard title="Accuracy Model" value="68.4%" change="+2.1%" icon="🎯" />
-          <StatCard title="Active Users" value="1,240" change="+5.4%" icon="👥" />
-          <StatCard title="API Requests" value="45k" change="-1.2%" icon="📡" />
+          <StatCard title="Insights Gerados" value={tips.length.toString()} change="+12%" icon="📊" />
+          <StatCard title="Precisão Modelo" value="68.4%" change="+2.1%" icon="🎯" />
+          <StatCard title="Usuários Ativos" value="1,240" change="+5.4%" icon="👥" />
+          <StatCard title="Requisições API" value="45k" change="-1.2%" icon="📡" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
@@ -108,17 +108,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
             <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-8">
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-lg font-display font-medium text-white flex items-center gap-2">
-                  <span className="text-brand-500">///</span> Generative AI Core
+                  <span className="text-brand-500">///</span> Núcleo Generativo (IA)
                 </h3>
                 <select 
                   className="bg-surface-950 text-gray-400 border border-white/10 rounded-none px-3 py-1.5 text-xs font-mono outline-none focus:border-brand-500 transition-colors uppercase"
                   value={selectedSport}
                   onChange={(e) => setSelectedSport(e.target.value as SportType | 'All')}
                 >
-                  <option value="All">ALL_DATAFRAMES</option>
-                  <option value={SportType.FOOTBALL}>FOOTBALL_SEQ</option>
-                  <option value={SportType.BASKETBALL}>BASKETBALL_SEQ</option>
-                  <option value={SportType.VOLLEYBALL}>VOLLEYBALL_SEQ</option>
+                  <option value="All">TODOS OS DADOS</option>
+                  <option value={SportType.FOOTBALL}>SEQ_FUTEBOL</option>
+                  <option value={SportType.BASKETBALL}>SEQ_BASQUETE</option>
+                  <option value={SportType.VOLLEYBALL}>SEQ_VOLEI</option>
                 </select>
               </div>
 
@@ -131,9 +131,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                     <span className="text-2xl">🧠</span>
                  </div>
                  
-                 <h4 className="text-white font-medium mb-2 font-display">Initiate Analysis Sequence</h4>
+                 <h4 className="text-white font-medium mb-2 font-display">Iniciar Sequência de Análise</h4>
                  <p className="text-gray-500 text-sm max-w-md mb-8 font-light">
-                   Deploy Gemini 2.5 Flash model to process {matches.length} pending match events. Correlating xG, Pace, and historical datasets.
+                   Implantar modelo Gemini 2.5 Flash para processar {matches.length} eventos pendentes. Correlacionando xG, Pace e bases de dados históricas.
                  </p>
                  
                  <button
@@ -148,10 +148,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                    {isGenerating ? (
                      <span className="flex items-center gap-2">
                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                       PROCESSING DATA...
+                       PROCESSANDO DADOS...
                      </span>
                    ) : (
-                     "EXECUTE PROTOCOL"
+                     "EXECUTAR PROTOCOLO"
                    )}
                  </button>
               </div>
@@ -159,7 +159,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
 
             {/* Performance Chart */}
             <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6">
-               <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-6">Model Performance Metrics</h3>
+               <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-6">Métricas de Performance do Modelo</h3>
                <div className="h-64 w-full">
                  <ResponsiveContainer width="100%" height="100%">
                    <BarChart data={performanceData} barSize={40}>
@@ -169,8 +169,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                         contentStyle={{ backgroundColor: '#18181B', borderColor: '#27272A', color: '#fff', fontFamily: 'JetBrains Mono', fontSize: '12px' }}
                         cursor={{ fill: '#ffffff', opacity: 0.05 }}
                      />
-                     <Bar dataKey="tips" name="Generated" fill="#3f3f46" radius={[2, 2, 0, 0]} />
-                     <Bar dataKey="wins" name="Success" fill="#D97706" radius={[2, 2, 0, 0]} />
+                     <Bar dataKey="tips" name="Gerados" fill="#3f3f46" radius={[2, 2, 0, 0]} />
+                     <Bar dataKey="wins" name="Sucesso" fill="#D97706" radius={[2, 2, 0, 0]} />
                    </BarChart>
                  </ResponsiveContainer>
                </div>
@@ -179,10 +179,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
 
           {/* Right Column */}
           <div className="space-y-8">
+            <OperationalChecklist />
             <ImprovementsPanel />
             
             <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6">
-              <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-4">Feed Status</h3>
+              <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-4">Status dos Feeds</h3>
               <div className="space-y-3 font-mono text-xs">
                 <div className="flex justify-between items-center p-2 bg-black/20 rounded-none border border-white/5">
                   <span className="text-gray-300">SOFASCORE_API</span>
@@ -194,11 +195,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                 </div>
                 <div className="flex justify-between items-center p-2 bg-black/20 rounded-none border border-white/5">
                   <span className="text-gray-300">NBA_OFFICIAL</span>
-                  <span className="text-brand-500 animate-pulse">● LATENCY</span>
+                  <span className="text-brand-500 animate-pulse">● LATÊNCIA</span>
                 </div>
                 <div className="mt-4 pt-4 border-t border-white/5">
                   <button className="w-full py-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-none transition-colors uppercase tracking-wider">
-                    View System Logs
+                    Ver Logs do Sistema
                   </button>
                 </div>
               </div>

@@ -40,9 +40,9 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
         {/* Intelligence HUD */}
         <div className="mb-12">
           <div className="flex items-end gap-4 mb-6">
-            <h2 className="text-3xl font-display font-medium text-white">Market Intelligence</h2>
+            <h2 className="text-3xl font-display font-medium text-white">Inteligência de Mercado</h2>
             <div className="h-px flex-grow bg-gradient-to-r from-gray-800 to-transparent mb-2"></div>
-            <span className="text-xs font-mono text-brand-500 animate-pulse">LIVE FEED ●</span>
+            <span className="text-xs font-mono text-brand-500 animate-pulse">FEED AO VIVO ●</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -51,14 +51,14 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
               <div className="absolute top-0 right-0 p-3 opacity-20">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-brand-500"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
               </div>
-              <p className="text-gray-500 text-xs font-mono uppercase tracking-wider mb-2">Active Signals</p>
+              <p className="text-gray-500 text-xs font-mono uppercase tracking-wider mb-2">Sinais Ativos</p>
               <h2 className="text-4xl font-mono font-light text-white">{stats.total.toString().padStart(2, '0')}</h2>
             </div>
 
             {/* Stat Card 2 - FIX APPLIED HERE: &gt; instead of > */}
             <div className="bg-surface-900/40 backdrop-blur-sm border border-white/5 p-6 rounded-none relative group hover:border-brand-500/30 transition-colors flex justify-between items-center">
                <div>
-                <p className="text-gray-500 text-xs font-mono uppercase tracking-wider mb-2">Confidence &gt; 75%</p>
+                <p className="text-gray-500 text-xs font-mono uppercase tracking-wider mb-2">Confiança &gt; 75%</p>
                 <h2 className="text-4xl font-mono font-light text-brand-500">{stats.highConfidence.toString().padStart(2, '0')}</h2>
                </div>
                <div className="h-16 w-16 opacity-80">
@@ -79,7 +79,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
               <div className="absolute top-0 right-0 p-3 opacity-20">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-white"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
               </div>
-              <p className="text-gray-500 text-xs font-mono uppercase tracking-wider mb-2">Avg. Coefficient (Odds)</p>
+              <p className="text-gray-500 text-xs font-mono uppercase tracking-wider mb-2">Média de Odds</p>
               <h2 className="text-4xl font-mono font-light text-gray-200">{stats.avgOdds}</h2>
             </div>
           </div>
@@ -89,7 +89,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-xl font-display font-light text-white tracking-wide">
-              Strategic Opportunities
+              Oportunidades Estratégicas
             </h3>
           </div>
 
@@ -119,11 +119,11 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
                   
                   <div className="grid grid-cols-2 gap-px bg-white/5 border border-white/5 mb-6">
                     <div className="bg-surface-900/80 p-3 text-center">
-                      <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Target</p>
+                      <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Alvo</p>
                       <p className="text-brand-500 font-bold text-sm leading-tight">{tip.prediction}</p>
                     </div>
                     <div className="bg-surface-900/80 p-3 text-center">
-                      <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Coeff</p>
+                      <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Odd</p>
                       <p className="text-white font-mono font-light text-sm">{tip.odds.toFixed(2)}</p>
                     </div>
                   </div>
@@ -131,7 +131,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
                   <div className="mt-auto">
                     <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
-                      AI Analysis
+                      Análise IA
                     </p>
                     <p className="text-gray-400 text-xs leading-relaxed font-light border-l-2 border-white/10 pl-3">
                       {tip.reasoning}
@@ -151,7 +151,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
             
             {filteredTips.length === 0 && (
                <div className="col-span-full py-32 text-center border border-dashed border-white/10 rounded-lg">
-                 <p className="text-gray-600 font-mono text-sm">NO DATA STREAMS AVAILABLE FOR {activeSport.toUpperCase()}</p>
+                 <p className="text-gray-600 font-mono text-sm">SEM DADOS DISPONÍVEIS PARA {activeSport.toUpperCase()}</p>
                </div>
             )}
           </div>
