@@ -55,7 +55,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
               <h2 className="text-4xl font-mono font-light text-white">{stats.total.toString().padStart(2, '0')}</h2>
             </div>
 
-            {/* Stat Card 2 */}
+            {/* Stat Card 2 - FIX APPLIED HERE: &gt; instead of > */}
             <div className="bg-surface-900/40 backdrop-blur-sm border border-white/5 p-6 rounded-none relative group hover:border-brand-500/30 transition-colors flex justify-between items-center">
                <div>
                 <p className="text-gray-500 text-xs font-mono uppercase tracking-wider mb-2">Confidence &gt; 75%</p>

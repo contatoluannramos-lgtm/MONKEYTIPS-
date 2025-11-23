@@ -76,7 +76,7 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
 
        <div className="max-w-md w-full bg-surface-900/50 backdrop-blur border border-white/5 p-10 relative z-10 shadow-2xl">
          <div className="text-center mb-10">
-           <div className="inline-block p-3 border border-brand-500/30 rounded-full mb-4">
+           <div className="inline-block p-3 border border-brand-500/30 rounded-full mb-4 bg-brand-500/5">
              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-brand-500"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
            </div>
            <h2 className="text-xl font-display font-medium text-white tracking-wide">SYSTEM ACCESS</h2>
@@ -90,7 +90,7 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
                type="email" 
                value={email}
                onChange={e => setEmail(e.target.value)}
-               className="w-full bg-black/50 border border-white/10 text-white px-4 py-3 text-sm focus:border-brand-500 focus:outline-none transition-colors"
+               className="w-full bg-black/50 border border-white/10 text-white px-4 py-3 text-sm focus:border-brand-500 focus:outline-none transition-colors rounded-none placeholder-gray-700"
                placeholder="admin@monkeytips.com"
              />
            </div>
@@ -100,12 +100,12 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
                type="password" 
                value={password}
                onChange={e => setPassword(e.target.value)}
-               className="w-full bg-black/50 border border-white/10 text-white px-4 py-3 text-sm focus:border-brand-500 focus:outline-none transition-colors"
+               className="w-full bg-black/50 border border-white/10 text-white px-4 py-3 text-sm focus:border-brand-500 focus:outline-none transition-colors rounded-none placeholder-gray-700"
                placeholder="•••••"
              />
            </div>
            {error && <p className="text-red-500 text-xs border border-red-900/50 bg-red-900/10 p-2 text-center">{error}</p>}
-           <button type="submit" className="w-full bg-white text-black hover:bg-brand-400 font-bold py-3 text-xs uppercase tracking-widest transition-colors mt-2">
+           <button type="submit" className="w-full bg-white text-black hover:bg-brand-400 font-bold py-3 text-xs uppercase tracking-widest transition-colors mt-2 rounded-none">
              Authenticate
            </button>
          </form>

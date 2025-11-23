@@ -42,7 +42,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
       {/* Sidebar */}
       <aside className="w-20 lg:w-64 bg-surface-900 border-r border-white/5 flex-shrink-0 flex flex-col transition-all duration-300">
         <div className="p-6 flex items-center justify-center lg:justify-start gap-3">
-           <div className="w-8 h-8 bg-brand-500 rounded flex items-center justify-center text-black font-bold text-lg shadow-[0_0_15px_rgba(245,158,11,0.4)]">
+           <div className="w-8 h-8 bg-brand-500 rounded-sm flex items-center justify-center text-black font-bold text-lg shadow-[0_0_15px_rgba(245,158,11,0.4)]">
              M
            </div>
            <div className="hidden lg:block">
@@ -58,10 +58,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
             { name: 'Analysts', icon: '👥' },
             { name: 'Data Streams', icon: '📡' }
           ].map((item, idx) => (
-             <button key={idx} className={`w-full flex items-center gap-3 px-3 py-3 rounded-md transition-all group ${idx === 0 ? 'bg-white/5 text-white' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}>
+             <button key={idx} className={`w-full flex items-center gap-3 px-3 py-3 rounded-none border-l-2 transition-all group ${idx === 0 ? 'bg-white/5 border-brand-500 text-white' : 'border-transparent text-gray-500 hover:text-white hover:bg-white/5'}`}>
                <span className="text-lg opacity-70">{item.icon}</span>
-               <span className="hidden lg:block font-medium text-sm tracking-wide">{item.name}</span>
-               {idx === 0 && <div className="hidden lg:block ml-auto w-1.5 h-1.5 rounded-full bg-brand-500"></div>}
+               <span className="hidden lg:block font-medium text-sm tracking-wide font-display">{item.name}</span>
              </button>
           ))}
         </nav>
@@ -71,7 +70,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
              <div className="w-8 h-8 rounded bg-gradient-to-tr from-gray-700 to-gray-600 border border-white/10"></div>
              <div className="hidden lg:block">
                <p className="text-sm font-medium text-white">Administrator</p>
-               <p className="text-xs text-brand-500 font-mono">ROOT_ACCESS</p>
+               <p className="text-[10px] text-brand-500 font-mono tracking-wider">ROOT_ACCESS</p>
              </div>
           </div>
         </div>
@@ -112,7 +111,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                   <span className="text-brand-500">///</span> Generative AI Core
                 </h3>
                 <select 
-                  className="bg-surface-950 text-gray-400 border border-white/10 rounded px-3 py-1.5 text-xs font-mono outline-none focus:border-brand-500 transition-colors"
+                  className="bg-surface-950 text-gray-400 border border-white/10 rounded-none px-3 py-1.5 text-xs font-mono outline-none focus:border-brand-500 transition-colors uppercase"
                   value={selectedSport}
                   onChange={(e) => setSelectedSport(e.target.value as SportType | 'All')}
                 >
@@ -123,7 +122,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                 </select>
               </div>
 
-              <div className="bg-black/30 rounded border border-white/5 p-8 flex flex-col items-center justify-center text-center relative overflow-hidden group">
+              <div className="bg-black/30 rounded-none border border-white/5 p-8 flex flex-col items-center justify-center text-center relative overflow-hidden group">
                  {/* Decorative background element */}
                  <div className="absolute inset-0 bg-gradient-to-b from-brand-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                  
@@ -140,7 +139,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                  <button
                    onClick={handleGenerateIntelligence}
                    disabled={isGenerating}
-                   className={`px-8 py-3 rounded text-sm font-bold tracking-widest uppercase transition-all relative overflow-hidden ${
+                   className={`px-8 py-3 rounded-none text-sm font-bold tracking-widest uppercase transition-all relative overflow-hidden ${
                      isGenerating 
                        ? 'bg-surface-800 text-gray-500 cursor-not-allowed border border-white/5' 
                        : 'bg-brand-600 text-white hover:bg-brand-500 shadow-[0_0_20px_rgba(217,119,6,0.2)]'
@@ -185,20 +184,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
             <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6">
               <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-4">Feed Status</h3>
               <div className="space-y-3 font-mono text-xs">
-                <div className="flex justify-between items-center p-2 bg-black/20 rounded border border-white/5">
+                <div className="flex justify-between items-center p-2 bg-black/20 rounded-none border border-white/5">
                   <span className="text-gray-300">SOFASCORE_API</span>
                   <span className="text-green-500">● 24ms</span>
                 </div>
-                <div className="flex justify-between items-center p-2 bg-black/20 rounded border border-white/5">
+                <div className="flex justify-between items-center p-2 bg-black/20 rounded-none border border-white/5">
                   <span className="text-gray-300">FLASHSCORE_V2</span>
                   <span className="text-green-500">● 41ms</span>
                 </div>
-                <div className="flex justify-between items-center p-2 bg-black/20 rounded border border-white/5">
+                <div className="flex justify-between items-center p-2 bg-black/20 rounded-none border border-white/5">
                   <span className="text-gray-300">NBA_OFFICIAL</span>
                   <span className="text-brand-500 animate-pulse">● LATENCY</span>
                 </div>
                 <div className="mt-4 pt-4 border-t border-white/5">
-                  <button className="w-full py-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors uppercase tracking-wider">
+                  <button className="w-full py-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-none transition-colors uppercase tracking-wider">
                     View System Logs
                   </button>
                 </div>

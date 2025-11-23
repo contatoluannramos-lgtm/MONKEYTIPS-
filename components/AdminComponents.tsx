@@ -2,16 +2,16 @@ import React, { useState } from 'react';
 import { ImprovementProposal } from '../types';
 
 export const StatCard = ({ title, value, change, icon }: { title: string, value: string, change: string, icon: string }) => (
-  <div className="bg-dark-800 p-6 rounded-xl border border-dark-800 shadow-lg hover:border-monkey-500/30 transition-all">
+  <div className="bg-surface-900 p-6 border border-white/5 shadow-lg hover:border-brand-500/30 transition-all group">
     <div className="flex justify-between items-start">
       <div>
-        <p className="text-gray-400 text-sm font-medium mb-1">{title}</p>
-        <h3 className="text-2xl font-bold text-white">{value}</h3>
+        <p className="text-gray-500 text-xs font-mono uppercase tracking-widest mb-1">{title}</p>
+        <h3 className="text-2xl font-bold text-white font-display">{value}</h3>
       </div>
-      <div className="p-2 bg-dark-900 rounded-lg text-2xl">{icon}</div>
+      <div className="p-2 bg-surface-950 rounded border border-white/5 text-xl group-hover:text-brand-500 transition-colors">{icon}</div>
     </div>
-    <p className={`text-xs mt-3 font-medium ${change.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>
-      {change} <span className="text-gray-500 ml-1">vs mês anterior</span>
+    <p className={`text-xs mt-3 font-medium font-mono ${change.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>
+      {change} <span className="text-gray-600 ml-1">vs prev. month</span>
     </p>
   </div>
 );
@@ -37,25 +37,25 @@ export const ImprovementsPanel = () => {
   };
 
   return (
-    <div className="bg-dark-800 rounded-xl p-6 border border-dark-800">
-      <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-        💡 Melhorias das Análises
+    <div className="bg-surface-900/50 backdrop-blur rounded-none p-6 border border-white/5">
+      <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2 font-display">
+        💡 System Improvements
       </h3>
       
       <div className="space-y-4 mb-6">
         {proposals.map(p => (
-          <div key={p.id} className="bg-dark-900 p-4 rounded-lg flex items-center justify-between group hover:bg-dark-900/80">
+          <div key={p.id} className="bg-surface-950/50 p-4 border border-white/5 flex items-center justify-between group hover:border-brand-500/30 transition-colors">
             <div>
-              <h4 className="text-white font-medium">{p.title}</h4>
-              <p className="text-gray-400 text-xs">{p.description}</p>
+              <h4 className="text-white font-medium text-sm">{p.title}</h4>
+              <p className="text-gray-500 text-xs font-mono">{p.description}</p>
             </div>
             <div className="flex items-center gap-4">
-              <span className={`px-2 py-1 rounded text-xs font-bold ${
-                p.status === 'Implemented' ? 'bg-green-500/20 text-green-500' : 'bg-yellow-500/20 text-yellow-500'
+              <span className={`px-2 py-1 text-[10px] uppercase font-bold tracking-wider border ${
+                p.status === 'Implemented' ? 'bg-green-500/10 border-green-500 text-green-500' : 'bg-brand-500/10 border-brand-500 text-brand-500'
               }`}>
                 {p.status}
               </span>
-              <div className="text-gray-500 text-sm font-mono">{p.votes} votos</div>
+              <div className="text-gray-500 text-xs font-mono">{p.votes} votes</div>
             </div>
           </div>
         ))}
@@ -66,14 +66,14 @@ export const ImprovementsPanel = () => {
           type="text" 
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
-          placeholder="Nova sugestão..." 
-          className="bg-dark-900 border border-gray-700 text-white px-4 py-2 rounded-lg flex-1 focus:outline-none focus:border-monkey-500"
+          placeholder="New system proposal..." 
+          className="bg-surface-950 border border-white/10 text-white px-4 py-2 flex-1 focus:outline-none focus:border-brand-500 text-sm font-mono"
         />
         <button 
           onClick={handleAdd}
-          className="bg-monkey-600 hover:bg-monkey-500 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+          className="bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 text-sm font-medium transition-colors uppercase tracking-wider"
         >
-          Adicionar
+          Add
         </button>
       </div>
     </div>

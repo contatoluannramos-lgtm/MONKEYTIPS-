@@ -14,7 +14,7 @@ export const ClientHeader: React.FC<ClientHeaderProps> = ({ activeSport, onSport
           
           {/* Logo Area */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-brand-500/10 border border-brand-500/20 rounded-lg flex items-center justify-center text-brand-500">
+            <div className="w-10 h-10 bg-brand-500/10 border border-brand-500/20 rounded-sm flex items-center justify-center text-brand-500">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2a10 10 0 1 0 10 10H12V2z"></path>
                 <path d="M12 2a10 10 0 0 0-10 10h10V2z"></path>
@@ -29,18 +29,18 @@ export const ClientHeader: React.FC<ClientHeaderProps> = ({ activeSport, onSport
           
           {/* Desktop Nav */}
           <div className="hidden md:block">
-            <div className="ml-10 flex items-center space-x-1 bg-surface-900/50 p-1 rounded-xl border border-white/5">
+            <div className="ml-10 flex items-center space-x-1 bg-surface-900/50 p-1 rounded-none border border-white/5">
               {['All', ...Object.values(SportType)].map((sport) => (
                 <button
                   key={sport}
                   onClick={() => onSportChange(sport as SportType | 'All')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 font-display tracking-wide ${
+                  className={`px-4 py-2 text-sm font-medium transition-all duration-300 font-display tracking-wide uppercase ${
                     activeSport === sport
                       ? 'bg-brand-500 text-black shadow-[0_0_15px_rgba(245,158,11,0.3)]'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  {sport === 'All' ? 'VISÃO GERAL' : sport.toUpperCase()}
+                  {sport === 'All' ? 'Visão Geral' : sport}
                 </button>
               ))}
             </div>
@@ -54,7 +54,7 @@ export const ClientHeader: React.FC<ClientHeaderProps> = ({ activeSport, onSport
             <button
               key={sport}
               onClick={() => onSportChange(sport as SportType | 'All')}
-              className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider border ${
+              className={`whitespace-nowrap px-4 py-1.5 text-xs font-mono font-bold uppercase tracking-wider border ${
                 activeSport === sport
                   ? 'bg-brand-500/10 border-brand-500 text-brand-500'
                   : 'bg-surface-800 border-transparent text-gray-500'
