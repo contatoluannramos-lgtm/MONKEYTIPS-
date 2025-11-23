@@ -61,7 +61,8 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email === 'admin@monkeytips.com' && password === 'admin') {
+    // Atualizado para a nova senha solicitada
+    if (email === 'admin@monkeytips.com' && password === '0777') {
       onLogin();
     } else {
       setError('ACESSO NEGADO: CREDENCIAIS INVÁLIDAS');

@@ -58,3 +58,17 @@ export interface User {
   email: string;
   role: 'admin' | 'user';
 }
+
+// --- ROADMAP TYPES ---
+export interface RoadmapTask {
+  id: string;
+  name: string;
+  isCompleted: boolean;
+}
+
+export interface RoadmapPhase {
+  id: string;
+  title: string;
+  description: string;
+  tasks: RoadmapTask[];
+}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { generateBulkInsights } from '../services/geminiService';
 import { Match, Tip, SportType } from '../types';
-import { StatCard, ImprovementsPanel, OperationalChecklist } from '../components/AdminComponents';
+import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap } from '../components/AdminComponents';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface AdminDashboardProps {
@@ -99,6 +99,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
           <StatCard title="Precisão Modelo" value="68.4%" change="+2.1%" icon="🎯" />
           <StatCard title="Usuários Ativos" value="1,240" change="+5.4%" icon="👥" />
           <StatCard title="Requisições API" value="45k" change="-1.2%" icon="📡" />
+        </div>
+
+        {/* --- ROADMAP INTEGRATION --- */}
+        <div className="mb-8 relative z-10">
+          <ProjectEvolutionRoadmap />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
