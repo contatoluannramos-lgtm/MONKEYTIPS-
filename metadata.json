@@ -1,0 +1,5 @@
+{
+  "name": "Monkey Tips - Sports Intelligence",
+  "description": "A dual-interface sports intelligence system. Public view for tips, restricted admin view for AI-driven analysis and system management.",
+  "requestFramePermissions": []
+}
