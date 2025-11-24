@@ -27,10 +27,12 @@ export const ActivationPanel = () => {
   const [footballApiKey, setFootballApiKey] = useState('');
   const [supabaseUrl, setSupabaseUrl] = useState('');
   const [supabaseKey, setSupabaseKey] = useState('');
+  const [geminiApiKey, setGeminiApiKey] = useState('');
 
   const [connectionStatus, setConnectionStatus] = useState<{[key: string]: 'success' | 'error' | 'idle'}>({
     'football': 'idle',
-    'supabase': 'idle'
+    'supabase': 'idle',
+    'gemini': 'idle'
   });
 
   // Load saved keys on mount
@@ -43,11 +45,19 @@ export const ActivationPanel = () => {
 
     const savedSupaKey = localStorage.getItem('supabase_anon_key');
     if (savedSupaKey) setSupabaseKey(savedSupaKey);
+
+    const savedGeminiKey = localStorage.getItem('monkey_gemini_api_key');
+    if (savedGeminiKey) setGeminiApiKey(savedGeminiKey);
   }, []);
 
   const handleSaveFootballKey = (key: string) => {
     setFootballApiKey(key);
     localStorage.setItem('monkey_football_api_key', key);
+  };
+
+  const handleSaveGeminiKey = (key: string) => {
+    setGeminiApiKey(key);
+    localStorage.setItem('monkey_gemini_api_key', key);
   };
 
   const handleSaveSupabase = () => {
@@ -66,6 +76,8 @@ export const ActivationPanel = () => {
       if (id === 'football' && !footballApiKey) {
          setConnectionStatus(prev => ({...prev, [id]: 'error'}));
       } else if (id === 'supabase' && (!supabaseUrl || !supabaseKey)) {
+         setConnectionStatus(prev => ({...prev, [id]: 'error'}));
+      } else if (id === 'gemini' && !geminiApiKey) {
          setConnectionStatus(prev => ({...prev, [id]: 'error'}));
       } else {
          setConnectionStatus(prev => ({...prev, [id]: 'success'}));
@@ -125,55 +137,46 @@ export const ActivationPanel = () => {
          </div>
       </div>
 
-      {/* Version Control / Git Section */}
-      <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6 rounded-none">
-         <div className="flex justify-between items-center mb-6">
-            <h3 className="text-white font-bold font-display uppercase tracking-wider flex items-center gap-2">
-              📦 Controle de Versão & Deploy
-            </h3>
-            <span className="px-2 py-1 bg-white/5 text-gray-400 text-[10px] font-mono border border-white/10">
-              BRANCH: MAIN
-            </span>
-         </div>
-
-         <div className="bg-black/40 border border-white/10 p-4 font-mono text-xs space-y-2 mb-4">
-            <div className="flex items-center gap-2">
-               <span className="text-green-500">➜</span>
-               <span className="text-brand-500">git status</span>
-            </div>
-            <div className="text-gray-400 pl-4">
-               On branch main<br/>
-               Your branch is up to date with 'origin/main'.<br/>
-               <span className="text-green-500">nothing to commit, working tree clean</span>
-            </div>
-            <div className="flex items-center gap-2 pt-2">
-               <span className="text-green-500">➜</span>
-               <span className="text-brand-500">last commit</span>
-            </div>
-             <div className="text-gray-400 pl-4">
-               [999f143] feat: Integration with Live Data Service (API-Football)
-            </div>
-         </div>
-
-         <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-               <div className="w-2 h-2 rounded-full bg-green-500"></div>
-               <span className="text-xs text-gray-400 font-mono">Vercel: <span className="text-white">Conectado</span></span>
-            </div>
-            <div className="flex items-center gap-2">
-               <div className="w-2 h-2 rounded-full bg-green-500"></div>
-               <span className="text-xs text-gray-400 font-mono">Build: <span className="text-white">Passing</span></span>
-            </div>
-            <button className="ml-auto bg-white/5 hover:bg-white/10 text-white border border-white/10 px-4 py-2 text-xs font-mono uppercase transition-colors">
-               Forçar Deploy
-            </button>
-         </div>
-      </div>
-
       {/* API Integrations */}
       <div className="grid grid-cols-1 gap-6">
+
+        {/* API Card: Gemini AI (NEW) */}
+        <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6 hover:border-brand-500/20 transition-all group relative overflow-hidden">
+           <div className="absolute top-0 left-0 w-1 h-full bg-gray-800 group-hover:bg-brand-500 transition-colors"></div>
+           
+           <div className="flex justify-between items-start mb-6">
+              <div>
+                <h4 className="text-white font-bold text-lg flex items-center gap-2">
+                  🧠 Google Gemini AI
+                  <span className={`px-2 py-0.5 rounded text-[10px] border uppercase ${connectionStatus['gemini'] === 'success' ? 'bg-green-900/20 text-green-500 border-green-500/30' : 'bg-gray-800 text-gray-400 border-white/5'}`}>
+                    {connectionStatus['gemini'] === 'success' ? 'Pronto' : 'Pendente'}
+                  </span>
+                </h4>
+                <p className="text-gray-500 text-xs font-mono mt-1">Motor de Inteligência Generativa (Model 2.5 Flash)</p>
+              </div>
+           </div>
+
+           <div className="space-y-1 mb-6">
+              <label className="text-[10px] font-mono font-bold text-gray-500 uppercase">API Key (Google AI Studio)</label>
+              <input 
+                 type="password" 
+                 value={geminiApiKey} 
+                 onChange={(e) => handleSaveGeminiKey(e.target.value)}
+                 placeholder="Insira sua chave AIza..."
+                 className="w-full bg-black/30 border border-white/10 text-white px-3 py-2 text-xs font-mono focus:border-brand-500 outline-none" 
+              />
+              <p className="text-[10px] text-gray-600 mt-1">Necessário para gerar as Tips. Obtenha em: aistudio.google.com</p>
+           </div>
+           
+           <button 
+             onClick={() => handleTestConnection('gemini')}
+             className="w-full bg-white text-black font-bold text-xs py-3 uppercase tracking-widest hover:bg-brand-400 transition-colors flex items-center justify-center gap-2"
+           >
+             {testingConnection === 'gemini' ? 'Verificando...' : '⚡ Validar Chave'}
+           </button>
+        </div>
         
-        {/* API Card 1: API Football */}
+        {/* API Card: API Football */}
         <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6 hover:border-brand-500/20 transition-all group relative overflow-hidden">
            <div className="absolute top-0 left-0 w-1 h-full bg-gray-800 group-hover:bg-brand-500 transition-colors"></div>
            
@@ -214,7 +217,7 @@ export const ActivationPanel = () => {
            </button>
         </div>
 
-        {/* API Card 2: Supabase */}
+        {/* API Card: Supabase */}
         <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6 hover:border-brand-500/20 transition-all group relative overflow-hidden">
            <div className="absolute top-0 left-0 w-1 h-full bg-gray-800 group-hover:bg-green-500 transition-colors"></div>
            

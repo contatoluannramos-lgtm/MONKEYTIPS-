@@ -2,10 +2,6 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { Match, Tip, SportType } from "../types";
 
-// Initialize Gemini Client
-const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
-
 const tipSchema: Schema = {
   type: Type.OBJECT,
   properties: {
@@ -18,10 +14,15 @@ const tipSchema: Schema = {
 };
 
 export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | null> => {
+  // Read API Key from LocalStorage (set via Admin Activation Panel)
+  const apiKey = localStorage.getItem('monkey_gemini_api_key');
+  
   if (!apiKey) {
-    console.error("API Key is missing");
+    console.error("Gemini API Key is missing in LocalStorage");
     return null;
   }
+
+  const ai = new GoogleGenAI({ apiKey });
 
   try {
     const modelId = "gemini-2.5-flash"; // Efficient for structured data tasks

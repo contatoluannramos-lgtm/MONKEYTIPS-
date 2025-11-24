@@ -53,8 +53,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
   };
 
   const handleGenerateIntelligence = async () => {
-    if (!process.env.API_KEY) {
-        alert("Erro de Sistema: Chave de Ambiente Ausente.");
+    // Check Local Storage for Gemini Key instead of process.env
+    const geminiKey = localStorage.getItem('monkey_gemini_api_key');
+    if (!geminiKey) {
+        alert("Erro de Sistema: Chave Gemini Ausente. Configure-a na aba 'Ativação'.");
+        setCurrentView('ACTIVATION');
         return;
     }
     
