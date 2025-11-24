@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ClientDashboard } from './views/ClientDashboard';
@@ -13,21 +14,23 @@ const INITIAL_MATCHES: Match[] = [
     id: 'm1',
     sport: SportType.FOOTBALL,
     teamA: 'Flamengo',
-    teamB: 'Palmeiras',
+    teamB: 'Atlético Mineiro',
+    teamAId: 127, // ID Real Flamengo
+    teamBId: 1062, // ID Real Atlético Mineiro
     league: 'Brasileirão Série A',
-    startTime: '2024-05-20T21:30:00Z',
+    startTime: new Date().toISOString(), // Hoje
     status: 'Scheduled',
     stats: { 
       homeScore: 0, 
       awayScore: 0, 
       currentMinute: 0, 
-      possession: 55, 
-      corners: { home: 2, away: 3, total: 5 }, 
-      shotsOnTarget: { home: 6, away: 4 }, 
-      shotsOffTarget: { home: 4, away: 3 }, 
-      attacks: { dangerous: 30, total: 65 }, 
-      cards: { yellow: 2, red: 0 }, 
-      recentForm: 'W-D-W-L-W' 
+      possession: 50, 
+      corners: { home: 0, away: 0, total: 0 }, 
+      shotsOnTarget: { home: 0, away: 0 }, 
+      shotsOffTarget: { home: 0, away: 0 }, 
+      attacks: { dangerous: 0, total: 0 }, 
+      cards: { yellow: 0, red: 0 }, 
+      recentForm: 'N/A' 
     }
   },
   {
@@ -62,12 +65,12 @@ const INITIAL_TIPS: Tip[] = [
   {
     id: 't1',
     matchId: 'm1',
-    matchTitle: 'Flamengo x Palmeiras',
+    matchTitle: 'Flamengo x Atlético Mineiro',
     sport: SportType.FOOTBALL,
-    prediction: 'Menos de 2.5 Cartões',
-    confidence: 72,
-    odds: 1.85,
-    reasoning: 'O árbitro tem média de 2.1 cartões/jogo. Espera-se alta rigidez tática reduzindo o caos do jogo.',
+    prediction: 'Aguardando Análise...',
+    confidence: 50,
+    odds: 1.00,
+    reasoning: 'Dados de histórico serão processados na próxima execução do protocolo.',
     createdAt: new Date().toISOString(),
     isPremium: false,
     status: 'Pending'
@@ -194,6 +197,9 @@ export default function App() {
       const dbMatches = await dbService.getMatches();
       if (dbMatches.length > 0) {
         setMatches(dbMatches);
+      } else {
+        // Se não tiver no banco, mantém os iniciais (com Flamengo x CAM) para teste
+        setMatches(INITIAL_MATCHES);
       }
 
       const dbTips = await dbService.getTips();

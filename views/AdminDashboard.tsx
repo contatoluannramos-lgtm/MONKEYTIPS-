@@ -1,6 +1,7 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { generateBulkInsights, analyzeTicketImage, analyzeScreenCapture } from '../services/geminiService';
-import { fetchLiveFixtures } from '../services/liveDataService';
+import { fetchLiveFixtures, fetchTeamHistory } from '../services/liveDataService';
 import { dbService } from '../services/databaseService';
 import { authService } from '../services/authService';
 import { runScoutAnalysis, DEFAULT_CALIBRATION } from '../services/scoutEngine';
@@ -33,6 +34,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
   const [isScanningScreen, setIsScanningScreen] = useState(false);
   const [activeUrl, setActiveUrl] = useState("https://bet365.com/live");
   const [browserImage, setBrowserImage] = useState<string | null>(null); // To store the "pasted" screen
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // --- MONKEY VISION REAL (SCREEN SHARE) ---
+  const startScreenShare = async () => {
+    try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+            video: { cursor: "always" } as any,
+            audio: false
+        });
+        
+        if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.play();
+        }
+        
+        setActiveUrl("STREAM ATIVO: CAPTURANDO TELA");
+    } catch (err) {
+        console.error("Error sharing screen:", err);
+        alert("Permissão de tela negada ou cancelada.");
+    }
+  };
+
+  const captureFrame = async () => {
+    if (!videoRef.current) return;
+    setIsScanningScreen(true);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    canvas.getContext("2d")?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+    
+    const base64 = canvas.toDataURL("image/jpeg");
+    setBrowserImage(base64); // Show screenshot in "browser" div
+
+    // Send to Gemini Vision
+    const data = await analyzeScreenCapture(base64);
+    setVisionData(data);
+    setIsScanningScreen(false);
+  };
 
   // --- VISION & LABS LOGIC ---
   const processImageFile = async (file: File, mode: 'TICKET' | 'SCREEN') => {
@@ -52,8 +92,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         setTicketAnalysis(analysis);
         setIsAnalyzingTicket(false);
       } else {
+        // If uploading manually to vision (fallback)
         setIsScanningScreen(true);
-        setBrowserImage(base64String); // Show in "browser"
+        setBrowserImage(base64String); 
         const data = await analyzeScreenCapture(base64String);
         setVisionData(data);
         setIsScanningScreen(false);
@@ -138,7 +179,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
 
          alert(`${newMatches.length} novas partidas sincronizadas! (Semana)`);
       } else {
-         alert("Dados atualizados. Nenhuma partida NOVA encontrada para esta semana.");
+         alert(`Agenda Sincronizada: ${liveMatches.length} jogos encontrados para a semana.`);
       }
     } else {
       if(!apiKey) alert("Configure a API Key na aba Ativação para dados reais.");
@@ -149,6 +190,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
 
   const handleGenerateIntelligence = async () => {
     const geminiKey = localStorage.getItem('monkey_gemini_api_key');
+    const footballKey = localStorage.getItem('monkey_football_api_key') || '';
+
     if (!geminiKey) {
         alert("Erro de Sistema: Chave Gemini Ausente. Configure-a na aba 'Ativação'.");
         setCurrentView('ACTIVATION');
@@ -160,7 +203,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
        selectedSport === 'All' || m.sport === selectedSport
     );
 
-    const newTips = await generateBulkInsights(matchesToAnalyze);
+    // Passo Intermediário: Enriquecer com Histórico dos Últimos 5 Jogos
+    // Isso é crucial para o pedido de "Cruzar dados"
+    const enrichedMatches = await Promise.all(matchesToAnalyze.map(async (m) => {
+        // Se tiver ID de time e chave de API, busca o histórico
+        if (m.teamAId && m.teamBId && footballKey) {
+            const homeHist = await fetchTeamHistory(m.teamAId, footballKey);
+            const awayHist = await fetchTeamHistory(m.teamBId, footballKey);
+            
+            if (homeHist && awayHist) {
+                return { ...m, history: { home: homeHist, away: awayHist } };
+            }
+        }
+        return m;
+    }));
+
+    const newTips = await generateBulkInsights(enrichedMatches);
     setTips(prev => [...newTips, ...prev]);
     
     newTips.forEach(async (t) => {
@@ -214,7 +272,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         <nav className="mt-8 space-y-1 px-3">
           {[
             { name: 'Visão Geral', icon: '⚡', id: 'DASHBOARD' },
-            { name: 'Monkey Vision', icon: '👁️', id: 'MONKEY_VISION' }, // Changed Icon and Name
+            { name: 'Monkey Vision', icon: '👁️', id: 'MONKEY_VISION' }, 
             { name: 'Monkey Fusion', icon: '☢️', id: 'FUSION_CENTER' },
             { name: 'Scout Engine', icon: '📐', id: 'SCOUT_ENGINE' },
             { name: 'Laboratório IA', icon: '🧪', id: 'MONKEY_LABS' },
@@ -337,32 +395,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                            <span>{activeUrl}</span>
                            <span className="text-brand-500 animate-pulse">● LIVE CAPTURE</span>
                         </div>
+                        <button 
+                            onClick={startScreenShare}
+                            className="bg-brand-500/10 border border-brand-500 text-brand-500 px-3 py-1 text-[10px] font-bold uppercase hover:bg-brand-500/20"
+                        >
+                            Conectar Feed
+                        </button>
                      </div>
                      
                      {/* Viewport Area */}
                      <div 
                         className="flex-1 bg-black relative group cursor-crosshair overflow-hidden"
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onDrop={handleDrop}
                      >
+                        <video ref={videoRef} className="hidden" muted></video>
+                        
                         {browserImage ? (
                            <img src={browserImage} alt="Live Screen" className="w-full h-full object-contain opacity-80" />
                         ) : (
                            <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-600">
                               <p className="font-mono text-sm mb-2">AGUARDANDO SINAL DE VÍDEO...</p>
-                              <p className="text-[10px] uppercase">Cole um Print (Ctrl+V) ou Arraste uma tela de jogo aqui.</p>
-                           </div>
-                        )}
-                        
-                        {isDragging && (
-                           <div className="absolute inset-0 bg-brand-500/10 border-4 border-brand-500 border-dashed z-20 flex items-center justify-center">
-                              <p className="text-brand-500 font-bold font-display bg-black/80 px-4 py-2">SOLTAR TELA</p>
+                              <p className="text-[10px] uppercase">Clique em Conectar Feed e selecione a aba da Bet365.</p>
                            </div>
                         )}
                         
                         {/* Scanline Effect Overlay */}
                         <div className="scanline pointer-events-none"></div>
+                     </div>
+                     
+                     {/* Control Bar */}
+                     <div className="bg-surface-950 p-2 border-t border-white/5 flex justify-center">
+                        <button 
+                            onClick={captureFrame}
+                            className="bg-brand-600 hover:bg-brand-500 text-white px-8 py-2 text-xs font-bold uppercase tracking-widest shadow-lg shadow-brand-500/20"
+                        >
+                            SCAN NOW [ESCANEAR TELA]
+                        </button>
                      </div>
                   </div>
 
@@ -531,7 +598,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                           <YAxis stroke="#52525b" tick={{fill: '#71717a'}} />
                           <Tooltip contentStyle={{ backgroundColor: '#18181B', borderColor: '#27272A' }} />
                           <Bar dataKey="tips" name="Gerados" fill="#3f3f46" radius={[2, 2, 0, 0]} />
-                          <Bar dataKey="wins" name="Wins" fill="#10B981" radius={[2, 2, 0, 0]} />
+                          <Bar dataKey="wins" name="Sucesso" fill="#D97706" radius={[2, 2, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -590,7 +657,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                     
                     <h4 className="text-white font-medium mb-2 font-display">Iniciar Sequência de Análise</h4>
                     <p className="text-gray-500 text-sm max-w-md mb-8 font-light">
-                      Implantar modelo Gemini 2.5 Flash para processar {matches.length} eventos. Correlacionando dados ao vivo/agendados com estatísticas históricas.
+                      Implantar modelo Gemini 2.5 Flash para processar {matches.length} eventos. 
+                      <br/>
+                      <span className="text-brand-500 font-bold">NOVO:</span> Inclui análise cruzada dos últimos 5 jogos (H2H).
                     </p>
                     
                     <button
@@ -605,7 +674,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                       {isGenerating ? (
                         <span className="flex items-center gap-2">
                           <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                          PROCESSANDO DADOS...
+                          COLETANDO HISTÓRICO & PROCESSANDO...
                         </span>
                       ) : (
                         "EXECUTAR PROTOCOLO"

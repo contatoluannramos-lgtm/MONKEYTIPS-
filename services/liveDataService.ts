@@ -1,4 +1,5 @@
-import { Match, SportType, FootballStats } from "../types";
+
+import { Match, SportType, FootballStats, TeamHistory } from "../types";
 
 const API_HOST = "v3.football.api-sports.io";
 const API_URL = "https://v3.football.api-sports.io";
@@ -56,6 +57,8 @@ export const fetchLiveFixtures = async (apiKey: string): Promise<Match[]> => {
       return {
         id: `live-${item.fixture.id}`,
         externalId: item.fixture.id,
+        teamAId: item.teams.home.id, // Captura ID do time
+        teamBId: item.teams.away.id, // Captura ID do time
         sport: SportType.FOOTBALL,
         teamA: item.teams.home.name,
         teamB: item.teams.away.name,
@@ -75,8 +78,64 @@ export const fetchLiveFixtures = async (apiKey: string): Promise<Match[]> => {
   }
 };
 
-// Função para buscar estatísticas detalhadas (Deep Data) de uma partida específica
-// Chamada quando o Monkey Tips foca em um jogo no Dashboard
+// Busca histórico dos últimos 5 jogos de um time
+export const fetchTeamHistory = async (teamId: number, apiKey: string): Promise<TeamHistory | null> => {
+    if(!apiKey || !teamId) return null;
+
+    try {
+        const myHeaders = new Headers();
+        myHeaders.append("x-rapidapi-key", apiKey);
+        myHeaders.append("x-rapidapi-host", API_HOST);
+
+        // Busca últimos 5 jogos FINALIZADOS
+        const response = await fetch(`${API_URL}/fixtures?team=${teamId}&last=5&status=FT`, {
+            method: 'GET',
+            headers: myHeaders
+        });
+
+        if (!response.ok) return null;
+        const data = await response.json();
+        
+        if (!data.response || data.response.length === 0) return null;
+
+        const matches = data.response;
+        
+        let goalsFor = 0;
+        let goalsAgainst = 0;
+        let cleanSheets = 0;
+        let failedToScore = 0;
+        const results: string[] = [];
+
+        matches.forEach((m: any) => {
+            const isHome = m.teams.home.id === teamId;
+            const goalsScored = isHome ? m.goals.home : m.goals.away;
+            const goalsConceded = isHome ? m.goals.away : m.goals.home;
+
+            goalsFor += goalsScored;
+            goalsAgainst += goalsConceded;
+
+            if (goalsConceded === 0) cleanSheets++;
+            if (goalsScored === 0) failedToScore++;
+
+            if (goalsScored > goalsConceded) results.push('W');
+            else if (goalsScored < goalsConceded) results.push('L');
+            else results.push('D');
+        });
+
+        return {
+            last5Results: results,
+            avgGoalsFor: Number((goalsFor / matches.length).toFixed(2)),
+            avgGoalsAgainst: Number((goalsAgainst / matches.length).toFixed(2)),
+            cleanSheets,
+            failedToScore
+        };
+
+    } catch (e) {
+        console.error("Erro ao buscar histórico do time", e);
+        return null;
+    }
+};
+
 export const fetchMatchStatistics = async (fixtureId: number, apiKey: string): Promise<Partial<FootballStats> | null> => {
     if(!apiKey) return null;
 
@@ -95,10 +154,8 @@ export const fetchMatchStatistics = async (fixtureId: number, apiKey: string): P
         
         if (!data.response || data.response.length === 0) return null;
 
-        // Helper para extrair valor do array de stats da API
         const getValue = (teamStats: any[], type: string) => {
             const stat = teamStats.find((s: any) => s.type === type);
-            // API can return "50%" or 50. Ensure we parse it to int.
             return stat && stat.value !== null ? parseInt(String(stat.value).replace('%', '')) : 0;
         };
 

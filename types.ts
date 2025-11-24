@@ -4,10 +4,10 @@ export enum SportType {
   BASKETBALL = 'Basquete',
   VOLLEYBALL = 'Vôlei',
   ICE_HOCKEY = 'Hóquei no Gelo',
-  ESPORTS = 'eSports (LoL/CS)',
+  ESPORTS = 'eSports (LoL/CS)'
 }
 
-// --- DEEP STATS INTERFACES ---
+export type AdminView = 'DASHBOARD' | 'ACTIVATION' | 'MONKEY_LABS' | 'MONKEY_VISION' | 'PERFORMANCE' | 'CALIBRATION' | 'SCOUT_ENGINE' | 'FUSION_CENTER';
 
 export interface FootballStats {
   homeScore: number;
@@ -17,10 +17,10 @@ export interface FootballStats {
   corners: { home: number; away: number; total: number };
   shotsOnTarget: { home: number; away: number };
   shotsOffTarget: { home: number; away: number };
-  xg?: { home: number; away: number }; // Expected Goals
   attacks: { dangerous: number; total: number };
   cards: { yellow: number; red: number };
-  recentForm?: string;
+  recentForm: string;
+  xg?: { home: number; away: number };
 }
 
 export interface BasketballStats {
@@ -43,45 +43,47 @@ export interface BasketballStats {
 
 export interface VolleyballStats {
   homeScore: number; // Sets won
-  awayScore: number; // Sets won
-  currentSetScore: { home: number; away: number };
-  sets: Array<{ home: number; away: number }>; // Histórico de sets
-  aces: { home: number; away: number };
-  errors: { home: number; away: number };
-  blocks: { home: number; away: number };
-}
-
-export interface GenericStats {
-  homeScore: number;
   awayScore: number;
-  currentTime: string;
-  details: string;
+  currentSetScore: { home: number; away: number };
+  sets: {
+    s1: { home: number; away: number };
+    s2: { home: number; away: number };
+    s3: { home: number; away: number };
+    s4: { home: number; away: number };
+    s5: { home: number; away: number };
+  };
+  aces?: { home: number; away: number };
+  errors?: { home: number; away: number };
 }
 
-// Union Type para flexibilidade
-export type MatchStats = FootballStats | BasketballStats | VolleyballStats | GenericStats;
-
-export interface MatchOdds {
-  home: number;
-  draw?: number;
-  away: number;
-  lastUpdate: string;
+// Nova estrutura para histórico dos últimos 5 jogos
+export interface TeamHistory {
+  last5Results: string[]; // ex: ["W", "L", "D", "W", "W"]
+  avgGoalsFor: number;
+  avgGoalsAgainst: number;
+  cleanSheets: number;
+  failedToScore: number;
 }
 
 export interface Match {
   id: string;
-  externalId?: number; 
+  externalId?: number; // ID da API (ex: 71823)
+  teamAId?: number;    // ID do time Casa
+  teamBId?: number;    // ID do time Fora
   sport: SportType;
   teamA: string;
   teamB: string;
   league: string;
   startTime: string;
-  status: 'Scheduled' | 'Live' | 'Finished' | 'Halftime' | 'Paused';
-  stats: MatchStats;
-  odds?: MatchOdds;
+  status: 'Live' | 'Scheduled' | 'Finished' | 'HT' | 'Postponed';
+  stats: FootballStats | BasketballStats | VolleyballStats | any;
+  history?: {
+    home: TeamHistory;
+    away: TeamHistory;
+  };
 }
 
-export type TipStatus = 'Pending' | 'Won' | 'Lost' | 'Void';
+export type TipStatus = 'Pending' | 'Won' | 'Lost';
 
 export interface Tip {
   id: string;
@@ -89,8 +91,8 @@ export interface Tip {
   matchTitle: string;
   sport: SportType;
   prediction: string;
+  confidence: number;
   odds: number;
-  confidence: number; // 0-100
   reasoning: string;
   createdAt: string;
   isPremium: boolean;
@@ -107,13 +109,13 @@ export interface TicketAnalysis {
 }
 
 export interface ScreenAnalysisData {
-  sport: SportType;
+  sport: string;
   teamA: string;
   teamB: string;
   score: string;
   time: string;
-  detectedOdds: { market: string, value: number }[];
-  context: string; // "Pressão ofensiva alta", "Jogo parado"
+  detectedOdds: { market: string; value: number }[];
+  context: string;
 }
 
 export interface ImprovementProposal {
@@ -130,64 +132,6 @@ export interface ChecklistItem {
   checked: boolean;
 }
 
-export interface User {
-  email: string;
-  role: 'admin' | 'user';
-}
-
-// --- SCOUT & FUSION ENGINES ---
-
-export interface CalibrationConfig {
-  football: {
-    instruction: string;
-    weightRecentForm: number;
-    weightHeadToHead: number;
-    poissonStrength: number;
-    over25Threshold: number;
-  };
-  basketball: {
-    instruction: string;
-    paceWeight: number;
-    efficiencyWeight: number;
-    lineThreshold: number;
-  };
-  volleyball: {
-    instruction: string;
-    setWinProbability: number;
-    blockWeight: number;
-  };
-  iceHockey: {
-    instruction: string;
-    powerPlayWeight: number;
-    goalieSaveRateWeight: number;
-  };
-  onlineGames: {
-    instruction: string;
-    volatilityIndex: number;
-    rtpThreshold: number;
-  };
-}
-
-export interface ScoutResult {
-  matchId: string;
-  calculatedProbability: number; 
-  expectedGoals?: { home: number, away: number };
-  projectedPoints?: number; 
-  signal: 'STRONG_OVER' | 'STRONG_UNDER' | 'HOME_WIN' | 'AWAY_WIN' | 'NEUTRAL';
-  details: string; 
-}
-
-export interface FusionAnalysis {
-  matchId: string;
-  scoutResult: ScoutResult;
-  aiContext: string; 
-  finalConfidence: number;
-  ev: number; 
-  marketOdd: number;
-  verdict: 'GREEN_LIGHT' | 'YELLOW_WARNING' | 'RED_ALERT';
-}
-
-// --- ROADMAP TYPES ---
 export interface RoadmapTask {
   id: string;
   name: string;
@@ -201,5 +145,29 @@ export interface RoadmapPhase {
   tasks: RoadmapTask[];
 }
 
-// --- ADMIN NAVIGATION ---
-export type AdminView = 'DASHBOARD' | 'ACTIVATION' | 'PERFORMANCE' | 'MONKEY_LABS' | 'MONKEY_VISION' | 'SCOUT_ENGINE' | 'FUSION_CENTER' | 'CALIBRATION';
+export interface ScoutResult {
+  matchId: string;
+  calculatedProbability: number;
+  projectedPoints?: number; // Para basquete/vôlei
+  expectedGoals?: { home: number; away: number }; // Para futebol
+  signal: 'STRONG_OVER' | 'OVER' | 'NEUTRAL' | 'UNDER' | 'STRONG_UNDER';
+  details: string;
+}
+
+export interface FusionAnalysis {
+  matchId: string;
+  scoutResult: ScoutResult;
+  aiContext: string;
+  finalConfidence: number;
+  ev: number; // Expected Value
+  marketOdd: number;
+  verdict: 'GREEN_LIGHT' | 'YELLOW_WARNING' | 'RED_ALERT';
+}
+
+export interface CalibrationConfig {
+  football: { instruction: string; weightRecentForm: number; weightHeadToHead: number; poissonStrength: number; over25Threshold: number };
+  basketball: { instruction: string; paceWeight: number; efficiencyWeight: number; lineThreshold: number };
+  volleyball: { instruction: string; setWinProbability: number; blockWeight: number };
+  iceHockey: { instruction: string; powerPlayWeight: number; goalieSaveRateWeight: number };
+  onlineGames: { instruction: string; volatilityIndex: number; rtpThreshold: number };
+}

@@ -81,6 +81,29 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
     const strategicInstruction = getStrategyForSport(match.sport);
     const isPreGame = match.status !== 'Live';
 
+    // Construção do bloco de dados históricos (Cross-Reference)
+    let historicalContext = "Histórico: Dados não disponíveis.";
+    if (match.history) {
+        historicalContext = `
+        ANÁLISE DE HISTÓRICO (ÚLTIMOS 5 JOGOS):
+        
+        MANDANTE (${match.teamA}):
+        - Resultados: ${match.history.home.last5Results.join('-')}
+        - Média Gols Marcados: ${match.history.home.avgGoalsFor}
+        - Média Gols Sofridos: ${match.history.home.avgGoalsAgainst}
+        - Clean Sheets: ${match.history.home.cleanSheets}
+
+        VISITANTE (${match.teamB}):
+        - Resultados: ${match.history.away.last5Results.join('-')}
+        - Média Gols Marcados: ${match.history.away.avgGoalsFor}
+        - Média Gols Sofridos: ${match.history.away.avgGoalsAgainst}
+        - Clean Sheets: ${match.history.away.cleanSheets}
+
+        INSTRUÇÃO DE CRUZAMENTO:
+        Cruze especificamente a média de ataque do Mandante com a média de defesa do Visitante e vice-versa para projetar o cenário de gols.
+        `;
+    }
+
     const prompt = `
       Você é o Analista Oficial do MonkeyTips.
       
@@ -90,31 +113,31 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
       Liga: ${match.league}
       Status: ${match.status}
       
+      ${historicalContext}
+
       ESTATÍSTICAS TÉCNICAS (Se tudo for zero, é porque o jogo ainda não começou):
       ${JSON.stringify(match.stats)}
 
       PROTOCOLO DE ANÁLISE:
       "${strategicInstruction}"
 
-      ⚠️ INSTRUÇÃO CRÍTICA PARA JOGOS AGENDADOS (Scheduled):
-      Se as estatísticas acima estiverem zeradas, NÃO diga "sem dados".
-      Use seu vasto conhecimento histórico sobre ${match.teamA} e ${match.teamB} para projetar o resultado.
-      Considere: Forma recente, mando de campo e tradição.
-      Se for jogo AO VIVO, use estritamente os números passados.
+      ⚠️ INSTRUÇÃO CRÍTICA:
+      Se tiver dados históricos acima, use-os como base principal para o viés da análise.
+      Se as estatísticas técnicas estiverem zeradas (Scheduled), confie 100% no histórico e conhecimento prévio.
 
-      REGRAS DE FORMATAÇÃO (3 BLOCOS):
+      REGRAS DE FORMATAÇÃO (3 BLOCOS OBRIGATÓRIOS):
       
       ⸻
       1) PROJEÇÕES MONKEYTIPS
-      • [Dado estatístico ou histórico relevante]
-      • [Tendência projetada]
+      • [Dado estatístico cruzado]
+      • [Tendência projetada baseada nos últimos 5 jogos]
       • [Probabilidade %]
       ⸻
       2) CONCLUSÃO
-      [Resumo curto e tático de 2 linhas. Direto ao ponto.]
+      [Resumo curto e tático de 2 linhas. Direto ao ponto. Sem enrolação.]
       ⸻
       3) RECOMENDAÇÃO MONKEYTIPS
-      • [APOSTA ÚNICA] (Ex: Over 2.5 Gols, Lakers -5.5, Ambas Marcam)
+      • [APOSTA ÚNICA] (Ex: Over 2.5 Gols, Flamengo ML, Ambas Marcam)
 
       Retorne apenas JSON válido.
     `;
