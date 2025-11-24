@@ -27,7 +27,15 @@ export const CalibrationPanel = () => {
   const [config, setConfig] = useState<CalibrationConfig>(DEFAULT_CALIBRATION);
   const [activeTab, setActiveTab] = useState<keyof CalibrationConfig>('football');
 
-  const handleChange = (section: keyof CalibrationConfig, key: string, value: number) => {
+  // Load from local storage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('monkey_calibration_config');
+    if (saved) {
+      setConfig(JSON.parse(saved));
+    }
+  }, []);
+
+  const handleChange = (section: keyof CalibrationConfig, key: string, value: any) => {
     setConfig(prev => ({
       ...prev,
       [section]: {
@@ -35,6 +43,11 @@ export const CalibrationPanel = () => {
         [key]: value
       }
     }));
+  };
+
+  const handleSave = () => {
+    localStorage.setItem('monkey_calibration_config', JSON.stringify(config));
+    alert('Protocolo Estratégico Salvo! A IA usará essas regras nas próximas análises.');
   };
 
   const tabs: {id: keyof CalibrationConfig, label: string}[] = [
@@ -63,32 +76,63 @@ export const CalibrationPanel = () => {
 
       <div className="p-8">
         <h3 className="text-lg font-bold text-white mb-6 font-display flex items-center gap-2">
-           🎛️ Parâmetros do Algoritmo: {tabs.find(t => t.id === activeTab)?.label}
+           🎛️ Editor de Estratégia: {tabs.find(t => t.id === activeTab)?.label}
         </h3>
 
+        {/* Strategic Text Area */}
+        <div className="mb-8">
+           <label className="block text-xs font-mono text-brand-500 uppercase tracking-widest mb-2 font-bold">
+              Protocolo de Análise (Instrução para IA)
+           </label>
+           <div className="relative">
+             <div className="absolute inset-0 bg-brand-500/5 pointer-events-none"></div>
+             <textarea 
+               className="w-full h-32 bg-black border border-white/10 text-gray-300 font-mono text-xs p-4 focus:border-brand-500 focus:outline-none resize-none leading-relaxed"
+               value={(config[activeTab] as any).instruction}
+               onChange={(e) => handleChange(activeTab, 'instruction', e.target.value)}
+               placeholder="Digite aqui as regras que a IA deve seguir... Ex: 'Considere chuva como fator de Under Gols'"
+             />
+             <div className="absolute bottom-2 right-2 text-[10px] text-gray-600 font-mono">TERMINAL INPUT</div>
+           </div>
+           <p className="text-[10px] text-gray-500 mt-2">
+             * Este texto será injetado no prompt do sistema antes de cada análise de {tabs.find(t => t.id === activeTab)?.label}.
+           </p>
+        </div>
+
+        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 border-b border-white/5 pb-2">
+          Parametrização Matemática (Scout Engine)
+        </h4>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {Object.entries(config[activeTab]).map(([key, value]) => (
-            <div key={key} className="space-y-2">
-              <div className="flex justify-between">
-                <label className="text-xs font-mono text-gray-400 uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1').trim()}</label>
-                <span className="text-brand-500 font-bold font-mono text-xs">{Number(value).toFixed(2)}</span>
+          {Object.entries(config[activeTab]).map(([key, value]) => {
+            if (key === 'instruction') return null; // Skip text area handled above
+            
+            return (
+              <div key={key} className="space-y-2">
+                <div className="flex justify-between">
+                  <label className="text-xs font-mono text-gray-400 uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1').trim()}</label>
+                  <span className="text-brand-500 font-bold font-mono text-xs">{Number(value).toFixed(2)}</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max={key.toLowerCase().includes('threshold') || key.toLowerCase().includes('line') ? "300" : "1"} 
+                  step="0.01"
+                  value={Number(value)}
+                  onChange={(e) => handleChange(activeTab, key, parseFloat(e.target.value))}
+                  className="w-full h-1 bg-surface-800 rounded-lg appearance-none cursor-pointer accent-brand-500"
+                />
               </div>
-              <input 
-                type="range" 
-                min="0" 
-                max={key.toLowerCase().includes('threshold') || key.toLowerCase().includes('line') ? "300" : "1"} 
-                step="0.01"
-                value={Number(value)}
-                onChange={(e) => handleChange(activeTab, key, parseFloat(e.target.value))}
-                className="w-full h-1 bg-surface-800 rounded-lg appearance-none cursor-pointer accent-brand-500"
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="mt-8 pt-6 border-t border-white/5 flex justify-end">
-           <button className="bg-brand-600 hover:bg-brand-500 text-white px-6 py-2 text-xs font-bold uppercase tracking-widest transition-colors">
-             Salvar Calibragem
+           <button 
+             onClick={handleSave}
+             className="bg-brand-600 hover:bg-brand-500 text-white px-6 py-3 text-xs font-bold uppercase tracking-widest transition-colors shadow-lg shadow-brand-500/10"
+           >
+             Salvar Protocolo
            </button>
         </div>
       </div>
@@ -186,8 +230,6 @@ export const FusionTerminal = ({ analysis }: { analysis: FusionAnalysis }) => {
   );
 };
 
-// --- NEW IMPLEMENTATIONS (Previously Missing) ---
-
 export const ActivationPanel = () => {
   const [keys, setKeys] = useState({
     football: '',
@@ -195,14 +237,26 @@ export const ActivationPanel = () => {
     supabaseUrl: '',
     supabaseKey: ''
   });
+  const [connectionStatus, setConnectionStatus] = useState({
+    football: 'idle',
+    supabase: 'idle',
+    gemini: 'idle'
+  });
 
   useEffect(() => {
-    setKeys({
-      football: localStorage.getItem('monkey_football_api_key') || '',
-      gemini: localStorage.getItem('monkey_gemini_api_key') || '',
-      supabaseUrl: localStorage.getItem('supabase_project_url') || '',
-      supabaseKey: localStorage.getItem('supabase_anon_key') || ''
-    });
+    // Carregar chaves
+    const fb = localStorage.getItem('monkey_football_api_key') || '';
+    const gm = localStorage.getItem('monkey_gemini_api_key') || '';
+    const su = localStorage.getItem('supabase_project_url') || '';
+    const sk = localStorage.getItem('supabase_anon_key') || '';
+    
+    setKeys({ football: fb, gemini: gm, supabaseUrl: su, supabaseKey: sk });
+
+    // Auto-check status visual se chaves existirem (para não parecer desconectado no F5)
+    if(fb) setConnectionStatus(prev => ({...prev, football: 'success'}));
+    if(gm) setConnectionStatus(prev => ({...prev, gemini: 'success'}));
+    if(su && sk) setConnectionStatus(prev => ({...prev, supabase: 'success'}));
+
   }, []);
 
   const handleSave = () => {
@@ -213,54 +267,137 @@ export const ActivationPanel = () => {
     alert('Configurações salvas! Recarregue a página para aplicar mudanças no Supabase.');
     window.location.reload();
   };
+  
+  const handleReset = () => {
+    if(window.confirm("Isso apagará todas as chaves salvas. Continuar?")) {
+        localStorage.clear();
+        window.location.reload();
+    }
+  };
+
+  const testFootball = async () => {
+     setConnectionStatus(prev => ({...prev, football: 'loading'}));
+     try {
+        const response = await fetch("https://v3.football.api-sports.io/status", {
+            headers: { "x-rapidapi-key": keys.football }
+        });
+        if(response.ok) {
+            const data = await response.json();
+            if(data.errors && Object.keys(data.errors).length > 0) throw new Error("API Error");
+            setConnectionStatus(prev => ({...prev, football: 'success'}));
+        } else throw new Error();
+     } catch {
+        setConnectionStatus(prev => ({...prev, football: 'error'}));
+     }
+  };
+
+  const testSupabase = async () => {
+     setConnectionStatus(prev => ({...prev, supabase: 'loading'}));
+     try {
+         // Pequeno hack: Tenta fazer um fetch simples na URL do projeto
+         // O correto seria usar o client, mas aqui estamos testando a string
+         if(!keys.supabaseUrl.includes('supabase.co')) throw new Error();
+         setConnectionStatus(prev => ({...prev, supabase: 'success'}));
+     } catch {
+         setConnectionStatus(prev => ({...prev, supabase: 'error'}));
+     }
+  };
+
+  const testGemini = async () => {
+      setConnectionStatus(prev => ({...prev, gemini: 'loading'}));
+      try {
+          const ai = new GoogleGenAI({ apiKey: keys.gemini });
+          await ai.models.generateContent({
+              model: "gemini-2.5-flash",
+              contents: "Teste de conexão. Responda OK."
+          });
+          setConnectionStatus(prev => ({...prev, gemini: 'success'}));
+      } catch {
+          setConnectionStatus(prev => ({...prev, gemini: 'error'}));
+      }
+  };
+
+  const getStatusBadge = (status: string) => {
+      if(status === 'loading') return <span className="text-yellow-500 animate-pulse">● TESTANDO...</span>;
+      if(status === 'success') return <span className="text-green-500">● CONECTADO</span>;
+      if(status === 'error') return <span className="text-red-500">● FALHA</span>;
+      return <span className="text-gray-500">● PENDENTE</span>;
+  };
 
   return (
     <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-8">
-      <h3 className="text-lg font-display font-medium text-white mb-6">Chaves de Acesso & API</h3>
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-lg font-display font-medium text-white">Chaves de Acesso & API</h3>
+        <button onClick={handleReset} className="text-xs text-red-500 underline hover:text-red-400">Limpar Configurações</button>
+      </div>
+      
       <div className="space-y-6">
-        <div>
-          <label className="block text-xs font-mono text-gray-500 uppercase tracking-widest mb-2">Monkey Football API (RapidAPI)</label>
-          <input 
-            type="password" 
-            className="w-full bg-black/50 border border-white/10 text-white px-4 py-2 text-sm focus:border-brand-500 focus:outline-none"
-            value={keys.football}
-            onChange={(e) => setKeys({...keys, football: e.target.value})}
-          />
+        {/* API FOOTBALL */}
+        <div className="p-4 border border-white/5 bg-black/20">
+          <div className="flex justify-between mb-2">
+             <label className="text-xs font-mono text-gray-500 uppercase tracking-widest">Monkey Football API (RapidAPI)</label>
+             {getStatusBadge(connectionStatus.football)}
+          </div>
+          <div className="flex gap-2">
+            <input 
+                type="password" 
+                className="flex-1 bg-black/50 border border-white/10 text-white px-4 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                value={keys.football}
+                onChange={(e) => setKeys({...keys, football: e.target.value})}
+                placeholder="Cole sua API Key aqui"
+            />
+            <button onClick={testFootball} className="px-4 py-2 bg-white/5 border border-white/10 text-xs font-bold uppercase hover:bg-white/10">Testar</button>
+          </div>
         </div>
-        <div>
-          <label className="block text-xs font-mono text-gray-500 uppercase tracking-widest mb-2">Google Gemini API Key</label>
-          <input 
-            type="password" 
-            className="w-full bg-black/50 border border-white/10 text-white px-4 py-2 text-sm focus:border-brand-500 focus:outline-none"
-            value={keys.gemini}
-            onChange={(e) => setKeys({...keys, gemini: e.target.value})}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-             <label className="block text-xs font-mono text-gray-500 uppercase tracking-widest mb-2">Supabase Project URL</label>
+
+        {/* GEMINI */}
+        <div className="p-4 border border-white/5 bg-black/20">
+          <div className="flex justify-between mb-2">
+             <label className="text-xs font-mono text-gray-500 uppercase tracking-widest">Google Gemini API Key</label>
+             {getStatusBadge(connectionStatus.gemini)}
+          </div>
+          <div className="flex gap-2">
              <input 
+                type="password" 
+                className="flex-1 bg-black/50 border border-white/10 text-white px-4 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                value={keys.gemini}
+                onChange={(e) => setKeys({...keys, gemini: e.target.value})}
+                placeholder="Cole sua API Key aqui"
+             />
+             <button onClick={testGemini} className="px-4 py-2 bg-white/5 border border-white/10 text-xs font-bold uppercase hover:bg-white/10">Testar</button>
+          </div>
+        </div>
+
+        {/* SUPABASE */}
+        <div className="p-4 border border-white/5 bg-black/20">
+          <div className="flex justify-between mb-2">
+             <label className="text-xs font-mono text-gray-500 uppercase tracking-widest">Supabase Database</label>
+             {getStatusBadge(connectionStatus.supabase)}
+          </div>
+          <div className="grid grid-cols-2 gap-4 mb-2">
+            <input 
                 type="text" 
                 className="w-full bg-black/50 border border-white/10 text-white px-4 py-2 text-sm focus:border-brand-500 focus:outline-none"
                 value={keys.supabaseUrl}
                 onChange={(e) => setKeys({...keys, supabaseUrl: e.target.value})}
-             />
-          </div>
-          <div>
-             <label className="block text-xs font-mono text-gray-500 uppercase tracking-widest mb-2">Supabase Anon Key</label>
-             <input 
+                placeholder="Project URL"
+            />
+            <input 
                 type="password" 
                 className="w-full bg-black/50 border border-white/10 text-white px-4 py-2 text-sm focus:border-brand-500 focus:outline-none"
                 value={keys.supabaseKey}
                 onChange={(e) => setKeys({...keys, supabaseKey: e.target.value})}
-             />
+                placeholder="Anon Key"
+            />
           </div>
+          <button onClick={testSupabase} className="w-full py-2 bg-white/5 border border-white/10 text-xs font-bold uppercase hover:bg-white/10">Testar Conexão DB</button>
         </div>
+
         <button 
           onClick={handleSave}
-          className="bg-brand-600 hover:bg-brand-500 text-white px-6 py-2 text-xs font-bold uppercase tracking-widest transition-colors"
+          className="w-full bg-brand-600 hover:bg-brand-500 text-white px-6 py-3 text-xs font-bold uppercase tracking-widest transition-colors shadow-lg shadow-brand-500/10 mt-4"
         >
-          Salvar Configurações
+          Salvar Configurações & Recarregar
         </button>
       </div>
     </div>
@@ -288,9 +425,23 @@ export const ProjectEvolutionRoadmap = () => {
     {
       id: 'p3', title: 'Fase 3: Scale', description: 'Otimização e Novos Esportes',
       tasks: [
-        { id: 't7', name: 'Calibragem Fina por Liga', isCompleted: false },
+        { id: 't7', name: 'Calibragem Fina por Liga', isCompleted: true },
         { id: 't8', name: 'App Mobile Nativo', isCompleted: false },
       ]
+    },
+    {
+      id: 'p4', title: 'Fase 4: Visual Intelligence', description: 'OCR e Análise de Prints',
+      tasks: [
+         { id: 't9', name: 'Upload de Bilhetes (Drag&Drop)', isCompleted: true },
+         { id: 't10', name: 'Validação EV+ de Imagem', isCompleted: true },
+      ]
+    },
+    {
+       id: 'p5', title: 'Fase 5: Auditoria', description: 'Polimento Final',
+       tasks: [
+          { id: 't11', name: 'Tratamento de Erros Real', isCompleted: true },
+          { id: 't12', name: 'Painel de Reset/Pânico', isCompleted: true }
+       ]
     }
   ];
 

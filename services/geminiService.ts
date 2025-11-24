@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Match, Tip, SportType, TicketAnalysis } from "../types";
+import { Match, Tip, SportType, TicketAnalysis, CalibrationConfig } from "../types";
+import { DEFAULT_CALIBRATION } from "./scoutEngine";
 
 const tipSchema: Schema = {
   type: Type.OBJECT,
@@ -32,6 +33,21 @@ const getAIClient = () => {
   return new GoogleGenAI({ apiKey });
 }
 
+// Helper to get strategic instruction
+const getStrategyForSport = (sport: SportType): string => {
+  const savedConfig = localStorage.getItem('monkey_calibration_config');
+  const config: CalibrationConfig = savedConfig ? JSON.parse(savedConfig) : DEFAULT_CALIBRATION;
+
+  switch (sport) {
+    case SportType.FOOTBALL: return config.football.instruction;
+    case SportType.BASKETBALL: return config.basketball.instruction;
+    case SportType.VOLLEYBALL: return config.volleyball.instruction;
+    case SportType.ICE_HOCKEY: return config.iceHockey.instruction;
+    case SportType.ESPORTS: return "Analise KDA e controle de mapa (Dragões/Barão)."; // Fallback ou custom
+    default: return "";
+  }
+};
+
 export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | null> => {
   const ai = getAIClient();
   if (!ai) {
@@ -42,8 +58,15 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
   try {
     const modelId = "gemini-2.5-flash"; 
     
+    const strategicInstruction = getStrategyForSport(match.sport);
+
     const prompt = `
       Atue como um analista esportivo profissional de alto nível para o sistema 'Monkey Tips'.
+      
+      PROTOCOLO ESTRATÉGICO OBRIGATÓRIO (CALIBRAGEM DO USUÁRIO):
+      "${strategicInstruction}"
+      ------------------------------------------------------------
+
       Analise os dados da partida a seguir e gere um palpite de aposta de alto valor (Tip).
       
       Esporte: ${match.sport}
@@ -51,7 +74,6 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
       Liga: ${match.league}
       Estatísticas: ${JSON.stringify(match.stats)}
       
-      Considere configurações táticas, forma recente, desfalques e métricas específicas do esporte (xG para futebol, Pace para basquete, etc).
       A resposta deve ser estritamente em Português do Brasil.
       Retorne apenas JSON.
     `;
@@ -89,7 +111,6 @@ export const analyzeTicketImage = async (base64Image: string): Promise<TicketAna
   if (!ai) return null;
 
   try {
-    // Remover prefixo data:image/png;base64, se existir para enviar apenas os bytes
     const cleanBase64 = base64Image.split(',')[1] || base64Image;
 
     const response = await ai.models.generateContent({
@@ -102,7 +123,7 @@ export const analyzeTicketImage = async (base64Image: string): Promise<TicketAna
           }
         },
         {
-          text: "Analise este print de bilhete de aposta. Extraia os dados, verifique se as odds têm valor matemático esperado (EV+) e dê um veredito. Responda em JSON seguindo o schema."
+          text: "Analise este print de bilhete de aposta. Se a imagem estiver ilegível ou não for uma aposta, defina isValid como false. Se for válida, extraia os dados e verifique se as odds têm valor matemático (EV+). Responda JSON."
         }
       ],
       config: {

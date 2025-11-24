@@ -83,25 +83,30 @@ export interface User {
 
 export interface CalibrationConfig {
   football: {
+    instruction: string; // Prompt de Texto
     weightRecentForm: number; // 0-1
     weightHeadToHead: number; // 0-1
     poissonStrength: number; // 0-1
     over25Threshold: number; // %
   };
   basketball: {
+    instruction: string;
     paceWeight: number;
     efficiencyWeight: number;
     lineThreshold: number;
   };
   volleyball: {
+    instruction: string;
     setWinProbability: number;
     blockWeight: number;
   };
   iceHockey: {
+    instruction: string;
     powerPlayWeight: number;
     goalieSaveRateWeight: number;
   };
   onlineGames: {
+    instruction: string;
     volatilityIndex: number; // Para Cassino/Slots
     rtpThreshold: number;
   };

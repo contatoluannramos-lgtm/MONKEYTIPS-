@@ -3,11 +3,34 @@ import { Match, SportType, ScoutResult, CalibrationConfig } from "../types";
 
 // Configuração Padrão (Caso não tenha nada salvo)
 export const DEFAULT_CALIBRATION: CalibrationConfig = {
-  football: { weightRecentForm: 0.3, weightHeadToHead: 0.2, poissonStrength: 0.5, over25Threshold: 55 },
-  basketball: { paceWeight: 0.6, efficiencyWeight: 0.4, lineThreshold: 210 },
-  volleyball: { setWinProbability: 0.7, blockWeight: 0.3 },
-  iceHockey: { powerPlayWeight: 0.4, goalieSaveRateWeight: 0.6 },
-  onlineGames: { volatilityIndex: 0.8, rtpThreshold: 96.5 }
+  football: { 
+    instruction: "Analise o xG (Gols Esperados) e a rigidez do árbitro. Dê prioridade para mercados de Over gols se os dois times marcam muito.",
+    weightRecentForm: 0.3, 
+    weightHeadToHead: 0.2, 
+    poissonStrength: 0.5, 
+    over25Threshold: 55 
+  },
+  basketball: { 
+    instruction: "Foque no Pace (Ritmo) e Eficiência Ofensiva. Se o pace for > 100, busque Over pontos. Considere desfalques de estrelas.",
+    paceWeight: 0.6, 
+    efficiencyWeight: 0.4, 
+    lineThreshold: 210 
+  },
+  volleyball: { 
+    instruction: "Analise a taxa de erro de saque e bloqueios por set. Jogos equilibrados tendem a Over sets.",
+    setWinProbability: 0.7, 
+    blockWeight: 0.3 
+  },
+  iceHockey: { 
+    instruction: "Power Play é crucial. Verifique a taxa de defesa do goleiro (Save %).",
+    powerPlayWeight: 0.4, 
+    goalieSaveRateWeight: 0.6 
+  },
+  onlineGames: { 
+    instruction: "Para slots, analise o RTP e Volatilidade. Em alta volatilidade, sugira gestão de banca conservadora.",
+    volatilityIndex: 0.8, 
+    rtpThreshold: 96.5 
+  }
 };
 
 // Algoritmo Simples de Poisson (Simulação)
