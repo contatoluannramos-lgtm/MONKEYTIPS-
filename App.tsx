@@ -5,6 +5,8 @@ import { ClientDashboard } from './views/ClientDashboard';
 import { AdminDashboard } from './views/AdminDashboard';
 import { Match, Tip, SportType } from './types';
 import { dbService } from './services/databaseService';
+import { authService } from './services/authService';
+import { supabase } from './services/supabaseClient';
 
 // --- MOCK DATA (Fallback) ---
 const INITIAL_MATCHES: Match[] = [
@@ -46,17 +48,26 @@ const INITIAL_TIPS: Tip[] = [
 ];
 
 // --- LOGIN COMPONENT ---
-const Login = ({ onLogin }: { onLogin: () => void }) => {
+const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email === 'admin@monkeytips.com' && password === '0777') {
-      onLogin();
+    setLoading(true);
+    setError('');
+
+    const { data, error } = await authService.signIn(email, password);
+
+    if (error) {
+      setError(error.message === 'Invalid login credentials' 
+        ? 'ACESSO NEGADO: Email ou senha incorretos.' 
+        : `ERRO: ${error.message}`);
+      setLoading(false);
     } else {
-      setError('ACESSO NEGADO: CREDENCIAIS INVÁLIDAS');
+      // Auth state listener in App will handle redirect
     }
   };
 
@@ -70,38 +81,53 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
            <div className="inline-block p-3 border border-brand-500/30 rounded-full mb-4 bg-brand-500/5">
              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-brand-500"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
            </div>
-           <h2 className="text-xl font-display font-medium text-white tracking-wide">ACESSO AO SISTEMA</h2>
-           <p className="text-gray-500 text-xs mt-2 uppercase tracking-widest">Apenas Pessoal Autorizado</p>
+           <h2 className="text-xl font-display font-medium text-white tracking-wide">ACESSO SEGURO</h2>
+           <p className="text-gray-500 text-xs mt-2 uppercase tracking-widest">Supabase Authentication</p>
          </div>
          
          <form onSubmit={handleSubmit} className="space-y-6">
            <div className="space-y-1">
-             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest">Identificador</label>
+             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest">Email Registrado</label>
              <input 
                type="email" 
                value={email}
                onChange={e => setEmail(e.target.value)}
                className="w-full bg-black/50 border border-white/10 text-white px-4 py-3 text-sm focus:border-brand-500 focus:outline-none transition-colors rounded-none placeholder-gray-700"
                placeholder="admin@monkeytips.com"
+               required
              />
            </div>
            <div className="space-y-1">
-             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest">Código de Acesso</label>
+             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest">Chave de Acesso</label>
              <input 
                type="password" 
                value={password}
                onChange={e => setPassword(e.target.value)}
                className="w-full bg-black/50 border border-white/10 text-white px-4 py-3 text-sm focus:border-brand-500 focus:outline-none transition-colors rounded-none placeholder-gray-700"
-               placeholder="•••••"
+               placeholder="••••••••"
+               required
              />
            </div>
-           {error && <p className="text-red-500 text-xs border border-red-900/50 bg-red-900/10 p-2 text-center">{error}</p>}
-           <button type="submit" className="w-full bg-white text-black hover:bg-brand-400 font-bold py-3 text-xs uppercase tracking-widest transition-colors mt-2 rounded-none">
-             Autenticar
+           
+           {error && (
+             <div className="bg-red-900/20 border border-red-500/30 p-3 flex items-start gap-2">
+               <svg className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+               <p className="text-red-400 text-xs leading-tight">{error}</p>
+             </div>
+           )}
+
+           <button 
+             type="submit" 
+             disabled={loading}
+             className="w-full bg-white text-black hover:bg-brand-400 font-bold py-3 text-xs uppercase tracking-widest transition-colors mt-2 rounded-none disabled:opacity-50 disabled:cursor-not-allowed"
+           >
+             {loading ? 'Verificando Credenciais...' : 'Autenticar'}
            </button>
          </form>
-         <div className="mt-8 text-center pt-6 border-t border-white/5">
-            <a href="#/" className="text-xs text-gray-600 hover:text-brand-500 transition-colors">Retornar à Visão Pública</a>
+         
+         <div className="mt-8 text-center pt-6 border-t border-white/5 space-y-2">
+            <p className="text-[10px] text-gray-500">Nota: Crie o usuário no painel do Supabase &gt; Authentication &gt; Users</p>
+            <a href="#/" className="block text-xs text-gray-600 hover:text-brand-500 transition-colors">Retornar à Visão Pública</a>
          </div>
        </div>
     </div>
@@ -111,8 +137,27 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
 // --- MAIN APP COMPONENT ---
 export default function App() {
   const [tips, setTips] = useState<Tip[]>(INITIAL_TIPS);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [session, setSession] = useState<any>(null);
+  const [loadingSession, setLoadingSession] = useState(true);
   const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
+
+  useEffect(() => {
+    // 1. Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoadingSession(false);
+    });
+
+    // 2. Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setLoadingSession(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Load Data from Supabase on Boot
   useEffect(() => {
@@ -133,6 +178,14 @@ export default function App() {
     loadData();
   }, []);
 
+  if (loadingSession) {
+    return (
+      <div className="min-h-screen bg-[#09090B] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500"></div>
+      </div>
+    );
+  }
+
   return (
     <Router>
       <Routes>
@@ -140,12 +193,12 @@ export default function App() {
 
         <Route 
           path="/admin/login" 
-          element={isAuthenticated ? <Navigate to="/admin" /> : <Login onLogin={() => setIsAuthenticated(true)} />} 
+          element={session ? <Navigate to="/admin" /> : <Login />} 
         />
         
         <Route 
           path="/admin" 
-          element={isAuthenticated ? <AdminDashboard tips={tips} setTips={setTips} matches={matches} setMatches={setMatches} /> : <Navigate to="/admin/login" />} 
+          element={session ? <AdminDashboard tips={tips} setTips={setTips} matches={matches} setMatches={setMatches} /> : <Navigate to="/admin/login" />} 
         />
 
         <Route path="*" element={<Navigate to="/" />} />

@@ -294,7 +294,7 @@ export const ProjectEvolutionRoadmap = () => {
       tasks: [
         { id: 't2_1', name: 'Integração API SofaScore/FlashScore (Ao Vivo)', isCompleted: true },
         { id: 't2_2', name: 'Banco de Dados (Supabase/Firebase)', isCompleted: true },
-        { id: 't2_3', name: 'Autenticação Real de Admin', isCompleted: false },
+        { id: 't2_3', name: 'Autenticação Real de Admin', isCompleted: true }, // Marked as Completed
         { id: 't2_4', name: 'Histórico de Performance das Tips', isCompleted: false },
       ]
     },

@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { generateBulkInsights } from '../services/geminiService';
 import { fetchLiveFixtures } from '../services/liveDataService';
-import { dbService } from '../services/databaseService'; // Import DB Service
+import { dbService } from '../services/databaseService';
+import { authService } from '../services/authService'; // Import Auth Service
 import { Match, Tip, SportType, AdminView } from '../types';
 import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel } from '../components/AdminComponents';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -19,6 +20,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [selectedSport, setSelectedSport] = useState<SportType | 'All'>('All');
+
+  const handleLogout = async () => {
+    await authService.signOut();
+    // Router in App.tsx will handle the redirect based on session state change
+  };
 
   const handleSyncData = async () => {
     setIsSyncing(true);
@@ -113,13 +119,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         </nav>
         
         <div className="mt-auto p-6 border-t border-white/5">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-4">
              <div className="w-8 h-8 rounded bg-gradient-to-tr from-gray-700 to-gray-600 border border-white/10"></div>
              <div className="hidden lg:block">
                <p className="text-sm font-medium text-white">Administrador</p>
-               <p className="text-[10px] text-brand-500 font-mono tracking-wider">ROOT_ACCESS</p>
+               <p className="text-[10px] text-green-500 font-mono tracking-wider">● ONLINE</p>
              </div>
           </div>
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 py-2 border border-red-500/20 bg-red-500/10 text-red-500 hover:bg-red-500/20 text-xs font-mono uppercase tracking-wider transition-colors"
+          >
+            Encerrar Sessão
+          </button>
         </div>
       </aside>
 
