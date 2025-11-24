@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ClientDashboard } from './views/ClientDashboard';
@@ -18,7 +17,18 @@ const INITIAL_MATCHES: Match[] = [
     league: 'Brasileirão Série A',
     startTime: '2024-05-20T21:30:00Z',
     status: 'Scheduled',
-    stats: { possession: 55, shotsOnTarget: 6, recentForm: 'W-D-W-L-W', injuries: ['G. Barbosa'] }
+    stats: { 
+      homeScore: 0, 
+      awayScore: 0, 
+      currentMinute: 0, 
+      possession: 55, 
+      corners: { home: 2, away: 3, total: 5 }, 
+      shotsOnTarget: { home: 6, away: 4 }, 
+      shotsOffTarget: { home: 4, away: 3 }, 
+      attacks: { dangerous: 30, total: 65 }, 
+      cards: { yellow: 2, red: 0 }, 
+      recentForm: 'W-D-W-L-W' 
+    }
   },
   {
     id: 'm2',
@@ -28,7 +38,23 @@ const INITIAL_MATCHES: Match[] = [
     league: 'NBA',
     startTime: '2024-05-21T00:00:00Z',
     status: 'Scheduled',
-    stats: { pace: 102.5, efficiency: 112.3 }
+    stats: { 
+      homeScore: 0, 
+      awayScore: 0, 
+      currentPeriod: 'Pre-Game', 
+      timeLeft: '00:00',
+      quarters: {
+        q1: { home: 0, away: 0 },
+        q2: { home: 0, away: 0 },
+        q3: { home: 0, away: 0 },
+        q4: { home: 0, away: 0 }
+      },
+      pace: 102.5, 
+      efficiency: 112.3,
+      turnovers: { home: 0, away: 0 },
+      rebounds: { home: 0, away: 0 },
+      threePointPercentage: { home: 0, away: 0 }
+    }
   }
 ];
 

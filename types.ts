@@ -7,32 +7,78 @@ export enum SportType {
   ESPORTS = 'eSports (LoL/CS)',
 }
 
-export interface MatchStats {
-  possession?: number;
-  shotsOnTarget?: number;
-  recentForm?: string; // e.g., "W-W-L-D-W"
-  injuries?: string[];
-  refereeStrictness?: 'Low' | 'Medium' | 'High';
-  pace?: number; // Basketball
-  efficiency?: number; // Basketball
-  errorsPerSet?: number; // Volleyball
-  blockRate?: number; // Volleyball
-  // Live Data
-  homeScore?: number;
-  awayScore?: number;
-  currentMinute?: number;
+// --- DEEP STATS INTERFACES ---
+
+export interface FootballStats {
+  homeScore: number;
+  awayScore: number;
+  currentMinute: number;
+  possession: number;
+  corners: { home: number; away: number; total: number };
+  shotsOnTarget: { home: number; away: number };
+  shotsOffTarget: { home: number; away: number };
+  xg?: { home: number; away: number }; // Expected Goals
+  attacks: { dangerous: number; total: number };
+  cards: { yellow: number; red: number };
+  recentForm?: string;
+}
+
+export interface BasketballStats {
+  homeScore: number;
+  awayScore: number;
+  currentPeriod: string; // Q1, Q2, Q3, Q4, OT
+  timeLeft: string;
+  quarters: {
+    q1: { home: number; away: number };
+    q2: { home: number; away: number };
+    q3: { home: number; away: number };
+    q4: { home: number; away: number };
+  };
+  pace?: number;
+  efficiency?: number;
+  turnovers: { home: number; away: number };
+  rebounds: { home: number; away: number };
+  threePointPercentage: { home: number; away: number };
+}
+
+export interface VolleyballStats {
+  homeScore: number; // Sets won
+  awayScore: number; // Sets won
+  currentSetScore: { home: number; away: number };
+  sets: Array<{ home: number; away: number }>; // Histórico de sets
+  aces: { home: number; away: number };
+  errors: { home: number; away: number };
+  blocks: { home: number; away: number };
+}
+
+export interface GenericStats {
+  homeScore: number;
+  awayScore: number;
+  currentTime: string;
+  details: string;
+}
+
+// Union Type para flexibilidade
+export type MatchStats = FootballStats | BasketballStats | VolleyballStats | GenericStats;
+
+export interface MatchOdds {
+  home: number;
+  draw?: number;
+  away: number;
+  lastUpdate: string;
 }
 
 export interface Match {
   id: string;
-  externalId?: number; // ID da API externa (FlashScore/API-Football)
+  externalId?: number; 
   sport: SportType;
   teamA: string;
   teamB: string;
   league: string;
   startTime: string;
-  status: 'Scheduled' | 'Live' | 'Finished';
+  status: 'Scheduled' | 'Live' | 'Finished' | 'Halftime' | 'Paused';
   stats: MatchStats;
+  odds?: MatchOdds;
 }
 
 export type TipStatus = 'Pending' | 'Won' | 'Lost' | 'Void';
@@ -83,11 +129,11 @@ export interface User {
 
 export interface CalibrationConfig {
   football: {
-    instruction: string; // Prompt de Texto
-    weightRecentForm: number; // 0-1
-    weightHeadToHead: number; // 0-1
-    poissonStrength: number; // 0-1
-    over25Threshold: number; // %
+    instruction: string;
+    weightRecentForm: number;
+    weightHeadToHead: number;
+    poissonStrength: number;
+    over25Threshold: number;
   };
   basketball: {
     instruction: string;
@@ -107,26 +153,26 @@ export interface CalibrationConfig {
   };
   onlineGames: {
     instruction: string;
-    volatilityIndex: number; // Para Cassino/Slots
+    volatilityIndex: number;
     rtpThreshold: number;
   };
 }
 
 export interface ScoutResult {
   matchId: string;
-  calculatedProbability: number; // % Matemática Pura
+  calculatedProbability: number; 
   expectedGoals?: { home: number, away: number };
-  projectedPoints?: number; // Basquete/Volei
+  projectedPoints?: number; 
   signal: 'STRONG_OVER' | 'STRONG_UNDER' | 'HOME_WIN' | 'AWAY_WIN' | 'NEUTRAL';
-  details: string; // Ex: "Poisson indica 2.1 gols"
+  details: string; 
 }
 
 export interface FusionAnalysis {
   matchId: string;
   scoutResult: ScoutResult;
-  aiContext: string; // O que o Gemini disse
+  aiContext: string; 
   finalConfidence: number;
-  ev: number; // Expected Value
+  ev: number; 
   marketOdd: number;
   verdict: 'GREEN_LIGHT' | 'YELLOW_WARNING' | 'RED_ALERT';
 }

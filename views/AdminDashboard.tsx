@@ -6,7 +6,7 @@ import { dbService } from '../services/databaseService';
 import { authService } from '../services/authService';
 import { runScoutAnalysis, DEFAULT_CALIBRATION } from '../services/scoutEngine';
 import { runFusionEngine } from '../services/fusionEngine';
-import { Match, Tip, SportType, AdminView, TipStatus, TicketAnalysis, ScoutResult, FusionAnalysis } from '../types';
+import { Match, Tip, SportType, AdminView, TipStatus, TicketAnalysis, ScoutResult, FusionAnalysis, FootballStats, BasketballStats } from '../types';
 import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel, TipsHistoryPanel, CalibrationPanel, ScoutCard, FusionTerminal } from '../components/AdminComponents';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -30,8 +30,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- MONKEY LABS LOGIC (Paste & Drop) ---
-  
-  // Helper centralizado para processar arquivo de imagem
   const processTicketFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
         alert("Por favor, cole ou envie apenas arquivos de imagem.");
@@ -51,12 +49,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     reader.readAsDataURL(file);
   };
 
-  // Listener para CTRL+V (Paste) com proteção de foco
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
       if (currentView !== 'MONKEY_LABS') return;
-
-      // PROTEÇÃO DE CONFLITO: Ignora o colar se o usuário estiver digitando em um input ou textarea
       const activeTag = document.activeElement?.tagName;
       if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
 
@@ -69,7 +64,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
           if (file) {
              e.preventDefault();
              processTicketFile(file);
-             break; // Pega apenas a primeira imagem
+             break; 
           }
         }
       }
@@ -111,28 +106,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     setIsSyncing(true);
     const apiKey = localStorage.getItem('monkey_football_api_key') || '';
     
-    // Busca jogos do DIA (incluindo live e scheduled) para garantir dados
     const liveMatches = await fetchLiveFixtures(apiKey);
     
     if (liveMatches.length > 0) {
-      // Evita duplicatas comparando IDs
       const newMatches = liveMatches.filter(lm => !matches.find(m => m.id === lm.id));
       
       if (newMatches.length > 0) {
          setMatches(prev => {
-             // Mantém jogos antigos e adiciona novos, ordenando por horário
              const combined = [...prev, ...newMatches];
              return combined.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
          });
          
-         // Salvar no Banco
          newMatches.forEach(async (m) => {
            await dbService.saveMatch(m);
          });
 
          alert(`${newMatches.length} novas partidas sincronizadas!`);
       } else {
-         // Atualiza status/placar dos jogos existentes se necessário (lógica simplificada aqui)
          alert("Dados atualizados. Nenhuma partida NOVA encontrada.");
       }
     } else {
@@ -143,7 +133,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
   };
 
   const handleGenerateIntelligence = async () => {
-    // Check Local Storage for Gemini Key instead of process.env
     const geminiKey = localStorage.getItem('monkey_gemini_api_key');
     if (!geminiKey) {
         alert("Erro de Sistema: Chave Gemini Ausente. Configure-a na aba 'Ativação'.");
@@ -159,7 +148,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     const newTips = await generateBulkInsights(matchesToAnalyze);
     setTips(prev => [...newTips, ...prev]);
     
-    // Salvar Tips no Banco
     newTips.forEach(async (t) => {
       await dbService.saveTip(t);
     });
@@ -168,15 +156,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
   };
 
   const handleUpdateTipStatus = async (id: string, status: TipStatus) => {
-    // Update local state
     setTips(prev => prev.map(t => t.id === id ? { ...t, status } : t));
-    // Update DB
     await dbService.updateTipStatus(id, status);
   };
 
-  // Engine Processing Helpers
   const getFusionAnalyses = (): FusionAnalysis[] => {
-    // Combine Match + Scout + Tip(AI) -> Fusion
     return matches.slice(0, 6).map(m => {
        const scout = runScoutAnalysis(m, DEFAULT_CALIBRATION);
        const tip = tips.find(t => t.matchId === m.id) || null;
@@ -184,13 +168,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     });
   };
 
-  // Performance Calculations
   const totalTips = tips.length;
   const finishedTips = tips.filter(t => t.status === 'Won' || t.status === 'Lost');
   const wins = finishedTips.filter(t => t.status === 'Won').length;
   const winRate = finishedTips.length > 0 ? ((wins / finishedTips.length) * 100).toFixed(1) : '0.0';
   
-  // Calculate Profit (Simulation: flat stake 1 unit)
   const profit = finishedTips.reduce((acc, t) => {
      if(t.status === 'Won') return acc + (t.odds - 1);
      return acc - 1;
@@ -205,12 +187,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
   return (
     <div className="min-h-screen bg-surface-950 flex font-sans text-gray-200">
       
-      {/* Sidebar */}
       <aside className="w-20 lg:w-64 bg-surface-900 border-r border-white/5 flex-shrink-0 flex flex-col transition-all duration-300">
         <div className="p-6 flex items-center justify-center lg:justify-start gap-3">
-           <div className="w-8 h-8 bg-brand-500 rounded-sm flex items-center justify-center text-black font-bold text-lg shadow-[0_0_15px_rgba(245,158,11,0.4)]">
-             M
-           </div>
+           <div className="w-8 h-8 bg-brand-500 rounded-sm flex items-center justify-center text-black font-bold text-lg shadow-[0_0_15px_rgba(245,158,11,0.4)]">M</div>
            <div className="hidden lg:block">
              <h1 className="font-display font-bold leading-none tracking-tight">MONKEY<span className="text-brand-500">TIPS</span></h1>
              <span className="text-gray-600 text-[10px] uppercase tracking-widest font-mono">Control Center</span>
@@ -250,16 +229,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                <p className="text-[10px] text-green-500 font-mono tracking-wider">● ONLINE</p>
              </div>
           </div>
-          <button 
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-2 border border-red-500/20 bg-red-500/10 text-red-500 hover:bg-red-500/20 text-xs font-mono uppercase tracking-wider transition-colors"
-          >
+          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 py-2 border border-red-500/20 bg-red-500/10 text-red-500 hover:bg-red-500/20 text-xs font-mono uppercase tracking-wider transition-colors">
             Encerrar Sessão
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 p-8 overflow-y-auto relative">
         <div className="absolute inset-0 bg-grid opacity-10 pointer-events-none"></div>
 
@@ -332,7 +307,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         {currentView === 'MONKEY_LABS' && (
            <div className="relative z-10 max-w-6xl mx-auto">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                 {/* Upload Area */}
                  <div 
                     className={`bg-surface-900/50 backdrop-blur border p-8 flex flex-col items-center justify-center text-center min-h-[400px] border-dashed transition-all cursor-pointer group relative overflow-hidden ${
                       isDragging ? 'border-brand-500 bg-brand-500/10' : 'border-white/5 hover:border-brand-500/50'
@@ -343,7 +317,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                     onDrop={handleDrop}
                  >
                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
-                    
                     <div className="w-24 h-24 bg-black/50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-2xl border border-white/5">
                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-500"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                     </div>
@@ -358,7 +331,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                     )}
                  </div>
 
-                 {/* Analysis Result */}
                  <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-8 flex flex-col relative overflow-hidden">
                     <h3 className="text-lg font-bold text-white mb-6 font-display flex items-center gap-2">
                        🧪 Resultado da Análise
@@ -443,7 +415,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
 
         {currentView === 'DASHBOARD' && (
           <div className="relative z-10">
-            {/* Dashboard View */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <StatCard title="Insights Gerados" value={tips.length.toString()} change="+12%" icon="📊" />
               <StatCard title="Precisão Modelo" value={`${winRate}%`} change={Number(winRate) > 0 ? "+2.1%" : "0%"} icon="🎯" />
@@ -456,8 +427,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              
-              {/* Main Intelligence Module */}
               <div className="lg:col-span-2 space-y-8">
                 <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-8">
                   <div className="flex justify-between items-center mb-8">
@@ -487,7 +456,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
 
                   <div className="bg-black/30 rounded-none border border-white/5 p-8 flex flex-col items-center justify-center text-center relative overflow-hidden group">
                     <div className="absolute inset-0 bg-gradient-to-b from-brand-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    
                     <div className="w-16 h-16 rounded-full border border-brand-500/30 flex items-center justify-center mb-6 relative">
                         <div className="absolute inset-0 rounded-full border border-brand-500/30 animate-ping opacity-20"></div>
                         <span className="text-2xl">🧠</span>
@@ -552,11 +520,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                     <div className="flex justify-between items-center p-2 bg-black/20 rounded-none border border-white/5">
                       <span className="text-gray-300">SUPABASE DB</span>
                       <span className="text-green-500">● CONECTADO</span>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-white/5">
-                      <button className="w-full py-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-none transition-colors uppercase tracking-wider">
-                        Ver Logs do Sistema
-                      </button>
                     </div>
                   </div>
                 </div>
