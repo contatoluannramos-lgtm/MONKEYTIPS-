@@ -4,7 +4,8 @@ import { Match, ScoutResult, FusionAnalysis, Tip } from "../types";
 export const runFusionEngine = (
   match: Match, 
   scoutData: ScoutResult, 
-  aiTip: Tip | null
+  aiTip: Tip | null,
+  newsImpactScore: number = 0 // Optional news impact (default 0)
 ): FusionAnalysis => {
   
   // 1. Base Confidence from Scout (Math - Bayesian Adjusted)
@@ -28,11 +29,17 @@ export const runFusionEngine = (
       }
   }
 
-  // 4. Market Odds (EV Calculation)
+  // 4. News Engine Impact
+  // Applies the impact from recent news (+30% to -30%)
+  if (newsImpactScore !== 0) {
+      finalScore += newsImpactScore;
+  }
+
+  // 5. Market Odds (EV Calculation)
   const impliedProb = aiTip ? (1 / aiTip.odds) * 100 : 50;
   const ev = finalScore - impliedProb;
 
-  // 5. Confidence Level Definition
+  // 6. Confidence Level Definition
   let confidenceLevel: 'LOW' | 'MEDIUM' | 'HIGH' = 'LOW';
   if (finalScore >= 80) confidenceLevel = 'HIGH';
   else if (finalScore >= 60) confidenceLevel = 'MEDIUM';
@@ -51,6 +58,7 @@ export const runFusionEngine = (
     confidenceLevel,
     ev: Number(ev.toFixed(2)),
     marketOdd: aiTip ? aiTip.odds : 0,
-    verdict
+    verdict,
+    newsImpactScore
   };
 };

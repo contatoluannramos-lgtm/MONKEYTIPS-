@@ -54,11 +54,11 @@ const newsSchema: Schema = {
         impactScore: { type: Type.INTEGER, description: "Impacto percentual de -30 a +30" },
         affectedSector: { type: Type.STRING, enum: ['MORALE', 'TACTICAL', 'MARKET_ODDS', 'LINEUP'] },
         summary: { type: Type.STRING, description: "Resumo curto do impacto na aposta" },
-        relatedTeam: { type: Type.STRING, description: "Time do G10 afetado" },
-        facts: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Lista de fatos relevantes extraídos" },
-        team1Impact: { type: Type.STRING, description: "Impacto no time 1" },
-        team2Impact: { type: Type.STRING, description: "Impacto no time 2" },
-        projectionChange: { type: Type.STRING, description: "Como isso altera as projeções" }
+        relatedTeam: { type: Type.STRING, description: "Time do G10 afetado, ou 'Nenhum' se geral" },
+        facts: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Lista de pontos críticos (lesões, crises, clima)" },
+        team1Impact: { type: Type.STRING, description: "Descrição do impacto no Time 1 (Ofensiva/Defensiva)" },
+        team2Impact: { type: Type.STRING, description: "Descrição do impacto no Time 2" },
+        projectionChange: { type: Type.STRING, description: "Como isso altera as projeções (ex: Ajuste no motor ofensivo)" }
     },
     required: ["headline", "impactScore", "affectedSector", "summary", "facts", "team1Impact", "team2Impact", "projectionChange"]
 };
@@ -230,17 +230,18 @@ export const analyzeSportsNews = async (input: string, mode: 'TEXT' | 'URL'): Pr
 
   try {
     const prompt = `
-      ATUE COMO: Monkey News Engine (Sistema de Inteligência).
+      ATUE COMO: Monkey News Engine (Módulo de Inteligência).
       INPUT TYPE: ${mode}
       INPUT DATA: "${input}"
+      TIMES MONITORADOS (Top 10 + Finalistas): ${TARGET_TEAMS_BRASILEIRAO.join(', ')}.
 
-      CONTEXTO: Analise o impacto desta notícia para os seguintes times monitorados: ${TARGET_TEAMS_BRASILEIRAO.join(', ')}.
-
-      TAREFA:
-      1. Extraia a manchete e os fatos principais.
-      2. Avalie o impacto (-30 a +30) nas odds/moral.
-      3. Identifique se afeta escalação, tática ou mercado.
-      4. Gere um resumo focado em apostadores.
+      PROTOCOLO OBRIGATÓRIO:
+      1. Extraia pontos críticos: Lesões, Suspensões, Clima, Crise, Escalação, Fadiga, Pressão.
+      2. Calcule IMPACT SCORE de -30% a +30% (Negativo prejudica o time, Positivo ajuda).
+      3. Gere um relatório curto e direto seguindo a estrutura de campos.
+      
+      SE FOR URL: Como você é uma IA, simule a leitura do portal baseada no seu conhecimento sobre o momento atual destes times.
+      SE FOR TEXTO: Analise o conteúdo fornecido.
 
       Retorne JSON conforme schema.
     `;

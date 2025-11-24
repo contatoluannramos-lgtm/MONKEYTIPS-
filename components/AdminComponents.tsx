@@ -249,6 +249,14 @@ export const FusionTerminal = ({ analysis }: { analysis: FusionAnalysis }) => {
            </p>
         </div>
 
+        {analysis.newsImpactScore && analysis.newsImpactScore !== 0 && (
+            <div className={`p-2 mb-4 text-center border ${analysis.newsImpactScore > 0 ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
+                <p className="text-[10px] font-mono font-bold uppercase">
+                    NEWS ENGINE ADJUSTMENT: {analysis.newsImpactScore > 0 ? '+' : ''}{analysis.newsImpactScore}%
+                </p>
+            </div>
+        )}
+
         <div className="mt-auto">
            <div className="flex justify-between text-xs font-mono text-gray-500 mb-1">
               <span>Final Score</span>
@@ -274,27 +282,53 @@ export const NewsTerminal = () => {
     const [input, setInput] = useState("");
     const [analysis, setAnalysis] = useState<NewsAnalysis | null>(null);
     const [loading, setLoading] = useState(false);
+    const [sources, setSources] = useState([
+        { id: 1, name: "Futebol (GE)", url: "https://ge.globo.com/futebol/brasileirao-serie-a/" },
+        { id: 2, name: "NBA Official", url: "https://www.nba.com/nba-cup/2025" }
+    ]);
 
     const handleAnalyze = async () => {
         if(!input.trim()) return;
         setLoading(true);
-        // Se for URL, adicionamos um pequeno delay para simular "Scraping" e parecer mais real
         if (mode === 'URL') await new Promise(r => setTimeout(r, 1500)); 
         
         const result = await analyzeSportsNews(input, mode);
         setAnalysis(result);
         setLoading(false);
     }
+    
+    const handleAddSource = () => {
+        const url = prompt("Adicionar nova fonte ao News Engine (URL):");
+        if(url) {
+            setSources([...sources, { id: Date.now(), name: "Nova Fonte", url }]);
+        }
+    };
 
     return (
         <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-8 flex flex-col h-full rounded-none">
-            <h3 className="text-lg font-display font-bold text-white mb-6 flex items-center gap-2">
-                📢 Monkey News Engine
-                <span className="text-[10px] bg-brand-500/20 text-brand-500 px-2 py-0.5 rounded-full animate-pulse border border-brand-500/20">LIVE MONITOR</span>
-            </h3>
+            <div className="flex justify-between items-start mb-6">
+                <h3 className="text-lg font-display font-bold text-white flex items-center gap-2">
+                    📢 Monkey News Engine
+                    <span className="text-[10px] bg-brand-500/20 text-brand-500 px-2 py-0.5 rounded-full animate-pulse border border-brand-500/20">LIVE MONITOR</span>
+                </h3>
+                <button onClick={handleAddSource} className="text-[10px] text-brand-500 hover:underline font-mono">+ Add Fonte</button>
+            </div>
             
             <div className="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
+                    {/* Sources Quick Select */}
+                    <div className="mb-4 flex flex-wrap gap-2">
+                        {sources.map(src => (
+                            <button 
+                                key={src.id}
+                                onClick={() => { setMode('URL'); setInput(src.url); }}
+                                className="px-2 py-1 bg-surface-950 border border-white/10 hover:border-brand-500 text-[10px] text-gray-400 hover:text-white font-mono transition-colors"
+                            >
+                                {src.name}
+                            </button>
+                        ))}
+                    </div>
+
                     <div className="flex gap-4 mb-4">
                         <button 
                             onClick={() => setMode('URL')}
@@ -315,7 +349,7 @@ export const NewsTerminal = () => {
                     </div>
 
                     <label className="block text-xs font-mono text-gray-500 uppercase tracking-widest mb-2">
-                        {mode === 'URL' ? 'URL do Portal de Notícias (ex: ge.globo.com)' : 'Texto da Notícia'}
+                        {mode === 'URL' ? 'URL do Portal de Notícias' : 'Texto da Notícia'}
                     </label>
                     
                     {mode === 'URL' ? (
@@ -363,9 +397,6 @@ export const NewsTerminal = () => {
                             </span>
                         ))}
                     </div>
-                    <div className="mt-4 p-2 bg-brand-900/10 border border-brand-500/20 text-brand-500 text-[10px] font-mono">
-                        🔥 ALERTA LIBERTADORES: Botafogo x Atlético-MG em monitoramento prioritário.
-                    </div>
                 </div>
             </div>
 
@@ -374,17 +405,58 @@ export const NewsTerminal = () => {
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                         <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-white"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
                     </div>
+                    
+                    {/* Header with Impact Score */}
                     <div className="flex justify-between items-start mb-4 relative z-10">
                         <div className="flex flex-col">
                              <span className="text-xs text-gray-500 font-mono uppercase mb-1">{analysis.affectedSector}</span>
                              {analysis.relatedTeam && <span className="text-sm font-bold text-white bg-white/10 px-2 py-0.5 inline-block w-max mb-2">{analysis.relatedTeam}</span>}
                         </div>
-                        <span className={`text-3xl font-bold font-mono ${analysis.impactScore < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                            {analysis.impactScore > 0 ? '+' : ''}{analysis.impactScore}%
-                        </span>
+                        <div className="text-right">
+                             <p className="text-[10px] text-gray-500 font-mono uppercase">IMPACT SCORE</p>
+                             <span className={`text-4xl font-bold font-mono ${analysis.impactScore < 0 ? 'text-red-500' : 'text-green-500'}`}>
+                                 {analysis.impactScore > 0 ? '+' : ''}{analysis.impactScore}%
+                             </span>
+                        </div>
                     </div>
-                    <h4 className="text-white font-bold mb-2 text-lg font-display relative z-10">{analysis.headline}</h4>
-                    <p className="text-gray-400 text-sm leading-relaxed relative z-10 border-l-2 border-white/10 pl-3">{analysis.summary}</p>
+                    
+                    {/* Detailed Report */}
+                    <div className="relative z-10 space-y-4">
+                        <div>
+                             <h4 className="text-white font-bold text-lg font-display mb-1">{analysis.headline}</h4>
+                             <p className="text-gray-400 text-sm leading-relaxed">{analysis.summary}</p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono bg-black/20 p-4 border border-white/5">
+                             <div>
+                                 <p className="text-gray-500 uppercase mb-1">🔍 FATOS RELEVANTES</p>
+                                 <ul className="list-disc pl-4 space-y-1 text-gray-300">
+                                     {analysis.facts?.map((f, i) => <li key={i}>{f}</li>)}
+                                 </ul>
+                             </div>
+                             <div className="space-y-2">
+                                 <div>
+                                     <p className="text-gray-500 uppercase">📉 IMPACTO T1</p>
+                                     <p className="text-white">{analysis.team1Impact}</p>
+                                 </div>
+                                 <div>
+                                     <p className="text-gray-500 uppercase">📈 IMPACTO T2</p>
+                                     <p className="text-white">{analysis.team2Impact}</p>
+                                 </div>
+                             </div>
+                        </div>
+
+                        <div>
+                            <p className="text-[10px] text-brand-500 uppercase font-bold mb-1">🎯 PROJEÇÕES ALTERADAS</p>
+                            <p className="text-gray-300 text-xs italic border-l-2 border-brand-500 pl-2">
+                                {analysis.projectionChange}
+                            </p>
+                        </div>
+
+                        <div className="bg-brand-500/10 border border-brand-500/20 p-2 text-center text-brand-500 text-xs font-bold uppercase animate-pulse">
+                            🔄 Ajuste aplicado ao Fusion Engine.
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
