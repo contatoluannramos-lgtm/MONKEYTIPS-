@@ -22,8 +22,12 @@ export const fetchLiveFixtures = async (apiKey: string): Promise<Match[]> => {
       redirect: 'follow'
     };
 
-    // Busca jogos 'live' (ao vivo agora)
-    const response = await fetch(`${API_URL}/fixtures?live=all`, requestOptions);
+    // Pega a data de hoje no formato YYYY-MM-DD
+    const today = new Date().toISOString().split('T')[0];
+
+    // Busca TODOS os jogos do dia (Date) para garantir que sempre haja dados, 
+    // mesmo que não haja jogos "Live" no exato segundo.
+    const response = await fetch(`${API_URL}/fixtures?date=${today}`, requestOptions);
     
     if (!response.ok) {
       throw new Error(`Erro API: ${response.statusText}`);
@@ -45,7 +49,9 @@ export const fetchLiveFixtures = async (apiKey: string): Promise<Match[]> => {
       teamB: item.teams.away.name,
       league: item.league.name,
       startTime: item.fixture.date,
-      status: 'Live',
+      // Mapeia status da API para o nosso
+      status: ['1H', '2H', 'HT', 'ET', 'P', 'LIVE'].includes(item.fixture.status.short) ? 'Live' : 
+              ['FT', 'AET', 'PEN'].includes(item.fixture.status.short) ? 'Finished' : 'Scheduled',
       stats: {
         homeScore: item.goals.home,
         awayScore: item.goals.away,

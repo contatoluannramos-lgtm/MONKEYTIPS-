@@ -51,10 +51,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     reader.readAsDataURL(file);
   };
 
-  // Listener para CTRL+V (Paste)
+  // Listener para CTRL+V (Paste) com proteção de foco
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
       if (currentView !== 'MONKEY_LABS') return;
+
+      // PROTEÇÃO DE CONFLITO: Ignora o colar se o usuário estiver digitando em um input ou textarea
+      const activeTag = document.activeElement?.tagName;
+      if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
 
       const items = e.clipboardData?.items;
       if (!items) return;
@@ -65,8 +69,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
           if (file) {
              e.preventDefault();
              processTicketFile(file);
-             // Pega apenas a primeira imagem
-             break;
+             break; // Pega apenas a primeira imagem
           }
         }
       }
@@ -108,25 +111,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     setIsSyncing(true);
     const apiKey = localStorage.getItem('monkey_football_api_key') || '';
     
+    // Busca jogos do DIA (incluindo live e scheduled) para garantir dados
     const liveMatches = await fetchLiveFixtures(apiKey);
     
     if (liveMatches.length > 0) {
+      // Evita duplicatas comparando IDs
       const newMatches = liveMatches.filter(lm => !matches.find(m => m.id === lm.id));
+      
       if (newMatches.length > 0) {
-         setMatches(prev => [...newMatches, ...prev]);
+         setMatches(prev => {
+             // Mantém jogos antigos e adiciona novos, ordenando por horário
+             const combined = [...prev, ...newMatches];
+             return combined.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+         });
          
          // Salvar no Banco
          newMatches.forEach(async (m) => {
            await dbService.saveMatch(m);
          });
 
-         alert(`${newMatches.length} partidas ao vivo sincronizadas e salvas no banco!`);
+         alert(`${newMatches.length} novas partidas sincronizadas!`);
       } else {
-         alert("Dados atualizados, mas nenhuma partida nova encontrada.");
+         // Atualiza status/placar dos jogos existentes se necessário (lógica simplificada aqui)
+         alert("Dados atualizados. Nenhuma partida NOVA encontrada.");
       }
     } else {
       if(!apiKey) alert("Configure a API Key na aba Ativação para dados reais.");
-      else alert("Nenhuma partida ao vivo no momento (ou erro de API).");
+      else alert("Nenhuma partida encontrada para hoje na API.");
     }
     setIsSyncing(false);
   };
@@ -166,7 +177,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
   // Engine Processing Helpers
   const getFusionAnalyses = (): FusionAnalysis[] => {
     // Combine Match + Scout + Tip(AI) -> Fusion
-    return matches.slice(0, 4).map(m => {
+    return matches.slice(0, 6).map(m => {
        const scout = runScoutAnalysis(m, DEFAULT_CALIBRATION);
        const tip = tips.find(t => t.matchId === m.id) || null;
        return runFusionEngine(m, scout, tip);
@@ -282,7 +293,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         {currentView === 'SCOUT_ENGINE' && (
            <div className="relative z-10">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {matches.map(m => (
+                {matches.length === 0 ? (
+                    <div className="col-span-full text-center py-20 border border-dashed border-white/10">
+                        <p className="text-gray-500 font-mono">NENHUM DADO DE PARTIDA. SINCRONIZE NO DASHBOARD.</p>
+                    </div>
+                ) : matches.map(m => (
                   <div key={m.id} className="space-y-2">
                     <p className="text-white text-sm font-bold">{m.teamA} x {m.teamB}</p>
                     <ScoutCard result={runScoutAnalysis(m, DEFAULT_CALIBRATION)} />
@@ -295,7 +310,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         {currentView === 'FUSION_CENTER' && (
            <div className="relative z-10">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {getFusionAnalyses().map((analysis, idx) => (
+                {matches.length === 0 ? (
+                    <div className="col-span-full text-center py-20 border border-dashed border-white/10">
+                        <p className="text-gray-500 font-mono">AGUARDANDO DADOS DE PARTIDA PARA FUSÃO.</p>
+                    </div>
+                ) : getFusionAnalyses().map((analysis, idx) => (
                    <div key={idx} className="h-96">
                      <FusionTerminal analysis={analysis} />
                    </div>
@@ -376,7 +395,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
 
                           <div className="space-y-2">
                              <p className="text-gray-500 text-xs font-mono uppercase">Análise Matemática</p>
-                             <p className="text-gray-300 text-sm leading-relaxed border-l-2 border-brand-500 pl-4">{ticketAnalysis.aiAnalysis}</p>
+                             <p className="text-gray-300 text-sm leading-relaxed border-l-2 border-brand-500 pl-4 whitespace-pre-line">{ticketAnalysis.aiAnalysis}</p>
                           </div>
                           
                           <div className="mt-8 pt-6 border-t border-white/10">
@@ -451,7 +470,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                         disabled={isSyncing}
                         className="bg-surface-800 text-white border border-white/10 px-3 py-1.5 text-xs font-mono uppercase hover:bg-surface-700 transition-colors flex items-center gap-2"
                       >
-                         {isSyncing ? 'Sincronizando...' : '📡 Sync Live Data'}
+                         {isSyncing ? 'Sincronizando...' : '📡 Sync Data (Dia)'}
                       </button>
                       <select 
                         className="bg-surface-950 text-gray-400 border border-white/10 rounded-none px-3 py-1.5 text-xs font-mono outline-none focus:border-brand-500 transition-colors uppercase"
@@ -476,7 +495,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                     
                     <h4 className="text-white font-medium mb-2 font-display">Iniciar Sequência de Análise</h4>
                     <p className="text-gray-500 text-sm max-w-md mb-8 font-light">
-                      Implantar modelo Gemini 2.5 Flash para processar {matches.length} eventos pendentes. Correlacionando dados ao vivo (API-Sports) com estatísticas históricas.
+                      Implantar modelo Gemini 2.5 Flash para processar {matches.length} eventos. Correlacionando dados ao vivo/agendados com estatísticas históricas.
                     </p>
                     
                     <button

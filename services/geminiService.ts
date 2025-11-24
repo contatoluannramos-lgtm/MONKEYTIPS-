@@ -146,7 +146,18 @@ export const analyzeTicketImage = async (base64Image: string): Promise<TicketAna
           }
         },
         {
-          text: "Analise este print de bilhete de aposta. Se a imagem estiver ilegível ou não for uma aposta, defina isValid como false. Se for válida, extraia os dados e verifique se as odds têm valor matemático (EV+). Responda JSON."
+          text: `
+            Atue como o Analista Oficial do MonkeyTips.
+            Analise este print de bilhete de aposta.
+            
+            1. Verifique se a imagem é legível e se trata de uma aposta esportiva. Se não, isValid=false.
+            2. Extraia os times e a odd total.
+            3. Verifique matematicamente se a odd tem valor (EV+) ou se é uma aposta ruim.
+            4. No campo 'aiAnalysis', seja curto, grosso e direto. Estilo militar. Nada de "eu acho" ou "parece". Diga os fatos matemáticos.
+            5. Dê um veredito: APPROVED (Bom valor), REJECTED (Valor negativo), RISKY (Alto risco).
+            
+            Responda APENAS JSON.
+          `
         }
       ],
       config: {

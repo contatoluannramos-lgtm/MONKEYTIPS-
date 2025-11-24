@@ -4,30 +4,30 @@ import { Match, SportType, ScoutResult, CalibrationConfig } from "../types";
 // Configuração Padrão (Caso não tenha nada salvo)
 export const DEFAULT_CALIBRATION: CalibrationConfig = {
   football: { 
-    instruction: "Analise o xG (Gols Esperados) e a rigidez do árbitro. Dê prioridade para mercados de Over gols se os dois times marcam muito.",
+    instruction: "Priorize a estatística de Gols Esperados (xG). Se ambos times têm xG > 1.5, indique Over. Ignore posse de bola estéril.",
     weightRecentForm: 0.3, 
     weightHeadToHead: 0.2, 
     poissonStrength: 0.5, 
     over25Threshold: 55 
   },
   basketball: { 
-    instruction: "Foque no Pace (Ritmo) e Eficiência Ofensiva. Se o pace for > 100, busque Over pontos. Considere desfalques de estrelas.",
+    instruction: "O Pace é o fator determinante. Acima de 102 posses, busque Overs. Ignore narrativas de 'rivalidade', foque nos números de eficiência.",
     paceWeight: 0.6, 
     efficiencyWeight: 0.4, 
     lineThreshold: 210 
   },
   volleyball: { 
-    instruction: "Analise a taxa de erro de saque e bloqueios por set. Jogos equilibrados tendem a Over sets.",
+    instruction: "Analise a consistência do saque. Se a taxa de erro for alta, projete sets longos (Over pontos).",
     setWinProbability: 0.7, 
     blockWeight: 0.3 
   },
   iceHockey: { 
-    instruction: "Power Play é crucial. Verifique a taxa de defesa do goleiro (Save %).",
+    instruction: "Power Play define o jogo. Se o time tem PP% > 25%, a vantagem é clara.",
     powerPlayWeight: 0.4, 
     goalieSaveRateWeight: 0.6 
   },
   onlineGames: { 
-    instruction: "Para slots, analise o RTP e Volatilidade. Em alta volatilidade, sugira gestão de banca conservadora.",
+    instruction: "Analise friamente RTP e Volatilidade. Se a variância for alta, recomende cautela extrema.",
     volatilityIndex: 0.8, 
     rtpThreshold: 96.5 
   }
