@@ -6,7 +6,7 @@ import { DEFAULT_CALIBRATION } from "./scoutEngine";
 const tipSchema: Schema = {
   type: Type.OBJECT,
   properties: {
-    prediction: { type: Type.STRING, description: "A recomendação final curta e direta. Ex: 'Lakers -5.5' ou 'Over 2.5 Gols'." },
+    prediction: { type: Type.STRING, description: "A recomendação final curta e direta. Ex: 'Lakers -5.5' ou 'Over 220.5'." },
     confidence: { type: Type.INTEGER, description: "Porcentagem de confiança 0-100" },
     reasoning: { type: Type.STRING, description: "O texto completo formatado nos 3 blocos (Projeções, Conclusão, Recomendação)." },
     odds: { type: Type.NUMBER, description: "Odds decimais estimadas para este mercado." }
@@ -60,10 +60,10 @@ const getStrategyForSport = (sport: SportType): string => {
 
   switch (sport) {
     case SportType.FOOTBALL: return config.football.instruction;
-    case SportType.BASKETBALL: return config.basketball.instruction;
+    case SportType.BASKETBALL: return "MODO NBA ATIVADO. Ignore ligas europeias. Considere jogos de 48 minutos, Pace alto, média de pontos > 220. Fatores chave: Lesões, Back-to-Back e Matchup direto de estrelas.";
     case SportType.VOLLEYBALL: return config.volleyball.instruction;
     case SportType.ICE_HOCKEY: return config.iceHockey.instruction;
-    case SportType.ESPORTS: return "Analise KDA e controle de mapa (Dragões/Barão)."; // Fallback ou custom
+    case SportType.ESPORTS: return "Analise KDA e controle de mapa (Dragões/Barão)."; 
     default: return "";
   }
 };
@@ -79,8 +79,7 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
     const modelId = "gemini-2.5-flash"; 
     
     const strategicInstruction = getStrategyForSport(match.sport);
-    const isPreGame = match.status !== 'Live';
-
+    
     // Construção do bloco de dados históricos (Cross-Reference)
     let historicalContext = "Histórico: Dados não disponíveis.";
     if (match.history) {
@@ -89,18 +88,17 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
         
         MANDANTE (${match.teamA}):
         - Resultados: ${match.history.home.last5Results.join('-')}
-        - Média Gols Marcados: ${match.history.home.avgGoalsFor}
-        - Média Gols Sofridos: ${match.history.home.avgGoalsAgainst}
-        - Clean Sheets: ${match.history.home.cleanSheets}
+        - Média Gols/Pontos Marcados: ${match.history.home.avgGoalsFor}
+        - Média Gols/Pontos Sofridos: ${match.history.home.avgGoalsAgainst}
 
         VISITANTE (${match.teamB}):
         - Resultados: ${match.history.away.last5Results.join('-')}
-        - Média Gols Marcados: ${match.history.away.avgGoalsFor}
-        - Média Gols Sofridos: ${match.history.away.avgGoalsAgainst}
-        - Clean Sheets: ${match.history.away.cleanSheets}
+        - Média Gols/Pontos Marcados: ${match.history.away.avgGoalsFor}
+        - Média Gols/Pontos Sofridos: ${match.history.away.avgGoalsAgainst}
 
         INSTRUÇÃO DE CRUZAMENTO:
-        Cruze especificamente a média de ataque do Mandante com a média de defesa do Visitante e vice-versa para projetar o cenário de gols.
+        Cruze especificamente a média de ataque do Mandante com a média de defesa do Visitante.
+        Para NBA, verifique se a soma das médias projeta um placar acima de 220 pontos.
         `;
     }
 
@@ -108,10 +106,11 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
       Você é o Analista Oficial do MonkeyTips.
       
       CONTEXTO DO JOGO:
-      Esporte: ${match.sport}
+      Esporte: ${match.sport} (Foco: NBA se for Basquete)
       Partida: ${match.teamA} vs ${match.teamB}
       Liga: ${match.league}
       Status: ${match.status}
+      Árbitro: ${match.referee || 'Desconhecido'} (Considere o perfil disciplinar do juiz se for futebol)
       
       ${historicalContext}
 
@@ -137,7 +136,7 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
       [Resumo curto e tático de 2 linhas. Direto ao ponto. Sem enrolação.]
       ⸻
       3) RECOMENDAÇÃO MONKEYTIPS
-      • [APOSTA ÚNICA] (Ex: Over 2.5 Gols, Flamengo ML, Ambas Marcam)
+      • [APOSTA ÚNICA] (Ex: Lakers -5.5, Over 225.5 Points)
 
       Retorne apenas JSON válido.
     `;
@@ -267,7 +266,6 @@ export const analyzeScreenCapture = async (base64Image: string): Promise<ScreenA
 export const generateBulkInsights = async (matches: Match[]): Promise<Tip[]> => {
   const tips: Tip[] = [];
   
-  // Processamento em lote, mas sequencial para evitar rate limit agressivo do Gemini se a lista for grande
   for (const match of matches) {
     const analysis = await generateAnalysis(match);
     if (analysis) {

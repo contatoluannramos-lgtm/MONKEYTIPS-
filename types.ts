@@ -76,6 +76,7 @@ export interface Match {
   league: string;
   startTime: string;
   status: 'Live' | 'Scheduled' | 'Finished' | 'HT' | 'Postponed';
+  referee?: string; // Nome do Árbitro
   stats: FootballStats | BasketballStats | VolleyballStats | any;
   history?: {
     home: TeamHistory;

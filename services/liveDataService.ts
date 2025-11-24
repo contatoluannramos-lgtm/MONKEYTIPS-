@@ -66,6 +66,7 @@ export const fetchLiveFixtures = async (apiKey: string): Promise<Match[]> => {
         startTime: item.fixture.date,
         status: ['1H', '2H', 'HT', 'ET', 'P', 'LIVE'].includes(item.fixture.status.short) ? 'Live' : 
                 ['FT', 'AET', 'PEN'].includes(item.fixture.status.short) ? 'Finished' : 'Scheduled',
+        referee: item.fixture.referee, // Captura do Árbitro
         stats: stats
       };
     });

@@ -349,7 +349,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                     </div>
                 ) : matches.map(m => (
                   <div key={m.id} className="space-y-2">
-                    <p className="text-white text-sm font-bold">{m.teamA} x {m.teamB}</p>
+                    <div className="flex justify-between items-end">
+                       <p className="text-white text-sm font-bold">{m.teamA} x {m.teamB}</p>
+                       <span className="text-[10px] text-gray-500">Ref: {m.referee || 'N/A'}</span>
+                    </div>
                     <ScoutCard result={runScoutAnalysis(m, DEFAULT_CALIBRATION)} />
                   </div>
                 ))}
