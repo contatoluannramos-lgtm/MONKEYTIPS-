@@ -79,46 +79,44 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
     const modelId = "gemini-2.5-flash"; 
     
     const strategicInstruction = getStrategyForSport(match.sport);
+    const isPreGame = match.status !== 'Live';
 
     const prompt = `
       Você é o Analista Oficial do MonkeyTips.
-      Seu estilo deve ser curto, direto, objetivo e sem revelar metodologia.
       
-      PROTOCOLO ESTRATÉGICO (CALIBRAGEM):
-      "${strategicInstruction}"
-
-      DADOS DO EVENTO:
+      CONTEXTO DO JOGO:
       Esporte: ${match.sport}
       Partida: ${match.teamA} vs ${match.teamB}
       Liga: ${match.league}
-      Estatísticas: ${JSON.stringify(match.stats)}
+      Status: ${match.status}
+      
+      ESTATÍSTICAS TÉCNICAS (Se tudo for zero, é porque o jogo ainda não começou):
+      ${JSON.stringify(match.stats)}
 
-      REGRAS DE FORMATAÇÃO OBRIGATÓRIAS PARA O CAMPO 'reasoning':
-      Você deve formatar o texto de análise EXATAMENTE nestes três blocos visuais, usando quebras de linha:
+      PROTOCOLO DE ANÁLISE:
+      "${strategicInstruction}"
 
+      ⚠️ INSTRUÇÃO CRÍTICA PARA JOGOS AGENDADOS (Scheduled):
+      Se as estatísticas acima estiverem zeradas, NÃO diga "sem dados".
+      Use seu vasto conhecimento histórico sobre ${match.teamA} e ${match.teamB} para projetar o resultado.
+      Considere: Forma recente, mando de campo e tradição.
+      Se for jogo AO VIVO, use estritamente os números passados.
+
+      REGRAS DE FORMATAÇÃO (3 BLOCOS):
+      
       ⸻
       1) PROJEÇÕES MONKEYTIPS
-      • [Insira projeção de pontos/gols]
-      • [Insira tendência dos times]
-      • [Insira probabilidade estimada]
-      • [Insira variação esperada]
+      • [Dado estatístico ou histórico relevante]
+      • [Tendência projetada]
+      • [Probabilidade %]
       ⸻
       2) CONCLUSÃO
-      [Resumo curto de 1 a 3 linhas. Sem diagnóstico técnico profundo. Sem revelar fórmula.]
+      [Resumo curto e tático de 2 linhas. Direto ao ponto.]
       ⸻
       3) RECOMENDAÇÃO MONKEYTIPS
-      • [Aposta Única Clara e Direta]
+      • [APOSTA ÚNICA] (Ex: Over 2.5 Gols, Lakers -5.5, Ambas Marcam)
 
-      Regras de Conduta:
-      ✔ Respostas SEMPRE curtas
-      ✔ Nunca explique o método
-      ✔ Nunca diga como calculou
-      ✔ Nunca mostre raciocínio interno
-      ✔ Nunca forneça detalhes técnicos profundos
-      ✔ Somente: Projeções → Conclusão → Recomendação
-
-      A resposta deve ser estritamente em Português do Brasil.
-      Retorne apenas JSON.
+      Retorne apenas JSON válido.
     `;
 
     const response = await ai.models.generateContent({
@@ -127,7 +125,7 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
       config: {
         responseMimeType: "application/json",
         responseSchema: tipSchema,
-        temperature: 0.2, // Temperatura baixa para ser mais preciso e menos criativo
+        temperature: 0.3, 
       },
     });
 
@@ -246,6 +244,7 @@ export const analyzeScreenCapture = async (base64Image: string): Promise<ScreenA
 export const generateBulkInsights = async (matches: Match[]): Promise<Tip[]> => {
   const tips: Tip[] = [];
   
+  // Processamento em lote, mas sequencial para evitar rate limit agressivo do Gemini se a lista for grande
   for (const match of matches) {
     const analysis = await generateAnalysis(match);
     if (analysis) {
