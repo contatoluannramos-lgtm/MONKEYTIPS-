@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Match, Tip, SportType, TicketAnalysis, CalibrationConfig } from "../types";
+import { Match, Tip, SportType, TicketAnalysis, CalibrationConfig, ScreenAnalysisData } from "../types";
 import { DEFAULT_CALIBRATION } from "./scoutEngine";
 
 const tipSchema: Schema = {
@@ -25,6 +25,26 @@ const ticketSchema: Schema = {
     suggestedAction: { type: Type.STRING, description: "Ação recomendada (Cobrir, Cashout, Manter)." }
   },
   required: ["isValid", "extractedTeams", "extractedOdds", "verdict", "aiAnalysis", "suggestedAction"]
+};
+
+const screenSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    sport: { type: Type.STRING, enum: ["Futebol", "Basquete", "Vôlei", "Hóquei no Gelo", "eSports (LoL/CS)"] },
+    teamA: { type: Type.STRING },
+    teamB: { type: Type.STRING },
+    score: { type: Type.STRING, description: "Placar atual ex: 2-1" },
+    time: { type: Type.STRING, description: "Tempo de jogo ex: 75', Q3 10:00" },
+    detectedOdds: { 
+      type: Type.ARRAY, 
+      items: { 
+        type: Type.OBJECT, 
+        properties: { market: { type: Type.STRING }, value: { type: Type.NUMBER } } 
+      } 
+    },
+    context: { type: Type.STRING, description: "Análise visual rápida: 'Pressão time A', 'Jogo parado VAR', etc." }
+  },
+  required: ["sport", "teamA", "teamB", "score", "time", "detectedOdds", "context"]
 };
 
 const getAIClient = () => {
@@ -175,6 +195,53 @@ export const analyzeTicketImage = async (base64Image: string): Promise<TicketAna
     return null;
   }
 };
+
+export const analyzeScreenCapture = async (base64Image: string): Promise<ScreenAnalysisData | null> => {
+  const ai = getAIClient();
+  if (!ai) return null;
+
+  try {
+    const cleanBase64 = base64Image.split(',')[1] || base64Image;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        {
+          inlineData: {
+            mimeType: "image/jpeg",
+            data: cleanBase64
+          }
+        },
+        {
+          text: `
+            SYSTEM: Monkey Vision Engine (Screen Reader)
+            TASK: Analise esta captura de tela de um site de apostas (ao vivo).
+            
+            Extraia os seguintes dados para alimentar o Scout Engine:
+            1. Placar exato.
+            2. Tempo de jogo (minuto, período).
+            3. Odds visíveis na tela (Mercado e Valor).
+            4. Contexto visual (ex: estatísticas visíveis, gráficos de pressão, quem está atacando).
+            
+            Seja preciso. O Scout Engine depende desses números.
+          `
+        }
+      ],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: screenSchema
+      }
+    });
+
+    const text = response.text;
+    if (!text) return null;
+    return JSON.parse(text) as ScreenAnalysisData;
+
+  } catch (error) {
+    console.error("Erro na análise de tela:", error);
+    return null;
+  }
+}
 
 export const generateBulkInsights = async (matches: Match[]): Promise<Tip[]> => {
   const tips: Tip[] = [];

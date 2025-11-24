@@ -106,6 +106,16 @@ export interface TicketAnalysis {
   suggestedAction: string;
 }
 
+export interface ScreenAnalysisData {
+  sport: SportType;
+  teamA: string;
+  teamB: string;
+  score: string;
+  time: string;
+  detectedOdds: { market: string, value: number }[];
+  context: string; // "Pressão ofensiva alta", "Jogo parado"
+}
+
 export interface ImprovementProposal {
   id: string;
   title: string;
@@ -192,4 +202,4 @@ export interface RoadmapPhase {
 }
 
 // --- ADMIN NAVIGATION ---
-export type AdminView = 'DASHBOARD' | 'ACTIVATION' | 'PERFORMANCE' | 'MONKEY_LABS' | 'SCOUT_ENGINE' | 'FUSION_CENTER' | 'CALIBRATION';
+export type AdminView = 'DASHBOARD' | 'ACTIVATION' | 'PERFORMANCE' | 'MONKEY_LABS' | 'MONKEY_VISION' | 'SCOUT_ENGINE' | 'FUSION_CENTER' | 'CALIBRATION';

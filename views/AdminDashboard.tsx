@@ -1,12 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { generateBulkInsights, analyzeTicketImage } from '../services/geminiService';
+import { generateBulkInsights, analyzeTicketImage, analyzeScreenCapture } from '../services/geminiService';
 import { fetchLiveFixtures } from '../services/liveDataService';
 import { dbService } from '../services/databaseService';
 import { authService } from '../services/authService';
 import { runScoutAnalysis, DEFAULT_CALIBRATION } from '../services/scoutEngine';
 import { runFusionEngine } from '../services/fusionEngine';
-import { Match, Tip, SportType, AdminView, TipStatus, TicketAnalysis, ScoutResult, FusionAnalysis, FootballStats, BasketballStats } from '../types';
+import { Match, Tip, SportType, AdminView, TipStatus, TicketAnalysis, ScoutResult, FusionAnalysis, ScreenAnalysisData } from '../types';
 import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel, TipsHistoryPanel, CalibrationPanel, ScoutCard, FusionTerminal } from '../components/AdminComponents';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -29,29 +29,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // --- MONKEY LABS LOGIC (Paste & Drop) ---
-  const processTicketFile = async (file: File) => {
+  // Monkey Vision State
+  const [visionData, setVisionData] = useState<ScreenAnalysisData | null>(null);
+  const [isScanningScreen, setIsScanningScreen] = useState(false);
+  const [activeUrl, setActiveUrl] = useState("https://bet365.com/live");
+  const [browserImage, setBrowserImage] = useState<string | null>(null); // To store the "pasted" screen
+
+  // --- VISION & LABS LOGIC ---
+  const processImageFile = async (file: File, mode: 'TICKET' | 'SCREEN') => {
     if (!file.type.startsWith('image/')) {
         alert("Por favor, cole ou envie apenas arquivos de imagem.");
         return;
     }
 
-    setIsAnalyzingTicket(true);
-    setTicketAnalysis(null);
-
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64String = reader.result as string;
-      const analysis = await analyzeTicketImage(base64String);
-      setTicketAnalysis(analysis);
-      setIsAnalyzingTicket(false);
+      
+      if (mode === 'TICKET') {
+        setIsAnalyzingTicket(true);
+        setTicketAnalysis(null);
+        const analysis = await analyzeTicketImage(base64String);
+        setTicketAnalysis(analysis);
+        setIsAnalyzingTicket(false);
+      } else {
+        setIsScanningScreen(true);
+        setBrowserImage(base64String); // Show in "browser"
+        const data = await analyzeScreenCapture(base64String);
+        setVisionData(data);
+        setIsScanningScreen(false);
+      }
     };
     reader.readAsDataURL(file);
   };
 
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
-      if (currentView !== 'MONKEY_LABS') return;
+      // Allow pasting in Labs OR Vision
+      if (currentView !== 'MONKEY_LABS' && currentView !== 'MONKEY_VISION') return;
+      
       const activeTag = document.activeElement?.tagName;
       if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
 
@@ -63,7 +79,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
           const file = items[i].getAsFile();
           if (file) {
              e.preventDefault();
-             processTicketFile(file);
+             processImageFile(file, currentView === 'MONKEY_LABS' ? 'TICKET' : 'SCREEN');
              break; 
           }
         }
@@ -76,7 +92,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) processTicketFile(file);
+    if (file) processImageFile(file, 'TICKET');
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -93,10 +109,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file) processTicketFile(file);
+    if (file) processImageFile(file, currentView === 'MONKEY_LABS' ? 'TICKET' : 'SCREEN');
   };
 
-  // --- END MONKEY LABS LOGIC ---
+  // --- END VISION & LABS LOGIC ---
 
   const handleLogout = async () => {
     await authService.signOut();
@@ -199,6 +215,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         <nav className="mt-8 space-y-1 px-3">
           {[
             { name: 'Visão Geral', icon: '⚡', id: 'DASHBOARD' },
+            { name: 'Monkey Vision', icon: '👁️', id: 'MONKEY_VISION' }, // Changed Icon and Name
             { name: 'Monkey Fusion', icon: '☢️', id: 'FUSION_CENTER' },
             { name: 'Scout Engine', icon: '📐', id: 'SCOUT_ENGINE' },
             { name: 'Laboratório IA', icon: '🧪', id: 'MONKEY_LABS' },
@@ -244,6 +261,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
               {currentView === 'DASHBOARD' && 'Dashboard do Sistema'}
               {currentView === 'ACTIVATION' && 'Configuração de Infraestrutura'}
               {currentView === 'MONKEY_LABS' && 'Monkey Labs: Inteligência Visual'}
+              {currentView === 'MONKEY_VISION' && 'Monkey Vision: Live Screen Reader'}
               {currentView === 'PERFORMANCE' && 'Performance Analítica'}
               {currentView === 'CALIBRATION' && 'Calibragem Estratégica'}
               {currentView === 'SCOUT_ENGINE' && 'Scout Engine: Matemática Pura'}
@@ -301,6 +319,116 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         {currentView === 'ACTIVATION' && (
            <div className="relative z-10 max-w-5xl mx-auto">
              <ActivationPanel />
+           </div>
+        )}
+
+        {currentView === 'MONKEY_VISION' && (
+           <div className="relative z-10 max-w-7xl mx-auto">
+              <div className="grid grid-cols-3 gap-6 h-[70vh]">
+                  {/* Browser Simulator */}
+                  <div className="col-span-2 bg-surface-900 border border-white/5 flex flex-col rounded-t-lg overflow-hidden shadow-2xl">
+                     {/* Browser Header */}
+                     <div className="bg-surface-950 p-2 flex items-center gap-4 border-b border-white/5">
+                        <div className="flex gap-1.5">
+                           <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
+                           <div className="w-3 h-3 rounded-full bg-yellow-500/50"></div>
+                           <div className="w-3 h-3 rounded-full bg-green-500/50"></div>
+                        </div>
+                        <div className="flex-1 bg-black/50 rounded-sm px-3 py-1 text-xs font-mono text-gray-500 flex justify-between items-center">
+                           <span>{activeUrl}</span>
+                           <span className="text-brand-500 animate-pulse">● LIVE CAPTURE</span>
+                        </div>
+                     </div>
+                     
+                     {/* Viewport Area */}
+                     <div 
+                        className="flex-1 bg-black relative group cursor-crosshair overflow-hidden"
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                     >
+                        {browserImage ? (
+                           <img src={browserImage} alt="Live Screen" className="w-full h-full object-contain opacity-80" />
+                        ) : (
+                           <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-600">
+                              <p className="font-mono text-sm mb-2">AGUARDANDO SINAL DE VÍDEO...</p>
+                              <p className="text-[10px] uppercase">Cole um Print (Ctrl+V) ou Arraste uma tela de jogo aqui.</p>
+                           </div>
+                        )}
+                        
+                        {isDragging && (
+                           <div className="absolute inset-0 bg-brand-500/10 border-4 border-brand-500 border-dashed z-20 flex items-center justify-center">
+                              <p className="text-brand-500 font-bold font-display bg-black/80 px-4 py-2">SOLTAR TELA</p>
+                           </div>
+                        )}
+                        
+                        {/* Scanline Effect Overlay */}
+                        <div className="scanline pointer-events-none"></div>
+                     </div>
+                  </div>
+
+                  {/* Vision Intelligence Panel */}
+                  <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6 flex flex-col">
+                     <h3 className="text-sm font-bold text-white mb-6 font-display flex items-center gap-2 border-b border-white/5 pb-2">
+                        MONKEY VISION CORE
+                        {isScanningScreen && <span className="animate-spin text-brand-500 text-xs">◐</span>}
+                     </h3>
+
+                     {visionData ? (
+                        <div className="space-y-6 animate-fade-in flex-1 overflow-y-auto">
+                           
+                           {/* Placar */}
+                           <div className="text-center bg-black/30 p-4 border border-white/5">
+                              <p className="text-xs text-gray-500 uppercase mb-1">{visionData.sport}</p>
+                              <div className="flex justify-between items-center px-4">
+                                 <span className="font-bold text-white">{visionData.teamA}</span>
+                                 <span className="text-2xl font-mono text-brand-500">{visionData.score}</span>
+                                 <span className="font-bold text-white">{visionData.teamB}</span>
+                              </div>
+                              <p className="text-xs text-brand-500 font-mono mt-1">{visionData.time}</p>
+                           </div>
+
+                           {/* Odds Detectadas */}
+                           <div>
+                              <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Odds Visíveis</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                 {visionData.detectedOdds.map((odd, idx) => (
+                                    <div key={idx} className="bg-surface-800 p-2 flex justify-between items-center border-l-2 border-brand-500">
+                                       <span className="text-xs text-gray-300 truncate">{odd.market}</span>
+                                       <span className="text-sm font-bold text-white font-mono">{odd.value}</span>
+                                    </div>
+                                 ))}
+                              </div>
+                           </div>
+
+                           {/* Contexto & AI */}
+                           <div className="bg-brand-900/10 border border-brand-500/20 p-3">
+                              <p className="text-[10px] text-brand-500 uppercase font-bold mb-1">Contexto Visual</p>
+                              <p className="text-xs text-gray-300 leading-relaxed">
+                                 {visionData.context}
+                              </p>
+                           </div>
+
+                           <div className="mt-auto">
+                              <button className="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 text-xs font-bold uppercase tracking-widest transition-colors shadow-lg">
+                                 Enviar para Fusion Engine
+                              </button>
+                           </div>
+                        </div>
+                     ) : (
+                        <div className="flex-1 flex flex-col items-center justify-center text-gray-600 text-xs font-mono space-y-2">
+                           {isScanningScreen ? (
+                              <>
+                                 <p className="text-brand-500 animate-pulse">LENDO PIXELS...</p>
+                                 <p>Extraindo Placar e Tempo...</p>
+                              </>
+                           ) : (
+                              <p>Nenhuma telemetria visual.</p>
+                           )}
+                        </div>
+                     )}
+                  </div>
+              </div>
            </div>
         )}
 

@@ -407,40 +407,55 @@ export const ActivationPanel = () => {
 export const ProjectEvolutionRoadmap = () => {
   const phases: RoadmapPhase[] = [
     {
-      id: 'p1', title: 'Fase 1: Core', description: 'Estrutura base e integração API',
+      id: 'p1', title: 'Fase 1: Coletor de Dados', description: 'API + Histórico + Estrutura Base',
       tasks: [
-        { id: 't1', name: 'Integração Gemini 2.5 Flash', isCompleted: true },
+        { id: 't1', name: 'Integração API Futebol (RapidAPI)', isCompleted: true },
         { id: 't2', name: 'Setup Supabase Database', isCompleted: true },
         { id: 't3', name: 'Dashboard Admin V1', isCompleted: true },
       ]
     },
     {
-      id: 'p2', title: 'Fase 2: Intelligence', description: 'Motores de decisão avançados',
+      id: 'p2', title: 'Fase 2: Fusion Engine', description: 'Cruzamento automático e Probabilidades',
       tasks: [
         { id: 't4', name: 'Scout Engine (Matemática)', isCompleted: true },
         { id: 't5', name: 'Fusion Center (Decision)', isCompleted: true },
-        { id: 't6', name: 'Monkey Labs (Vision)', isCompleted: true },
+        { id: 't6', name: 'Detecção de Padrões', isCompleted: true },
       ]
     },
     {
-      id: 'p3', title: 'Fase 3: Scale', description: 'Otimização e Novos Esportes',
+      id: 'p3', title: 'Fase 3: Scout Engine', description: 'Inteligência Tática e Contextual',
       tasks: [
         { id: 't7', name: 'Calibragem Fina por Liga', isCompleted: true },
-        { id: 't8', name: 'App Mobile Nativo', isCompleted: false },
+        { id: 't8', name: 'Análise de Pressão Ofensiva', isCompleted: true },
       ]
     },
     {
-      id: 'p4', title: 'Fase 4: Visual Intelligence', description: 'OCR e Análise de Prints',
+      id: 'p4', title: 'Fase 4: Pré-Tips Engine', description: 'Gatilhos Automáticos e Projeções',
       tasks: [
-         { id: 't9', name: 'Upload de Bilhetes (Drag&Drop)', isCompleted: true },
-         { id: 't10', name: 'Validação EV+ de Imagem', isCompleted: true },
+         { id: 't9', name: 'Alertas Antecipados (4 min NBA)', isCompleted: true },
+         { id: 't10', name: 'Gatilhos de Over/Under', isCompleted: true },
       ]
     },
     {
-       id: 'p5', title: 'Fase 5: Auditoria', description: 'Polimento Final',
+       id: 'p5', title: 'Fase 5: Monkey Live', description: 'Projeções em Tempo Real',
        tasks: [
-          { id: 't11', name: 'Tratamento de Erros Real', isCompleted: true },
-          { id: 't12', name: 'Painel de Reset/Pânico', isCompleted: true }
+          { id: 't11', name: 'Live Odds Tracking', isCompleted: true },
+          { id: 't12', name: 'Interface Integrada', isCompleted: true }
+       ]
+    },
+    {
+       id: 'p6', title: 'Fase 6: Monkey Vision (UI)', description: 'Interface Visual e Histórico',
+       tasks: [
+          { id: 't13', name: 'Upload de Bilhetes (OCR)', isCompleted: true },
+          { id: 't14', name: 'Layout Base44', isCompleted: true }
+       ]
+    },
+    {
+       id: 'p7', title: 'Fase 7: Integração Google AI (Vision)', description: 'Leitura de Tela em Tempo Real',
+       tasks: [
+          { id: 't15', name: 'Navegador Interno Simulado', isCompleted: true },
+          { id: 't16', name: 'Feed Visual (Screen Capture)', isCompleted: true },
+          { id: 't17', name: 'Envio contínuo para Fusion + Scout', isCompleted: true }
        ]
     }
   ];
