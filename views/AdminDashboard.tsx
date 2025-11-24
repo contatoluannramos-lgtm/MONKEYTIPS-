@@ -4,8 +4,10 @@ import { generateBulkInsights, analyzeTicketImage } from '../services/geminiServ
 import { fetchLiveFixtures } from '../services/liveDataService';
 import { dbService } from '../services/databaseService';
 import { authService } from '../services/authService';
-import { Match, Tip, SportType, AdminView, TipStatus, TicketAnalysis } from '../types';
-import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel, TipsHistoryPanel } from '../components/AdminComponents';
+import { runScoutAnalysis, DEFAULT_CALIBRATION } from '../services/scoutEngine';
+import { runFusionEngine } from '../services/fusionEngine';
+import { Match, Tip, SportType, AdminView, TipStatus, TicketAnalysis, ScoutResult, FusionAnalysis } from '../types';
+import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel, TipsHistoryPanel, CalibrationPanel, ScoutCard, FusionTerminal } from '../components/AdminComponents';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface AdminDashboardProps {
@@ -107,6 +109,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     reader.readAsDataURL(file);
   };
 
+  // Engine Processing Helpers
+  const getFusionAnalyses = (): FusionAnalysis[] => {
+    // Combine Match + Scout + Tip(AI) -> Fusion
+    return matches.slice(0, 4).map(m => {
+       const scout = runScoutAnalysis(m, DEFAULT_CALIBRATION);
+       const tip = tips.find(t => t.matchId === m.id) || null;
+       return runFusionEngine(m, scout, tip);
+    });
+  };
+
   // Performance Calculations
   const totalTips = tips.length;
   const finishedTips = tips.filter(t => t.status === 'Won' || t.status === 'Lost');
@@ -143,7 +155,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         <nav className="mt-8 space-y-1 px-3">
           {[
             { name: 'Visão Geral', icon: '⚡', id: 'DASHBOARD' },
+            { name: 'Monkey Fusion', icon: '☢️', id: 'FUSION_CENTER' },
+            { name: 'Scout Engine', icon: '📐', id: 'SCOUT_ENGINE' },
             { name: 'Laboratório IA', icon: '🧪', id: 'MONKEY_LABS' },
+            { name: 'Calibragem', icon: '🎛️', id: 'CALIBRATION' },
             { name: 'Ativação', icon: '🗝️', id: 'ACTIVATION' },
             { name: 'Performance', icon: '📈', id: 'PERFORMANCE' }, 
           ].map((item, idx) => (
@@ -186,10 +201,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         <header className="flex justify-between items-end mb-10 relative z-10">
           <div>
             <h2 className="text-2xl font-display font-medium text-white">
-              {currentView === 'DASHBOARD' ? 'Dashboard do Sistema' : 
-               currentView === 'ACTIVATION' ? 'Configuração de Infraestrutura' : 
-               currentView === 'MONKEY_LABS' ? 'Monkey Labs: Inteligência Visual' :
-               'Performance Analítica'}
+              {currentView === 'DASHBOARD' && 'Dashboard do Sistema'}
+              {currentView === 'ACTIVATION' && 'Configuração de Infraestrutura'}
+              {currentView === 'MONKEY_LABS' && 'Monkey Labs: Inteligência Visual'}
+              {currentView === 'PERFORMANCE' && 'Performance Analítica'}
+              {currentView === 'CALIBRATION' && 'Calibragem Estratégica'}
+              {currentView === 'SCOUT_ENGINE' && 'Scout Engine: Matemática Pura'}
+              {currentView === 'FUSION_CENTER' && 'Monkey Fusion: Decision Core'}
             </h2>
             <p className="text-gray-500 text-sm mt-1 font-mono">SERVER_TIME: {new Date().toLocaleTimeString('pt-BR')}</p>
           </div>
@@ -201,11 +219,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
           </div>
         </header>
 
-        {currentView === 'ACTIVATION' ? (
+        {currentView === 'CALIBRATION' && (
+          <div className="relative z-10 max-w-4xl mx-auto">
+             <CalibrationPanel />
+          </div>
+        )}
+
+        {currentView === 'SCOUT_ENGINE' && (
+           <div className="relative z-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {matches.map(m => (
+                  <div key={m.id} className="space-y-2">
+                    <p className="text-white text-sm font-bold">{m.teamA} x {m.teamB}</p>
+                    <ScoutCard result={runScoutAnalysis(m, DEFAULT_CALIBRATION)} />
+                  </div>
+                ))}
+              </div>
+           </div>
+        )}
+
+        {currentView === 'FUSION_CENTER' && (
+           <div className="relative z-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {getFusionAnalyses().map((analysis, idx) => (
+                   <div key={idx} className="h-96">
+                     <FusionTerminal analysis={analysis} />
+                   </div>
+                ))}
+              </div>
+           </div>
+        )}
+
+        {currentView === 'ACTIVATION' && (
            <div className="relative z-10 max-w-5xl mx-auto">
              <ActivationPanel />
            </div>
-        ) : currentView === 'MONKEY_LABS' ? (
+        )}
+
+        {currentView === 'MONKEY_LABS' && (
            <div className="relative z-10 max-w-6xl mx-auto">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                  {/* Upload Area */}
@@ -275,7 +326,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                  </div>
               </div>
            </div>
-        ) : currentView === 'PERFORMANCE' ? (
+        )} 
+        
+        {currentView === 'PERFORMANCE' && (
            <div className="relative z-10">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                  <StatCard title="Total Tips" value={totalTips.toString()} change="---" icon="📊" />
@@ -300,7 +353,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                  </div>
               </div>
            </div>
-        ) : (
+        )}
+
+        {currentView === 'DASHBOARD' && (
           <div className="relative z-10">
             {/* Dashboard View */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

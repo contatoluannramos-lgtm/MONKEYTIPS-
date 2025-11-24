@@ -3,6 +3,8 @@ export enum SportType {
   FOOTBALL = 'Futebol',
   BASKETBALL = 'Basquete',
   VOLLEYBALL = 'Vôlei',
+  ICE_HOCKEY = 'Hóquei no Gelo',
+  ESPORTS = 'eSports (LoL/CS)',
 }
 
 export interface MatchStats {
@@ -77,6 +79,53 @@ export interface User {
   role: 'admin' | 'user';
 }
 
+// --- SCOUT & FUSION ENGINES ---
+
+export interface CalibrationConfig {
+  football: {
+    weightRecentForm: number; // 0-1
+    weightHeadToHead: number; // 0-1
+    poissonStrength: number; // 0-1
+    over25Threshold: number; // %
+  };
+  basketball: {
+    paceWeight: number;
+    efficiencyWeight: number;
+    lineThreshold: number;
+  };
+  volleyball: {
+    setWinProbability: number;
+    blockWeight: number;
+  };
+  iceHockey: {
+    powerPlayWeight: number;
+    goalieSaveRateWeight: number;
+  };
+  onlineGames: {
+    volatilityIndex: number; // Para Cassino/Slots
+    rtpThreshold: number;
+  };
+}
+
+export interface ScoutResult {
+  matchId: string;
+  calculatedProbability: number; // % Matemática Pura
+  expectedGoals?: { home: number, away: number };
+  projectedPoints?: number; // Basquete/Volei
+  signal: 'STRONG_OVER' | 'STRONG_UNDER' | 'HOME_WIN' | 'AWAY_WIN' | 'NEUTRAL';
+  details: string; // Ex: "Poisson indica 2.1 gols"
+}
+
+export interface FusionAnalysis {
+  matchId: string;
+  scoutResult: ScoutResult;
+  aiContext: string; // O que o Gemini disse
+  finalConfidence: number;
+  ev: number; // Expected Value
+  marketOdd: number;
+  verdict: 'GREEN_LIGHT' | 'YELLOW_WARNING' | 'RED_ALERT';
+}
+
 // --- ROADMAP TYPES ---
 export interface RoadmapTask {
   id: string;
@@ -92,4 +141,4 @@ export interface RoadmapPhase {
 }
 
 // --- ADMIN NAVIGATION ---
-export type AdminView = 'DASHBOARD' | 'ACTIVATION' | 'PERFORMANCE' | 'MONKEY_LABS';
+export type AdminView = 'DASHBOARD' | 'ACTIVATION' | 'PERFORMANCE' | 'MONKEY_LABS' | 'SCOUT_ENGINE' | 'FUSION_CENTER' | 'CALIBRATION';
