@@ -33,6 +33,8 @@ export interface Match {
   stats: MatchStats;
 }
 
+export type TipStatus = 'Pending' | 'Won' | 'Lost' | 'Void';
+
 export interface Tip {
   id: string;
   matchId: string;
@@ -44,6 +46,7 @@ export interface Tip {
   reasoning: string;
   createdAt: string;
   isPremium: boolean;
+  status: TipStatus;
 }
 
 export interface ImprovementProposal {
@@ -80,4 +83,4 @@ export interface RoadmapPhase {
 }
 
 // --- ADMIN NAVIGATION ---
-export type AdminView = 'DASHBOARD' | 'ACTIVATION';
+export type AdminView = 'DASHBOARD' | 'ACTIVATION' | 'PERFORMANCE';

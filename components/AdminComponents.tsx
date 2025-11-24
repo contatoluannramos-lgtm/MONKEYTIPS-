@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { ImprovementProposal, ChecklistItem, RoadmapPhase } from '../types';
+import { ImprovementProposal, ChecklistItem, RoadmapPhase, Tip, TipStatus } from '../types';
+import { dbService } from '../services/databaseService';
 
 export const StatCard = ({ title, value, change, icon }: { title: string, value: string, change: string, icon: string }) => (
   <div className="bg-surface-900 p-6 border border-white/5 shadow-lg hover:border-brand-500/30 transition-all group">
@@ -289,13 +290,13 @@ export const ProjectEvolutionRoadmap = () => {
     },
     {
       id: 'p2',
-      title: 'FASE 2: INTEGRAÇÃO DE DADOS (EM ANDAMENTO)',
+      title: 'FASE 2: INTEGRAÇÃO DE DADOS',
       description: 'Conexão com APIs reais e armazenamento persistente.',
       tasks: [
         { id: 't2_1', name: 'Integração API SofaScore/FlashScore (Ao Vivo)', isCompleted: true },
         { id: 't2_2', name: 'Banco de Dados (Supabase/Firebase)', isCompleted: true },
-        { id: 't2_3', name: 'Autenticação Real de Admin', isCompleted: true }, // Marked as Completed
-        { id: 't2_4', name: 'Histórico de Performance das Tips', isCompleted: false },
+        { id: 't2_3', name: 'Autenticação Real de Admin', isCompleted: true },
+        { id: 't2_4', name: 'Histórico de Performance das Tips', isCompleted: true },
       ]
     },
     {
@@ -535,6 +536,53 @@ export const OperationalChecklist = () => {
         >
           +
         </button>
+      </div>
+    </div>
+  );
+};
+
+export const TipsHistoryPanel = ({ tips, onUpdateStatus }: { tips: Tip[], onUpdateStatus: (id: string, status: TipStatus) => void }) => {
+  return (
+    <div className="bg-surface-900/50 backdrop-blur rounded-none p-6 border border-white/5">
+      <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2 font-display">
+        🎯 Histórico de Resultados
+      </h3>
+      
+      <div className="space-y-4">
+        {tips.map((tip) => (
+           <div key={tip.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-surface-950 border border-white/5 hover:border-white/10 transition-colors gap-4">
+              <div className="flex-1">
+                 <div className="flex items-center gap-2 mb-1">
+                   <span className="text-[10px] font-mono text-gray-500 uppercase">{tip.sport}</span>
+                   <span className="text-xs text-gray-600 font-mono">• {new Date(tip.createdAt).toLocaleDateString()}</span>
+                 </div>
+                 <h4 className="text-white font-bold text-sm">{tip.matchTitle}</h4>
+                 <p className="text-brand-500 text-xs font-mono mt-1">
+                   {tip.prediction} <span className="text-gray-500">@ {tip.odds.toFixed(2)}</span>
+                 </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                 {tip.status === 'Pending' ? (
+                   <>
+                     <button onClick={() => onUpdateStatus(tip.id, 'Won')} className="px-3 py-1 bg-green-900/20 text-green-500 border border-green-500/30 text-xs font-mono uppercase hover:bg-green-900/40 transition-colors">
+                       Green
+                     </button>
+                     <button onClick={() => onUpdateStatus(tip.id, 'Lost')} className="px-3 py-1 bg-red-900/20 text-red-500 border border-red-500/30 text-xs font-mono uppercase hover:bg-red-900/40 transition-colors">
+                       Red
+                     </button>
+                   </>
+                 ) : (
+                   <span className={`px-3 py-1 text-xs font-mono uppercase border font-bold ${
+                      tip.status === 'Won' ? 'bg-green-500 text-black border-green-500' : 'bg-red-500 text-white border-red-500'
+                   }`}>
+                      {tip.status}
+                   </span>
+                 )}
+              </div>
+           </div>
+        ))}
+        {tips.length === 0 && <p className="text-gray-500 text-xs font-mono">Nenhum histórico disponível.</p>}
       </div>
     </div>
   );

@@ -3,9 +3,9 @@ import React, { useState } from 'react';
 import { generateBulkInsights } from '../services/geminiService';
 import { fetchLiveFixtures } from '../services/liveDataService';
 import { dbService } from '../services/databaseService';
-import { authService } from '../services/authService'; // Import Auth Service
-import { Match, Tip, SportType, AdminView } from '../types';
-import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel } from '../components/AdminComponents';
+import { authService } from '../services/authService';
+import { Match, Tip, SportType, AdminView, TipStatus } from '../types';
+import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel, TipsHistoryPanel } from '../components/AdminComponents';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface AdminDashboardProps {
@@ -23,7 +23,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
 
   const handleLogout = async () => {
     await authService.signOut();
-    // Router in App.tsx will handle the redirect based on session state change
   };
 
   const handleSyncData = async () => {
@@ -75,10 +74,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     setIsGenerating(false);
   };
 
-  const performanceData = [
-    { name: 'SOC', tips: tips.filter(t => t.sport === SportType.FOOTBALL).length, wins: 12 },
-    { name: 'BSK', tips: tips.filter(t => t.sport === SportType.BASKETBALL).length, wins: 8 },
-    { name: 'VOL', tips: tips.filter(t => t.sport === SportType.VOLLEYBALL).length, wins: 5 },
+  const handleUpdateTipStatus = async (id: string, status: TipStatus) => {
+    // Update local state
+    setTips(prev => prev.map(t => t.id === id ? { ...t, status } : t));
+    // Update DB
+    await dbService.updateTipStatus(id, status);
+  };
+
+  // Performance Calculations
+  const totalTips = tips.length;
+  const finishedTips = tips.filter(t => t.status === 'Won' || t.status === 'Lost');
+  const wins = finishedTips.filter(t => t.status === 'Won').length;
+  const winRate = finishedTips.length > 0 ? ((wins / finishedTips.length) * 100).toFixed(1) : '0.0';
+  
+  // Calculate Profit (Simulation: flat stake 1 unit)
+  const profit = finishedTips.reduce((acc, t) => {
+     if(t.status === 'Won') return acc + (t.odds - 1);
+     return acc - 1;
+  }, 0).toFixed(2);
+
+  const performanceChartData = [
+    { name: 'SOC', tips: tips.filter(t => t.sport === SportType.FOOTBALL).length, wins: tips.filter(t => t.sport === SportType.FOOTBALL && t.status === 'Won').length },
+    { name: 'BSK', tips: tips.filter(t => t.sport === SportType.BASKETBALL).length, wins: tips.filter(t => t.sport === SportType.BASKETBALL && t.status === 'Won').length },
+    { name: 'VOL', tips: tips.filter(t => t.sport === SportType.VOLLEYBALL).length, wins: tips.filter(t => t.sport === SportType.VOLLEYBALL && t.status === 'Won').length },
   ];
 
   return (
@@ -100,8 +118,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
           {[
             { name: 'Visão Geral', icon: '⚡', id: 'DASHBOARD' },
             { name: 'Ativação', icon: '🗝️', id: 'ACTIVATION' },
+            { name: 'Performance', icon: '📈', id: 'PERFORMANCE' }, 
             { name: 'Motor de IA', icon: '🧠', id: 'DASHBOARD' }, 
-            { name: 'Feeds de Dados', icon: '📡', id: 'ACTIVATION' }
           ].map((item, idx) => (
              <button 
                key={idx} 
@@ -142,7 +160,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         <header className="flex justify-between items-end mb-10 relative z-10">
           <div>
             <h2 className="text-2xl font-display font-medium text-white">
-              {currentView === 'DASHBOARD' ? 'Dashboard do Sistema' : 'Configuração de Infraestrutura'}
+              {currentView === 'DASHBOARD' ? 'Dashboard do Sistema' : currentView === 'ACTIVATION' ? 'Configuração de Infraestrutura' : 'Performance Analítica'}
             </h2>
             <p className="text-gray-500 text-sm mt-1 font-mono">SERVER_TIME: {new Date().toLocaleTimeString('pt-BR')}</p>
           </div>
@@ -158,13 +176,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
            <div className="relative z-10 max-w-5xl mx-auto">
              <ActivationPanel />
            </div>
+        ) : currentView === 'PERFORMANCE' ? (
+           <div className="relative z-10">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                 <StatCard title="Total Tips" value={totalTips.toString()} change="---" icon="📊" />
+                 <StatCard title="Win Rate" value={`${winRate}%`} change={Number(winRate) > 50 ? "+Good" : "-Low"} icon="🎯" />
+                 <StatCard title="Lucro Líquido (u)" value={profit} change={Number(profit) > 0 ? "+Profit" : "-Loss"} icon="💰" />
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                 <TipsHistoryPanel tips={tips} onUpdateStatus={handleUpdateTipStatus} />
+                 <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6">
+                    <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-6">Eficiência por Esporte</h3>
+                    <div className="h-64 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={performanceChartData} barSize={40}>
+                          <XAxis dataKey="name" stroke="#52525b" tick={{fill: '#71717a'}} />
+                          <YAxis stroke="#52525b" tick={{fill: '#71717a'}} />
+                          <Tooltip contentStyle={{ backgroundColor: '#18181B', borderColor: '#27272A' }} />
+                          <Bar dataKey="tips" name="Gerados" fill="#3f3f46" radius={[2, 2, 0, 0]} />
+                          <Bar dataKey="wins" name="Wins" fill="#10B981" radius={[2, 2, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                 </div>
+              </div>
+           </div>
         ) : (
           <div className="relative z-10">
-            {/* Stats Row */}
+            {/* Dashboard View */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <StatCard title="Insights Gerados" value={tips.length.toString()} change="+12%" icon="📊" />
-              <StatCard title="Precisão Modelo" value="68.4%" change="+2.1%" icon="🎯" />
-              <StatCard title="Usuários Ativos" value="1,240" change="+5.4%" icon="👥" />
+              <StatCard title="Precisão Modelo" value={`${winRate}%`} change={Number(winRate) > 0 ? "+2.1%" : "0%"} icon="🎯" />
+              <StatCard title="Lucro (Unidades)" value={profit} change={Number(profit) > 0 ? "+5.4%" : "-1.2%"} icon="💰" />
               <StatCard title="Requisições API" value="45k" change="-1.2%" icon="📡" />
             </div>
 
@@ -240,7 +283,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                   <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-6">Métricas de Performance do Modelo</h3>
                   <div className="h-64 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={performanceData} barSize={40}>
+                      <BarChart data={performanceChartData} barSize={40}>
                         <XAxis dataKey="name" stroke="#52525b" tick={{fill: '#71717a', fontSize: 12, fontFamily: 'JetBrains Mono'}} axisLine={false} tickLine={false} />
                         <YAxis stroke="#52525b" tick={{fill: '#71717a', fontSize: 12, fontFamily: 'JetBrains Mono'}} axisLine={false} tickLine={false} />
                         <Tooltip 

@@ -43,7 +43,8 @@ const INITIAL_TIPS: Tip[] = [
     odds: 1.85,
     reasoning: 'O árbitro tem média de 2.1 cartões/jogo. Espera-se alta rigidez tática reduzindo o caos do jogo.',
     createdAt: new Date().toISOString(),
-    isPremium: false
+    isPremium: false,
+    status: 'Pending'
   }
 ];
 

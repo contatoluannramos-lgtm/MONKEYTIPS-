@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { Match, Tip, SportType } from "../types";
 
@@ -84,7 +85,8 @@ export const generateBulkInsights = async (matches: Match[]): Promise<Tip[]> => 
         reasoning: analysis.reasoning || "Análise indisponível.",
         odds: analysis.odds || 1.5,
         createdAt: new Date().toISOString(),
-        isPremium: false
+        isPremium: false,
+        status: 'Pending'
       });
     }
   }

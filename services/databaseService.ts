@@ -1,6 +1,6 @@
 
 import { supabase, isSupabaseConfigured } from './supabaseClient';
-import { Match, Tip, SportType } from '../types';
+import { Match, Tip, SportType, TipStatus } from '../types';
 
 // Mappers para converter snake_case (banco) para camelCase (app)
 const mapMatchFromDB = (data: any): Match => ({
@@ -24,7 +24,8 @@ const mapTipFromDB = (data: any): Tip => ({
   odds: data.odds,
   reasoning: data.reasoning,
   createdAt: data.created_at,
-  isPremium: data.is_premium
+  isPremium: data.is_premium,
+  status: data.status || 'Pending'
 });
 
 export const dbService = {
@@ -94,9 +95,23 @@ export const dbService = {
         odds: tip.odds,
         reasoning: tip.reasoning,
         created_at: tip.createdAt,
-        is_premium: tip.isPremium
+        is_premium: tip.isPremium,
+        status: tip.status
       });
 
     if (error) console.error('Erro ao salvar tip:', error.message || error);
+  },
+
+  async updateTipStatus(tipId: string, status: TipStatus): Promise<void> {
+    if (!isSupabaseConfigured()) return;
+
+    const { error } = await supabase
+      .from('tips')
+      .update({ status: status })
+      .eq('id', tipId);
+
+    if (error) {
+      console.error('Erro ao atualizar status da tip:', error.message || error);
+    }
   }
 };
