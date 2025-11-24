@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Match, Tip, SportType, TicketAnalysis, CalibrationConfig, ScreenAnalysisData } from "../types";
+import { Match, Tip, SportType, TicketAnalysis, CalibrationConfig, ScreenAnalysisData, NewsAnalysis } from "../types";
 import { DEFAULT_CALIBRATION } from "./scoutEngine";
 
 const tipSchema: Schema = {
@@ -45,6 +45,17 @@ const screenSchema: Schema = {
     context: { type: Type.STRING, description: "Análise visual rápida: 'Pressão time A', 'Jogo parado VAR', etc." }
   },
   required: ["sport", "teamA", "teamB", "score", "time", "detectedOdds", "context"]
+};
+
+const newsSchema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        headline: { type: Type.STRING, description: "Manchete resumida do fato" },
+        impactScore: { type: Type.INTEGER, description: "Impacto percentual de -100 a +100" },
+        affectedSector: { type: Type.STRING, enum: ['MORALE', 'TACTICAL', 'MARKET_ODDS'] },
+        summary: { type: Type.STRING, description: "Resumo curto do impacto na aposta" }
+    },
+    required: ["headline", "impactScore", "affectedSector", "summary"]
 };
 
 const getAIClient = () => {
@@ -103,8 +114,18 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
     }
 
     const prompt = `
-      Você é o Analista Oficial do MonkeyTips.
-      
+      PROMPT – MONKEY TIPS (MASTER SYSTEM CONFIG)
+
+      Você é o sistema oficial do Monkey Tips, composto pelos módulos:
+      • Scout Engine
+      • Fusion Engine
+      • Monkey Vision
+      • Monkey News Engine
+      • Painel Administrativo
+      • Painel do Analista
+
+      Sua tarefa é atuar como o Analista Oficial, estruturando os dados abaixo.
+
       CONTEXTO DO JOGO:
       Esporte: ${match.sport} (Foco: NBA se for Basquete)
       Partida: ${match.teamA} vs ${match.teamB}
@@ -117,7 +138,7 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
       ESTATÍSTICAS TÉCNICAS (Se tudo for zero, é porque o jogo ainda não começou):
       ${JSON.stringify(match.stats)}
 
-      PROTOCOLO DE ANÁLISE:
+      PROTOCOLO TÁTICO PERSONALIZADO:
       "${strategicInstruction}"
 
       ⚠️ INSTRUÇÃO CRÍTICA:
@@ -138,7 +159,7 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
       3) RECOMENDAÇÃO MONKEYTIPS
       • [APOSTA ÚNICA] (Ex: Lakers -5.5, Over 225.5 Points)
 
-      Retorne apenas JSON válido.
+      Retorne apenas JSON válido conforme schema.
     `;
 
     const response = await ai.models.generateContent({
@@ -262,6 +283,40 @@ export const analyzeScreenCapture = async (base64Image: string): Promise<ScreenA
     return null;
   }
 }
+
+export const analyzeSportsNews = async (content: string): Promise<NewsAnalysis | null> => {
+    const ai = getAIClient();
+    if (!ai) return null;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: `
+                SYSTEM: Monkey News Engine.
+                TASK: Analise o texto/notícia abaixo e determine o impacto nas probabilidades esportivas.
+                
+                NOTÍCIA: "${content}"
+                
+                1. Extraia a manchete.
+                2. Defina o Impact Score (-100 a +100). Ex: Lesão de estrela = -30. Chuva forte = Impacto Tático.
+                3. Resumo curto do impacto para o apostador.
+                
+                Responda apenas JSON.
+            `,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: newsSchema
+            }
+        });
+
+        const text = response.text;
+        if (!text) return null;
+        return JSON.parse(text) as NewsAnalysis;
+    } catch (e) {
+        console.error("News engine error", e);
+        return null;
+    }
+};
 
 export const generateBulkInsights = async (matches: Match[]): Promise<Tip[]> => {
   const tips: Tip[] = [];

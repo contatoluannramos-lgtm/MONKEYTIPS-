@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { ImprovementProposal, ChecklistItem, RoadmapPhase, Tip, TipStatus, CalibrationConfig, ScoutResult, FusionAnalysis, SportType } from '../types';
+import { ImprovementProposal, ChecklistItem, RoadmapPhase, Tip, TipStatus, CalibrationConfig, ScoutResult, FusionAnalysis, NewsAnalysis } from '../types';
 import { dbService } from '../services/databaseService';
 import { GoogleGenAI } from "@google/genai";
-import { supabase } from '../services/supabaseClient';
+import { analyzeSportsNews } from '../services/geminiService';
 import { DEFAULT_CALIBRATION } from '../services/scoutEngine';
 
 // --- EXISTING COMPONENTS ---
@@ -230,6 +230,56 @@ export const FusionTerminal = ({ analysis }: { analysis: FusionAnalysis }) => {
   );
 };
 
+export const NewsTerminal = () => {
+    const [input, setInput] = useState("");
+    const [analysis, setAnalysis] = useState<NewsAnalysis | null>(null);
+    const [loading, setLoading] = useState(false);
+
+    const handleAnalyze = async () => {
+        if(!input.trim()) return;
+        setLoading(true);
+        const result = await analyzeSportsNews(input);
+        setAnalysis(result);
+        setLoading(false);
+    }
+
+    return (
+        <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-8 flex flex-col h-full">
+            <h3 className="text-lg font-display font-bold text-white mb-6">📢 Monkey News Engine</h3>
+            
+            <div className="mb-6">
+                <label className="block text-xs font-mono text-gray-500 uppercase tracking-widest mb-2">Fonte de Notícia (Texto ou Resumo)</label>
+                <textarea 
+                    className="w-full h-32 bg-black border border-white/10 text-white p-4 text-xs font-mono focus:border-brand-500 focus:outline-none"
+                    placeholder="Cole aqui a notícia sobre lesões, clima ou bastidores..."
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                />
+                <button 
+                    onClick={handleAnalyze}
+                    disabled={loading}
+                    className="mt-2 bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 text-xs font-bold uppercase tracking-widest w-full"
+                >
+                    {loading ? "Processando Impacto..." : "Analisar Impacto na Odd"}
+                </button>
+            </div>
+
+            {analysis && (
+                <div className="bg-surface-950 border border-white/10 p-6 animate-fade-in border-l-4 border-l-brand-500">
+                    <div className="flex justify-between items-start mb-4">
+                        <span className="text-xs text-gray-500 font-mono uppercase">{analysis.affectedSector}</span>
+                        <span className={`text-xl font-bold font-mono ${analysis.impactScore < 0 ? 'text-red-500' : 'text-green-500'}`}>
+                            {analysis.impactScore > 0 ? '+' : ''}{analysis.impactScore}%
+                        </span>
+                    </div>
+                    <h4 className="text-white font-bold mb-2">{analysis.headline}</h4>
+                    <p className="text-gray-400 text-sm leading-relaxed">{analysis.summary}</p>
+                </div>
+            )}
+        </div>
+    );
+};
+
 export const ActivationPanel = () => {
   const [keys, setKeys] = useState({
     football: '',
@@ -407,80 +457,111 @@ export const ActivationPanel = () => {
 export const ProjectEvolutionRoadmap = () => {
   const phases: RoadmapPhase[] = [
     {
-      id: 'p1', title: 'Fase 1: Coletor de Dados', description: 'API + Histórico + Estrutura Base',
+      id: 'p1', title: 'FASE 1: BASE DO SISTEMA', description: 'Fundação e Arquitetura', status: 'COMPLETED', progress: 100,
       tasks: [
-        { id: 't1', name: 'Integração API Futebol (RapidAPI)', isCompleted: true },
-        { id: 't2', name: 'Setup Supabase Database', isCompleted: true },
-        { id: 't3', name: 'Dashboard Admin V1', isCompleted: true },
+        { id: 't1.1', name: 'Arquitetura Monkey Tips', isCompleted: true },
+        { id: 't1.2', name: 'Estruturas Scout + Fusion', isCompleted: true },
+        { id: 't1.3', name: 'Banco de Dados (Supabase)', isCompleted: true },
+        { id: 't1.4', name: 'Padrão Híbrido de Prompts', isCompleted: true },
       ]
     },
     {
-      id: 'p2', title: 'Fase 2: Fusion Engine', description: 'Cruzamento automático e Probabilidades',
+      id: 'p2', title: 'FASE 2: COLETOR DE DADOS', description: 'Scout Collector Engine', status: 'COMPLETED', progress: 100,
       tasks: [
-        { id: 't4', name: 'Scout Engine (Matemática)', isCompleted: true },
-        { id: 't5', name: 'Fusion Center (Decision)', isCompleted: true },
-        { id: 't6', name: 'Detecção de Padrões', isCompleted: true },
+        { id: 't2.1', name: 'Coleta 5 Últimas Partidas', isCompleted: true },
+        { id: 't2.2', name: 'Stats Profundos (xG, Pace)', isCompleted: true },
+        { id: 't2.3', name: 'Análise Cruzada H2H', isCompleted: true },
       ]
     },
     {
-      id: 'p3', title: 'Fase 3: Scout Engine', description: 'Inteligência Tática e Contextual',
+      id: 'p3', title: 'FASE 3: FUSION ENGINE', description: 'Combinador Matemático + IA', status: 'COMPLETED', progress: 100,
       tasks: [
-        { id: 't7', name: 'Calibragem Fina por Liga', isCompleted: true },
-        { id: 't8', name: 'Análise de Pressão Ofensiva', isCompleted: true },
+        { id: 't3.1', name: 'Combinação Stats + Live', isCompleted: true },
+        { id: 't3.2', name: 'Probabilidades Automáticas', isCompleted: true },
+        { id: 't3.3', name: 'Projeções HT/FT', isCompleted: true },
       ]
     },
     {
-      id: 'p4', title: 'Fase 4: Pré-Tips Engine', description: 'Gatilhos Automáticos e Projeções',
+      id: 'p4', title: 'FASE 4: MONKEY VISION', description: 'IA Multimodal (Vision)', status: 'COMPLETED', progress: 100,
       tasks: [
-         { id: 't9', name: 'Alertas Antecipados (4 min NBA)', isCompleted: true },
-         { id: 't10', name: 'Gatilhos de Over/Under', isCompleted: true },
+         { id: 't4.1', name: 'Navegador Interno', isCompleted: true },
+         { id: 't4.2', name: 'Leitura de Tela (OCR)', isCompleted: true },
+         { id: 't4.3', name: 'Detecção de Odds e Placar', isCompleted: true },
       ]
     },
     {
-       id: 'p5', title: 'Fase 5: Monkey Live', description: 'Projeções em Tempo Real',
+       id: 'p5', title: 'FASE 5: MONKEY NEWS', description: 'News Engine (Impacto)', status: 'COMPLETED', progress: 100,
        tasks: [
-          { id: 't11', name: 'Live Odds Tracking', isCompleted: true },
-          { id: 't12', name: 'Interface Integrada', isCompleted: true }
+          { id: 't5.1', name: 'Leitura de Notícias', isCompleted: true },
+          { id: 't5.2', name: 'Cálculo de Impacto %', isCompleted: true },
+          { id: 't5.3', name: 'Integração Fusion', isCompleted: true }
        ]
     },
     {
-       id: 'p6', title: 'Fase 6: Monkey Vision (UI)', description: 'Interface Visual e Histórico',
+       id: 'p6', title: 'FASE 6: PAINEL ADMIN', description: 'Gestão e Controle', status: 'COMPLETED', progress: 100,
        tasks: [
-          { id: 't13', name: 'Upload de Bilhetes (OCR)', isCompleted: true },
-          { id: 't14', name: 'Layout Base44', isCompleted: true }
+          { id: 't6.1', name: 'Controle de Módulos', isCompleted: true },
+          { id: 't6.2', name: 'Logs e Calibragem', isCompleted: true }
        ]
     },
     {
-       id: 'p7', title: 'Fase 7: Integração Google AI (Vision)', description: 'Leitura de Tela em Tempo Real',
+       id: 'p7', title: 'FASE 7: PAINEL DO ANALISTA', description: 'Operação Tática', status: 'IN_PROGRESS', progress: 80,
        tasks: [
-          { id: 't15', name: 'Navegador Interno Simulado', isCompleted: true },
-          { id: 't16', name: 'Feed Visual (Screen Capture)', isCompleted: true },
-          { id: 't17', name: 'Envio contínuo para Fusion + Scout', isCompleted: true }
+          { id: 't7.1', name: 'Visualização Pré-Jogo', isCompleted: true },
+          { id: 't7.2', name: 'Alertas de Projeção', isCompleted: true },
+          { id: 't7.3', name: 'Simulação de Entradas', isCompleted: false }
+       ]
+    },
+    {
+       id: 'p8', title: 'FASE 8: MONKEY LIVE', description: 'Evolução Futura', status: 'PENDING', progress: 0,
+       tasks: [
+          { id: 't8.1', name: 'Ritmo a cada 30s', isCompleted: false },
+          { id: 't8.2', name: 'Alertas Dinâmicos', isCompleted: false }
        ]
     }
   ];
 
   return (
-    <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6">
-       <h3 className="text-lg font-display font-medium text-white mb-6">Roadmap de Evolução</h3>
-       <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
-          {phases.map((phase, index) => (
-             <div key={phase.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+    <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6 rounded-none">
+       <h3 className="text-xl font-display font-bold text-white mb-6 flex items-center gap-2">
+         <span className="text-brand-500">///</span> ROADMAP DE EVOLUÇÃO TÁTICA
+       </h3>
+       
+       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {phases.map((phase) => (
+             <div key={phase.id} className="bg-surface-950 border border-white/10 hover:border-brand-500/50 transition-all group flex flex-col h-full">
                 
-                <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-300 group-[.is-active]:bg-brand-500 text-slate-500 group-[.is-active]:text-emerald-50 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
-                   {index + 1}
+                {/* Progress Bar Top */}
+                <div className="w-full h-1 bg-surface-800">
+                    <div className={`h-full ${phase.status === 'COMPLETED' ? 'bg-green-500' : phase.status === 'IN_PROGRESS' ? 'bg-brand-500' : 'bg-gray-700'}`} style={{ width: `${phase.progress}%` }}></div>
                 </div>
-                
-                <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-surface-950 p-4 border border-white/5 rounded shadow-lg">
-                   <div className="flex justify-between items-center mb-1">
-                      <span className="font-bold text-white text-sm">{phase.title}</span>
+
+                <div className="p-4 flex-1 flex flex-col">
+                   <div className="flex justify-between items-start mb-2">
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 border ${
+                          phase.status === 'COMPLETED' ? 'text-green-500 border-green-500/30 bg-green-500/10' : 
+                          phase.status === 'IN_PROGRESS' ? 'text-brand-500 border-brand-500/30 bg-brand-500/10' : 
+                          'text-gray-500 border-gray-600 bg-gray-800'
+                      }`}>
+                          {phase.status.replace('_', ' ')}
+                      </span>
+                      <span className="text-xs font-mono text-gray-500">{phase.progress}%</span>
                    </div>
-                   <p className="text-xs text-gray-500 mb-3">{phase.description}</p>
-                   <div className="space-y-1">
+                   
+                   <h4 className="text-sm font-bold text-white uppercase mb-1">{phase.title}</h4>
+                   <p className="text-[10px] text-gray-500 mb-4 h-8">{phase.description}</p>
+                   
+                   <div className="space-y-1.5 mt-auto">
                       {phase.tasks.map(task => (
-                         <div key={task.id} className="flex items-center gap-2 text-xs">
-                            <div className={`w-1.5 h-1.5 rounded-full ${task.isCompleted ? 'bg-green-500' : 'bg-gray-700'}`}></div>
-                            <span className={task.isCompleted ? 'text-gray-300 line-through opacity-60' : 'text-gray-400'}>{task.name}</span>
+                         <div key={task.id} className="flex items-center gap-2 text-[10px]">
+                            <div className={`shrink-0 w-3 h-3 flex items-center justify-center rounded border ${
+                                task.isCompleted ? 'bg-brand-500 border-brand-500 text-black' : 'border-gray-700 bg-transparent'
+                            }`}>
+                                {task.isCompleted && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                            </div>
+                            <span className={`${task.isCompleted ? 'text-gray-400 line-through decoration-gray-600' : 'text-gray-300'}`}>
+                                {task.name}
+                            </span>
                          </div>
                       ))}
                    </div>

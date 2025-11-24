@@ -7,7 +7,7 @@ import { authService } from '../services/authService';
 import { runScoutAnalysis, DEFAULT_CALIBRATION } from '../services/scoutEngine';
 import { runFusionEngine } from '../services/fusionEngine';
 import { Match, Tip, SportType, AdminView, TipStatus, TicketAnalysis, ScoutResult, FusionAnalysis, ScreenAnalysisData } from '../types';
-import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel, TipsHistoryPanel, CalibrationPanel, ScoutCard, FusionTerminal } from '../components/AdminComponents';
+import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel, TipsHistoryPanel, CalibrationPanel, ScoutCard, FusionTerminal, NewsTerminal } from '../components/AdminComponents';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface AdminDashboardProps {
@@ -275,6 +275,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
             { name: 'Monkey Vision', icon: '👁️', id: 'MONKEY_VISION' }, 
             { name: 'Monkey Fusion', icon: '☢️', id: 'FUSION_CENTER' },
             { name: 'Scout Engine', icon: '📐', id: 'SCOUT_ENGINE' },
+            { name: 'News Engine', icon: '📰', id: 'MONKEY_NEWS' },
             { name: 'Laboratório IA', icon: '🧪', id: 'MONKEY_LABS' },
             { name: 'Calibragem', icon: '🎛️', id: 'CALIBRATION' },
             { name: 'Ativação', icon: '🗝️', id: 'ACTIVATION' },
@@ -319,6 +320,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
               {currentView === 'ACTIVATION' && 'Configuração de Infraestrutura'}
               {currentView === 'MONKEY_LABS' && 'Monkey Labs: Inteligência Visual'}
               {currentView === 'MONKEY_VISION' && 'Monkey Vision: Live Screen Reader'}
+              {currentView === 'MONKEY_NEWS' && 'Monkey News Engine'}
               {currentView === 'PERFORMANCE' && 'Performance Analítica'}
               {currentView === 'CALIBRATION' && 'Calibragem Estratégica'}
               {currentView === 'SCOUT_ENGINE' && 'Scout Engine: Matemática Pura'}
@@ -373,6 +375,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                    </div>
                 ))}
               </div>
+           </div>
+        )}
+
+        {currentView === 'MONKEY_NEWS' && (
+           <div className="relative z-10 max-w-3xl mx-auto h-[600px]">
+             <NewsTerminal />
            </div>
         )}
 

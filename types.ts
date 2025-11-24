@@ -7,7 +7,7 @@ export enum SportType {
   ESPORTS = 'eSports (LoL/CS)'
 }
 
-export type AdminView = 'DASHBOARD' | 'ACTIVATION' | 'MONKEY_LABS' | 'MONKEY_VISION' | 'PERFORMANCE' | 'CALIBRATION' | 'SCOUT_ENGINE' | 'FUSION_CENTER';
+export type AdminView = 'DASHBOARD' | 'ACTIVATION' | 'MONKEY_LABS' | 'MONKEY_VISION' | 'MONKEY_NEWS' | 'PERFORMANCE' | 'CALIBRATION' | 'SCOUT_ENGINE' | 'FUSION_CENTER';
 
 export interface FootballStats {
   homeScore: number;
@@ -119,6 +119,13 @@ export interface ScreenAnalysisData {
   context: string;
 }
 
+export interface NewsAnalysis {
+  headline: string;
+  impactScore: number; // -100 to +100
+  affectedSector: 'MORALE' | 'TACTICAL' | 'MARKET_ODDS';
+  summary: string;
+}
+
 export interface ImprovementProposal {
   id: string;
   title: string;
@@ -143,6 +150,8 @@ export interface RoadmapPhase {
   id: string;
   title: string;
   description: string;
+  status: 'COMPLETED' | 'IN_PROGRESS' | 'PENDING';
+  progress: number;
   tasks: RoadmapTask[];
 }
 
