@@ -164,6 +164,7 @@ export interface ScoutResult {
   expectedGoals?: { home: number; away: number }; // Para futebol
   signal: 'STRONG_OVER' | 'OVER' | 'NEUTRAL' | 'UNDER' | 'STRONG_UNDER';
   details: string;
+  isHotGame: boolean; // Novo campo: Indica jogo com alta volatilidade/ritmo
 }
 
 export interface FusionAnalysis {
@@ -171,6 +172,7 @@ export interface FusionAnalysis {
   scoutResult: ScoutResult;
   aiContext: string;
   finalConfidence: number;
+  confidenceLevel: 'LOW' | 'MEDIUM' | 'HIGH'; // Novo campo
   ev: number; // Expected Value
   marketOdd: number;
   verdict: 'GREEN_LIGHT' | 'YELLOW_WARNING' | 'RED_ALERT';

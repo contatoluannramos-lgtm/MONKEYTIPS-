@@ -169,11 +169,14 @@ export const CalibrationPanel = () => {
 
 export const ScoutCard = ({ result }: { result: ScoutResult }) => {
   return (
-    <div className="bg-surface-950 border border-white/10 p-4 font-mono relative overflow-hidden group">
+    <div className={`bg-surface-950 border p-4 font-mono relative overflow-hidden group ${result.isHotGame ? 'border-red-500/30' : 'border-white/10'}`}>
       <div className="absolute top-0 right-0 p-2 opacity-10 text-4xl font-bold text-white">MATH</div>
       <div className="flex justify-between items-center mb-2">
          <span className="text-xs text-gray-500 uppercase">Scout Engine</span>
-         <span className={`text-xs font-bold ${result.signal.includes('STRONG') ? 'text-brand-500' : 'text-gray-500'}`}>{result.signal}</span>
+         <div className="flex items-center gap-2">
+             {result.isHotGame && <span className="text-[10px] bg-red-500 text-black font-bold px-1 animate-pulse">HOT 🔥</span>}
+             <span className={`text-xs font-bold ${result.signal.includes('STRONG') ? 'text-brand-500' : 'text-gray-500'}`}>{result.signal}</span>
+         </div>
       </div>
       
       <div className="flex items-end gap-2 mb-2">
@@ -213,14 +216,23 @@ export const FusionTerminal = ({ analysis }: { analysis: FusionAnalysis }) => {
            </div>
         </div>
 
+        {analysis.scoutResult.isHotGame && (
+            <div className="bg-red-500/10 border border-red-500/30 p-1 mb-4 text-center">
+                <span className="text-red-500 font-bold font-mono text-xs tracking-widest uppercase animate-pulse">🔥 HOT GAME DETECTED 🔥</span>
+            </div>
+        )}
+
         <div className="grid grid-cols-3 gap-4 mb-6 text-center">
            <div className="bg-black/30 p-2 border border-white/5">
-              <p className="text-[10px] text-gray-500 uppercase">Scout (Math)</p>
+              <p className="text-[10px] text-gray-500 uppercase">Scout (Bayes)</p>
               <p className="text-lg font-bold text-white">{analysis.scoutResult.calculatedProbability.toFixed(0)}%</p>
            </div>
            <div className="bg-black/30 p-2 border border-white/5">
-              <p className="text-[10px] text-gray-500 uppercase">Mkt Odd</p>
-              <p className="text-lg font-bold text-white">{analysis.marketOdd.toFixed(2)}</p>
+              <p className="text-[10px] text-gray-500 uppercase">Confidence</p>
+              <p className={`text-lg font-bold ${
+                  analysis.confidenceLevel === 'HIGH' ? 'text-green-500' : 
+                  analysis.confidenceLevel === 'MEDIUM' ? 'text-yellow-500' : 'text-gray-400'
+              }`}>{analysis.confidenceLevel}</p>
            </div>
            <div className="bg-black/30 p-2 border border-white/5">
               <p className="text-[10px] text-gray-500 uppercase">EV+</p>
@@ -239,7 +251,7 @@ export const FusionTerminal = ({ analysis }: { analysis: FusionAnalysis }) => {
 
         <div className="mt-auto">
            <div className="flex justify-between text-xs font-mono text-gray-500 mb-1">
-              <span>Confidence Level</span>
+              <span>Final Score</span>
               <span>{analysis.finalConfidence.toFixed(0)}/100</span>
            </div>
            <div className="h-2 w-full bg-surface-800 rounded-full overflow-hidden">
@@ -604,18 +616,48 @@ export const ProjectEvolutionRoadmap = () => {
        ]
     },
     {
-       id: 'p7', title: 'FASE 7: PAINEL DO ANALISTA', description: 'Operação Tática', status: 'IN_PROGRESS', progress: 80,
+       id: 'p7', title: 'FASE 7: PAINEL DO ANALISTA', description: 'Operação Tática', status: 'COMPLETED', progress: 100,
        tasks: [
           { id: 't7.1', name: 'Visualização Pré-Jogo', isCompleted: true },
           { id: 't7.2', name: 'Alertas de Projeção', isCompleted: true },
-          { id: 't7.3', name: 'Simulação de Entradas', isCompleted: false }
+          { id: 't7.3', name: 'Simulação de Entradas', isCompleted: true }
        ]
     },
     {
-       id: 'p8', title: 'FASE 8: MONKEY LIVE', description: 'Evolução Futura', status: 'PENDING', progress: 0,
+       id: 'p8', title: 'FASE 8: MONKEY LIVE', description: 'Coleta em Tempo Real', status: 'IN_PROGRESS', progress: 50,
        tasks: [
           { id: 't8.1', name: 'Ritmo a cada 30s', isCompleted: false },
           { id: 't8.2', name: 'Alertas Dinâmicos', isCompleted: false }
+       ]
+    },
+    {
+       id: 'p9', title: 'FASE 9: MONETIZAÇÃO (SaaS)', description: 'Preparação para Venda', status: 'PENDING', progress: 0,
+       tasks: [
+          { id: 't9.1', name: 'Planos e Limites', isCompleted: false },
+          { id: 't9.2', name: 'Ranking de Oportunidades', isCompleted: false },
+          { id: 't9.3', name: 'Comparação de Ligas', isCompleted: false }
+       ]
+    },
+    {
+       id: 'p10', title: 'FASE 10: MATH UPGRADE', description: 'Scout 2.0 (Bayes)', status: 'COMPLETED', progress: 100,
+       tasks: [
+          { id: 't10.1', name: 'Ajuste Bayesiano', isCompleted: true },
+          { id: 't10.2', name: 'Detector de Jogos Quentes', isCompleted: true },
+          { id: 't10.3', name: 'Confidence Score (Fusion)', isCompleted: true }
+       ]
+    },
+    {
+       id: 'p11', title: 'FASE 11: VISION 2.0', description: 'Deep Learning', status: 'PENDING', progress: 0,
+       tasks: [
+          { id: 't11.1', name: 'Reconhecimento de Aposta', isCompleted: false },
+          { id: 't11.2', name: 'OCR Mobile Aprimorado', isCompleted: false }
+       ]
+    },
+    {
+       id: 'p12', title: 'FASE 12: MOBILE PRO', description: 'UX Profissional', status: 'PENDING', progress: 0,
+       tasks: [
+          { id: 't12.1', name: 'Interface Compacta', isCompleted: false },
+          { id: 't12.2', name: 'Alertas Push/Vibração', isCompleted: false }
        ]
     }
   ];

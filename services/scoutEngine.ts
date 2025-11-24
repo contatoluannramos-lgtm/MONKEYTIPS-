@@ -32,45 +32,84 @@ export const DEFAULT_CALIBRATION: CalibrationConfig = {
   }
 };
 
-const calculatePoisson = (lambda: number, k: number) => {
-  return (Math.pow(lambda, k) * Math.exp(-lambda)) / 1; 
+// Lógica Bayesiana: Pondera probabilidade histórica (Prior) vs dados ao vivo (Likelihood) baseada no tempo decorrido
+const calculateBayesianProbability = (priorProb: number, liveProb: number, progress: number): number => {
+    // Progress 0.0 a 1.0 (0% a 100% do tempo de jogo)
+    // No início, Prior (Histórico) tem peso 1.0
+    // No fim, Likelihood (Live) tem peso 0.8 (mantemos 0.2 de viés histórico para evitar overreaction a 1 lance)
+    
+    const liveWeight = Math.min(progress, 0.8);
+    const priorWeight = 1.0 - liveWeight;
+    
+    return ((priorProb * priorWeight) + (liveProb * liveWeight));
+};
+
+// Detector de "Hot Game" (Jogo Quente/Frenético)
+const detectHotGame = (sport: SportType, stats: any): boolean => {
+    if (sport === SportType.BASKETBALL) {
+        // NBA Hot: Pace > 102 ou placar muito alto no Q1 (> 60 pts combinados)
+        const pace = stats.pace || 0;
+        const q1Score = (stats.quarters?.q1?.home || 0) + (stats.quarters?.q1?.away || 0);
+        return pace > 102 || q1Score > 60;
+    }
+    
+    if (sport === SportType.FOOTBALL) {
+        // Football Hot: Ataques perigosos > 1 por minuto ou muitos chutes
+        const mins = Math.max(stats.currentMinute || 1, 1);
+        const dangerousAttacks = stats.attacks?.dangerous || 0;
+        const attacksPerMin = dangerousAttacks / mins;
+        
+        // > 0.8 ataques perigosos por minuto é pressão alta
+        return attacksPerMin > 0.8;
+    }
+    
+    return false;
 };
 
 export const runScoutAnalysis = (match: Match, config: CalibrationConfig): ScoutResult => {
   
   const isLive = match.status === 'Live';
+  let isHot = false;
 
   // --- FUTEBOL ---
   if (match.sport === SportType.FOOTBALL) {
     const stats = match.stats as FootballStats;
     
-    let probOver25 = 50;
+    // Probabilidade Base (Prior) baseada no Histórico
+    const priorProb = 55 + (config.football.weightRecentForm * 10);
+    
+    let finalProb = priorProb;
     let details = "";
 
     if (isLive) {
         const homeGoals = stats.homeScore || 0;
         const corners = stats.corners?.total || 0;
-        const possession = stats.possession || 50;
         const estimatedXG = stats.xg ? (stats.xg.home + stats.xg.away) : (stats.shotsOnTarget.home + stats.shotsOnTarget.away) / 3;
         
-        probOver25 = (estimatedXG > 2.0 || (homeGoals + corners/5) > 1.5) ? 
-                     (65 * config.football.poissonStrength) + 25 : 
-                     40;
+        // Probabilidade Ao Vivo (Likelihood)
+        const liveProb = (estimatedXG > 2.0 || (homeGoals + corners/5) > 1.5) ? 
+                     (75 * config.football.poissonStrength) + 25 : 
+                     30;
         
-        details = `LIVE DATA | xG: ${estimatedXG.toFixed(1)} | Cantos: ${corners}`;
+        // Ajuste Bayesiano
+        const matchProgress = Math.min((stats.currentMinute || 0) / 90, 1);
+        finalProb = calculateBayesianProbability(priorProb, liveProb, matchProgress);
+        
+        isHot = detectHotGame(SportType.FOOTBALL, stats);
+        
+        details = `BAYESIAN | xG: ${estimatedXG.toFixed(1)} | Hot: ${isHot ? 'YES' : 'NO'}`;
     } else {
-        // Se for Scheduled (Pré-jogo), o Scout usa expectativa baseada no histórico se disponível
-        // Se stats estiverem vazios (0), assumimos expectativa neutra ajustada pela calibração
-        probOver25 = 55 + (config.football.weightRecentForm * 10); 
-        details = "PRE-GAME | Scout baseado em Expectativa de Mercado";
+        details = "PRE-GAME | Scout baseado em Histórico (Prior)";
+        finalProb = priorProb;
     }
 
     return {
       matchId: match.id,
-      calculatedProbability: Math.min(probOver25, 99),
+      calculatedProbability: Math.min(finalProb, 99),
       expectedGoals: { home: 1.5, away: 1.2 }, 
-      signal: probOver25 > config.football.over25Threshold ? 'STRONG_OVER' : 'NEUTRAL',
-      details: details
+      signal: finalProb > config.football.over25Threshold ? 'STRONG_OVER' : 'NEUTRAL',
+      details: details,
+      isHotGame: isHot
     };
   }
 
@@ -78,49 +117,52 @@ export const runScoutAnalysis = (match: Match, config: CalibrationConfig): Scout
   if (match.sport === SportType.BASKETBALL) {
     const stats = match.stats as BasketballStats;
     
-    let probOver = 50;
-    let details = "";
-    
     // Configurações NBA
     const NBA_GAME_MINUTES = 48;
     const NBA_AVG_PACE = 99.5;
+    
+    // Prior Base
+    const priorProb = 60 + (config.basketball.paceWeight * 10);
+    let finalProb = priorProb;
+    let details = "";
 
     if (isLive) {
-        // Cálculo de Projeção NBA (Baseado em 48 min)
-        // Se a API não der o tempo exato em minutos, tentamos estimar pelo quarto
+        // Cálculo de Projeção NBA
         let minutesPlayed = 1;
         const period = stats.currentPeriod; 
         
-        // Estimativa simples de minutos jogados se o tempo exato não vier
         if (period.includes('Q1')) minutesPlayed = 6;
         else if (period.includes('Q2')) minutesPlayed = 18;
         else if (period.includes('Q3')) minutesPlayed = 30;
         else if (period.includes('Q4')) minutesPlayed = 42;
         
         const currentTotalScore = stats.homeScore + stats.awayScore;
-        
-        // Projeção Linear Simples: (Placar Atual / Minutos Jogados) * 48
         const projectedPoints = (currentTotalScore / Math.max(minutesPlayed, 1)) * NBA_GAME_MINUTES;
-        
-        // Ajuste por Pace (Se disponível)
         const paceFactor = stats.pace ? (stats.pace / NBA_AVG_PACE) : 1;
-        const finalProjection = projectedPoints * paceFactor;
+        const liveProjection = projectedPoints * paceFactor;
 
-        probOver = (finalProjection > config.basketball.lineThreshold) ? 80 : 35;
+        const liveProb = (liveProjection > config.basketball.lineThreshold) ? 85 : 30;
         
-        details = `NBA LIVE | Proj: ${Math.floor(finalProjection)} pts | Pace: ${stats.pace || 'N/A'}`;
+        // Ajuste Bayesiano para Basquete
+        // Assumimos que Q1 tem menos peso, Q4 tem peso total
+        const matchProgress = Math.min(minutesPlayed / 48, 1);
+        finalProb = calculateBayesianProbability(priorProb, liveProb, matchProgress);
+
+        isHot = detectHotGame(SportType.BASKETBALL, stats);
+        
+        details = `BAYESIAN NBA | Proj: ${Math.floor(liveProjection)} | Hot: ${isHot ? 'YES' : 'NO'}`;
     } else {
-        // Pré-jogo NBA: Times modernos pontuam muito. Viés de Alta.
-        probOver = 60 + (config.basketball.paceWeight * 10);
-        details = "NBA PRE-GAME | Tendência High Scoring (Weekend)";
+        details = "NBA PRE-GAME | Tendência High Scoring (Prior)";
+        finalProb = priorProb;
     }
 
     return {
       matchId: match.id,
-      calculatedProbability: Math.min(Math.max(probOver, 0), 99),
-      projectedPoints: 230, // Projeção base NBA
-      signal: probOver > 65 ? 'STRONG_OVER' : (probOver < 40 ? 'STRONG_UNDER' : 'NEUTRAL'),
-      details: details
+      calculatedProbability: Math.min(Math.max(finalProb, 0), 99),
+      projectedPoints: 230,
+      signal: finalProb > 65 ? 'STRONG_OVER' : (finalProb < 40 ? 'STRONG_UNDER' : 'NEUTRAL'),
+      details: details,
+      isHotGame: isHot
     };
   }
   
@@ -129,6 +171,7 @@ export const runScoutAnalysis = (match: Match, config: CalibrationConfig): Scout
     matchId: match.id,
     calculatedProbability: 55, 
     signal: 'NEUTRAL',
-    details: 'Aguardando início...'
+    details: 'Aguardando início...',
+    isHotGame: false
   };
 };

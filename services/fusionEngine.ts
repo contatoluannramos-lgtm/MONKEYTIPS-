@@ -7,29 +7,39 @@ export const runFusionEngine = (
   aiTip: Tip | null
 ): FusionAnalysis => {
   
-  // 1. Base Confidence from Scout (Math)
+  // 1. Base Confidence from Scout (Math - Bayesian Adjusted)
   let finalScore = scoutData.calculatedProbability;
 
   // 2. Adjust with AI Context (Unstructured Data: Injuries, News)
   if (aiTip) {
-    // Se a IA concorda com o Scout, aumenta a confiança
     if (scoutData.signal === 'STRONG_OVER' && aiTip.prediction.includes('Over')) {
-      finalScore += 15;
+      finalScore += 10;
     } 
-    // Se discorda, penaliza
     else if (scoutData.signal === 'STRONG_OVER' && aiTip.prediction.includes('Under')) {
-      finalScore -= 20;
+      finalScore -= 15; // Penalidade maior por discordância
     }
   }
 
-  // 3. Market Odds (EV Calculation)
-  // Se a odd for 2.00, a probabilidade implícita é 50%.
-  // Se nosso Final Score for 70%, temos +20% de EV.
+  // 3. Hot Game Boost
+  // Se o jogo está pegando fogo (Hot), aumentamos a confiança do Over
+  if (scoutData.isHotGame) {
+      if (scoutData.signal.includes('OVER')) {
+          finalScore += 5; // Boost extra para Over em jogo Hot
+      }
+  }
+
+  // 4. Market Odds (EV Calculation)
   const impliedProb = aiTip ? (1 / aiTip.odds) * 100 : 50;
   const ev = finalScore - impliedProb;
 
+  // 5. Confidence Level Definition
+  let confidenceLevel: 'LOW' | 'MEDIUM' | 'HIGH' = 'LOW';
+  if (finalScore >= 80) confidenceLevel = 'HIGH';
+  else if (finalScore >= 60) confidenceLevel = 'MEDIUM';
+
   let verdict: 'GREEN_LIGHT' | 'YELLOW_WARNING' | 'RED_ALERT' = 'RED_ALERT';
   
+  // Critérios mais rigorosos para Green Light
   if (finalScore > 75 && ev > 5) verdict = 'GREEN_LIGHT';
   else if (finalScore > 60 && ev > 0) verdict = 'YELLOW_WARNING';
 
@@ -38,6 +48,7 @@ export const runFusionEngine = (
     scoutResult: scoutData,
     aiContext: aiTip ? aiTip.reasoning : "Sem análise de IA disponível.",
     finalConfidence: Math.min(Math.max(finalScore, 0), 99),
+    confidenceLevel,
     ev: Number(ev.toFixed(2)),
     marketOdd: aiTip ? aiTip.odds : 0,
     verdict
