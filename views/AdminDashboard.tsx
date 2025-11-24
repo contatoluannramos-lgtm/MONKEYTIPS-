@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { generateBulkInsights } from '../services/geminiService';
 import { fetchLiveFixtures } from '../services/liveDataService';
+import { dbService } from '../services/databaseService'; // Import DB Service
 import { Match, Tip, SportType, AdminView } from '../types';
 import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel } from '../components/AdminComponents';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -10,7 +11,7 @@ interface AdminDashboardProps {
   tips: Tip[];
   setTips: React.Dispatch<React.SetStateAction<Tip[]>>;
   matches: Match[];
-  setMatches: React.Dispatch<React.SetStateAction<Match[]>>; // Added setter
+  setMatches: React.Dispatch<React.SetStateAction<Match[]>>;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, matches, setMatches }) => {
@@ -23,18 +24,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     setIsSyncing(true);
     const apiKey = localStorage.getItem('monkey_football_api_key') || '';
     
-    // Tenta buscar dados reais
     const liveMatches = await fetchLiveFixtures(apiKey);
     
     if (liveMatches.length > 0) {
-      // Mescla com os dados existentes ou substitui (neste caso, adicionamos ao topo)
-      // Filtramos para não duplicar IDs
       const newMatches = liveMatches.filter(lm => !matches.find(m => m.id === lm.id));
       if (newMatches.length > 0) {
          setMatches(prev => [...newMatches, ...prev]);
-         alert(`${newMatches.length} partidas ao vivo sincronizadas da API!`);
+         
+         // Salvar no Banco
+         newMatches.forEach(async (m) => {
+           await dbService.saveMatch(m);
+         });
+
+         alert(`${newMatches.length} partidas ao vivo sincronizadas e salvas no banco!`);
       } else {
-         alert("Nenhuma partida nova encontrada, mas a conexão foi bem sucedida.");
+         alert("Dados atualizados, mas nenhuma partida nova encontrada.");
       }
     } else {
       if(!apiKey) alert("Modo Demo: Configure a API Key na aba Ativação para dados reais.");
@@ -56,6 +60,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
 
     const newTips = await generateBulkInsights(matchesToAnalyze);
     setTips(prev => [...newTips, ...prev]);
+    
+    // Salvar Tips no Banco
+    newTips.forEach(async (t) => {
+      await dbService.saveTip(t);
+    });
+
     setIsGenerating(false);
   };
 
@@ -84,8 +94,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
           {[
             { name: 'Visão Geral', icon: '⚡', id: 'DASHBOARD' },
             { name: 'Ativação', icon: '🗝️', id: 'ACTIVATION' },
-            { name: 'Motor de IA', icon: '🧠', id: 'DASHBOARD' }, // Keeps on dashboard for now or could route elsewhere
-            { name: 'Feeds de Dados', icon: '📡', id: 'ACTIVATION' } // Shortcut to activation
+            { name: 'Motor de IA', icon: '🧠', id: 'DASHBOARD' }, 
+            { name: 'Feeds de Dados', icon: '📡', id: 'ACTIVATION' }
           ].map((item, idx) => (
              <button 
                key={idx} 
@@ -132,7 +142,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
           </div>
         </header>
 
-        {/* --- VIEW ROUTER --- */}
         {currentView === 'ACTIVATION' ? (
            <div className="relative z-10 max-w-5xl mx-auto">
              <ActivationPanel />
@@ -147,7 +156,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
               <StatCard title="Requisições API" value="45k" change="-1.2%" icon="📡" />
             </div>
 
-            {/* --- ROADMAP INTEGRATION --- */}
             <div className="mb-8">
               <ProjectEvolutionRoadmap />
             </div>
@@ -183,7 +191,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                   </div>
 
                   <div className="bg-black/30 rounded-none border border-white/5 p-8 flex flex-col items-center justify-center text-center relative overflow-hidden group">
-                    {/* Decorative background element */}
                     <div className="absolute inset-0 bg-gradient-to-b from-brand-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     
                     <div className="w-16 h-16 rounded-full border border-brand-500/30 flex items-center justify-center mb-6 relative">
@@ -217,7 +224,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                   </div>
                 </div>
 
-                {/* Performance Chart */}
                 <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6">
                   <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-6">Métricas de Performance do Modelo</h3>
                   <div className="h-64 w-full">
@@ -237,7 +243,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                 </div>
               </div>
 
-              {/* Right Column */}
               <div className="space-y-8">
                 <OperationalChecklist />
                 <ImprovementsPanel />
@@ -250,8 +255,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                       <span className="text-green-500">● CONECTADO</span>
                     </div>
                     <div className="flex justify-between items-center p-2 bg-black/20 rounded-none border border-white/5">
-                      <span className="text-gray-300">NBA_OFFICIAL</span>
-                      <span className="text-brand-500 animate-pulse">● LATÊNCIA</span>
+                      <span className="text-gray-300">SUPABASE DB</span>
+                      <span className="text-green-500">● CONECTADO</span>
                     </div>
                     <div className="mt-4 pt-4 border-t border-white/5">
                       <button className="w-full py-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-none transition-colors uppercase tracking-wider">

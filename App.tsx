@@ -4,8 +4,9 @@ import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'reac
 import { ClientDashboard } from './views/ClientDashboard';
 import { AdminDashboard } from './views/AdminDashboard';
 import { Match, Tip, SportType } from './types';
+import { dbService } from './services/databaseService';
 
-// --- MOCK DATA ---
+// --- MOCK DATA (Fallback) ---
 const INITIAL_MATCHES: Match[] = [
   {
     id: 'm1',
@@ -26,16 +27,6 @@ const INITIAL_MATCHES: Match[] = [
     startTime: '2024-05-21T00:00:00Z',
     status: 'Scheduled',
     stats: { pace: 102.5, efficiency: 112.3 }
-  },
-  {
-    id: 'm3',
-    sport: SportType.VOLLEYBALL,
-    teamA: 'Brasil',
-    teamB: 'Itália',
-    league: 'VNL',
-    startTime: '2024-05-22T10:00:00Z',
-    status: 'Scheduled',
-    stats: { errorsPerSet: 4.5, blockRate: 2.1 }
   }
 ];
 
@@ -62,7 +53,6 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Atualizado para a nova senha solicitada
     if (email === 'admin@monkeytips.com' && password === '0777') {
       onLogin();
     } else {
@@ -72,7 +62,6 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
 
   return (
     <div className="min-h-screen bg-[#09090B] flex items-center justify-center px-4 font-mono relative overflow-hidden">
-       {/* Background decorative elements */}
        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand-600 to-transparent opacity-50"></div>
        <div className="absolute inset-0 bg-grid opacity-10 pointer-events-none"></div>
 
@@ -125,13 +114,30 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
 
+  // Load Data from Supabase on Boot
+  useEffect(() => {
+    const loadData = async () => {
+      console.log('Iniciando conexão com Supabase...');
+      
+      const dbMatches = await dbService.getMatches();
+      if (dbMatches.length > 0) {
+        setMatches(dbMatches);
+      }
+
+      const dbTips = await dbService.getTips();
+      if (dbTips.length > 0) {
+        setTips(dbTips);
+      }
+    };
+    
+    loadData();
+  }, []);
+
   return (
     <Router>
       <Routes>
-        {/* PUBLIC ROUTE - Client View */}
         <Route path="/" element={<ClientDashboard tips={tips} />} />
 
-        {/* RESTRICTED ROUTES - Admin View */}
         <Route 
           path="/admin/login" 
           element={isAuthenticated ? <Navigate to="/admin" /> : <Login onLogin={() => setIsAuthenticated(true)} />} 
@@ -142,7 +148,6 @@ export default function App() {
           element={isAuthenticated ? <AdminDashboard tips={tips} setTips={setTips} matches={matches} setMatches={setMatches} /> : <Navigate to="/admin/login" />} 
         />
 
-        {/* CATCH ALL */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
