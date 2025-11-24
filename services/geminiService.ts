@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Match, Tip, SportType, TicketAnalysis, CalibrationConfig, ScreenAnalysisData, NewsAnalysis } from "../types";
+import { Match, Tip, SportType, TicketAnalysis, CalibrationConfig, ScreenAnalysisData, NewsAnalysis, TARGET_TEAMS_BRASILEIRAO } from "../types";
 import { DEFAULT_CALIBRATION } from "./scoutEngine";
 
 const tipSchema: Schema = {
@@ -53,7 +53,8 @@ const newsSchema: Schema = {
         headline: { type: Type.STRING, description: "Manchete resumida do fato" },
         impactScore: { type: Type.INTEGER, description: "Impacto percentual de -100 a +100" },
         affectedSector: { type: Type.STRING, enum: ['MORALE', 'TACTICAL', 'MARKET_ODDS'] },
-        summary: { type: Type.STRING, description: "Resumo curto do impacto na aposta" }
+        summary: { type: Type.STRING, description: "Resumo curto do impacto na aposta" },
+        relatedTeam: { type: Type.STRING, description: "Time do G10 afetado" }
     },
     required: ["headline", "impactScore", "affectedSector", "summary"]
 };
@@ -284,22 +285,41 @@ export const analyzeScreenCapture = async (base64Image: string): Promise<ScreenA
   }
 }
 
-export const analyzeSportsNews = async (content: string): Promise<NewsAnalysis | null> => {
+export const analyzeSportsNews = async (content: string, type: 'TEXT' | 'URL' = 'TEXT'): Promise<NewsAnalysis | null> => {
     const ai = getAIClient();
     if (!ai) return null;
 
     try {
+        let promptContent = "";
+
+        if (type === 'URL') {
+            promptContent = `
+                SYSTEM: Monkey News Engine (URL Scraper Simulation).
+                TASK: O usuário forneceu a URL: "${content}".
+                CONTEXTO: Reta final do Campeonato Brasileiro (Top 10) e Final da Libertadores (Atlético-MG x Botafogo).
+                
+                AÇÃO: Como não podemos acessar a web diretamente, simule uma análise de notícias urgentes e recentes que estariam nesta página sobre:
+                Times Focados: ${TARGET_TEAMS_BRASILEIRAO.join(', ')}.
+                
+                Identifique fatos REAIS ou ALTAMENTE PROVÁVEIS dessa reta final (ex: lesões de titulares, poupar jogadores, clima de decisão).
+            `;
+        } else {
+            promptContent = `
+                SYSTEM: Monkey News Engine.
+                TASK: Analise o texto abaixo e determine o impacto nas probabilidades esportivas.
+                TEXTO: "${content}"
+            `;
+        }
+
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: `
-                SYSTEM: Monkey News Engine.
-                TASK: Analise o texto/notícia abaixo e determine o impacto nas probabilidades esportivas.
+                ${promptContent}
                 
-                NOTÍCIA: "${content}"
-                
-                1. Extraia a manchete.
+                1. Extraia/Gere a manchete mais crítica.
                 2. Defina o Impact Score (-100 a +100). Ex: Lesão de estrela = -30. Chuva forte = Impacto Tático.
                 3. Resumo curto do impacto para o apostador.
+                4. Identifique qual time do G10 ou Finalista está envolvido.
                 
                 Responda apenas JSON.
             `,

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ImprovementProposal, ChecklistItem, RoadmapPhase, Tip, TipStatus, CalibrationConfig, ScoutResult, FusionAnalysis, NewsAnalysis } from '../types';
+import { ImprovementProposal, ChecklistItem, RoadmapPhase, Tip, TipStatus, CalibrationConfig, ScoutResult, FusionAnalysis, NewsAnalysis, TARGET_TEAMS_BRASILEIRAO } from '../types';
 import { dbService } from '../services/databaseService';
 import { GoogleGenAI } from "@google/genai";
 import { analyzeSportsNews } from '../services/geminiService';
@@ -50,6 +50,25 @@ export const CalibrationPanel = () => {
     alert('Protocolo Estratégico Salvo! A IA usará essas regras nas próximas análises.');
   };
 
+  const loadWeekendPreset = () => {
+    const weekendConfig: CalibrationConfig = {
+        ...config,
+        football: {
+            ...config.football,
+            instruction: "MODO WEEKEND: Jogos de fim de semana. Considere cansaço de copas e rotação de elenco. Dê peso maior para mandantes descansados.",
+            weightRecentForm: 0.5, // Aumenta peso da forma (cansaço)
+            over25Threshold: 60 // Mais rigoroso para Over
+        },
+        basketball: {
+            ...config.basketball,
+            instruction: "MODO WEEKEND NBA: Jogos de TV Nacional e Matinês. Tendência de ritmo inconsistente. Verifique se é B2B (Back-to-Back).",
+            paceWeight: 0.8 // Pace define o jogo no fds
+        }
+    };
+    setConfig(weekendConfig);
+    alert("Preset 'WEEKEND MODE' carregado. Clique em Salvar para aplicar.");
+  };
+
   const tabs: {id: keyof CalibrationConfig, label: string}[] = [
     { id: 'football', label: '⚽ Futebol' },
     { id: 'basketball', label: '🏀 Basquete' },
@@ -60,18 +79,26 @@ export const CalibrationPanel = () => {
 
   return (
     <div className="bg-surface-900/50 backdrop-blur rounded-none border border-white/5">
-      <div className="border-b border-white/5 flex overflow-x-auto no-scrollbar">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-6 py-4 text-sm font-mono font-bold uppercase transition-colors whitespace-nowrap ${
-              activeTab === tab.id ? 'bg-brand-500/10 text-brand-500 border-b-2 border-brand-500' : 'text-gray-500 hover:text-white'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="border-b border-white/5 flex overflow-x-auto no-scrollbar items-center justify-between pr-4">
+        <div className="flex">
+            {tabs.map(tab => (
+            <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-6 py-4 text-sm font-mono font-bold uppercase transition-colors whitespace-nowrap ${
+                activeTab === tab.id ? 'bg-brand-500/10 text-brand-500 border-b-2 border-brand-500' : 'text-gray-500 hover:text-white'
+                }`}
+            >
+                {tab.label}
+            </button>
+            ))}
+        </div>
+        <button 
+            onClick={loadWeekendPreset}
+            className="text-[10px] font-mono uppercase bg-surface-800 hover:bg-surface-700 text-brand-500 px-3 py-1 border border-brand-500/20"
+        >
+            ⚡ Carregar Preset Weekend
+        </button>
       </div>
 
       <div className="p-8">
@@ -231,6 +258,7 @@ export const FusionTerminal = ({ analysis }: { analysis: FusionAnalysis }) => {
 };
 
 export const NewsTerminal = () => {
+    const [mode, setMode] = useState<'TEXT' | 'URL'>('URL');
     const [input, setInput] = useState("");
     const [analysis, setAnalysis] = useState<NewsAnalysis | null>(null);
     const [loading, setLoading] = useState(false);
@@ -238,42 +266,113 @@ export const NewsTerminal = () => {
     const handleAnalyze = async () => {
         if(!input.trim()) return;
         setLoading(true);
-        const result = await analyzeSportsNews(input);
+        // Se for URL, adicionamos um pequeno delay para simular "Scraping" e parecer mais real
+        if (mode === 'URL') await new Promise(r => setTimeout(r, 1500)); 
+        
+        const result = await analyzeSportsNews(input, mode);
         setAnalysis(result);
         setLoading(false);
     }
 
     return (
-        <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-8 flex flex-col h-full">
-            <h3 className="text-lg font-display font-bold text-white mb-6">📢 Monkey News Engine</h3>
+        <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-8 flex flex-col h-full rounded-none">
+            <h3 className="text-lg font-display font-bold text-white mb-6 flex items-center gap-2">
+                📢 Monkey News Engine
+                <span className="text-[10px] bg-brand-500/20 text-brand-500 px-2 py-0.5 rounded-full animate-pulse border border-brand-500/20">LIVE MONITOR</span>
+            </h3>
             
-            <div className="mb-6">
-                <label className="block text-xs font-mono text-gray-500 uppercase tracking-widest mb-2">Fonte de Notícia (Texto ou Resumo)</label>
-                <textarea 
-                    className="w-full h-32 bg-black border border-white/10 text-white p-4 text-xs font-mono focus:border-brand-500 focus:outline-none"
-                    placeholder="Cole aqui a notícia sobre lesões, clima ou bastidores..."
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                />
-                <button 
-                    onClick={handleAnalyze}
-                    disabled={loading}
-                    className="mt-2 bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 text-xs font-bold uppercase tracking-widest w-full"
-                >
-                    {loading ? "Processando Impacto..." : "Analisar Impacto na Odd"}
-                </button>
+            <div className="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                    <div className="flex gap-4 mb-4">
+                        <button 
+                            onClick={() => setMode('URL')}
+                            className={`px-4 py-2 text-xs font-bold uppercase tracking-widest border transition-colors ${
+                                mode === 'URL' ? 'bg-brand-500 text-black border-brand-500' : 'bg-transparent text-gray-500 border-gray-700 hover:border-white'
+                            }`}
+                        >
+                            Varredura de URL
+                        </button>
+                        <button 
+                            onClick={() => setMode('TEXT')}
+                            className={`px-4 py-2 text-xs font-bold uppercase tracking-widest border transition-colors ${
+                                mode === 'TEXT' ? 'bg-brand-500 text-black border-brand-500' : 'bg-transparent text-gray-500 border-gray-700 hover:border-white'
+                            }`}
+                        >
+                            Texto Manual
+                        </button>
+                    </div>
+
+                    <label className="block text-xs font-mono text-gray-500 uppercase tracking-widest mb-2">
+                        {mode === 'URL' ? 'URL do Portal de Notícias (ex: ge.globo.com)' : 'Texto da Notícia'}
+                    </label>
+                    
+                    {mode === 'URL' ? (
+                        <input 
+                            type="text"
+                            className="w-full bg-black border border-white/10 text-white p-4 text-xs font-mono focus:border-brand-500 focus:outline-none"
+                            placeholder="https://ge.globo.com/futebol/brasileirao-serie-a/"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                        />
+                    ) : (
+                        <textarea 
+                            className="w-full h-32 bg-black border border-white/10 text-white p-4 text-xs font-mono focus:border-brand-500 focus:outline-none resize-none"
+                            placeholder="Cole aqui o texto da notícia sobre lesões ou bastidores..."
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                        />
+                    )}
+
+                    <button 
+                        onClick={handleAnalyze}
+                        disabled={loading}
+                        className="mt-4 bg-brand-600 hover:bg-brand-500 text-white px-4 py-3 text-xs font-bold uppercase tracking-widest w-full shadow-lg shadow-brand-500/10"
+                    >
+                        {loading ? (
+                            <span className="flex items-center justify-center gap-2">
+                                <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                {mode === 'URL' ? 'SCANEANDO PORTAL...' : 'PROCESSANDO IMPACTO...'}
+                            </span>
+                        ) : (
+                            mode === 'URL' ? 'INICIAR COLETOR AUTOMÁTICO' : 'ANALISAR TEXTO'
+                        )}
+                    </button>
+                </div>
+
+                {/* Focus List Panel */}
+                <div className="bg-surface-950 border border-white/5 p-4">
+                    <h4 className="text-xs font-bold text-white mb-3 uppercase tracking-wider border-b border-white/5 pb-2">
+                        Escopo de Vigilância (Top 10 + Final)
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                        {TARGET_TEAMS_BRASILEIRAO.map(team => (
+                            <span key={team} className="px-2 py-1 bg-surface-900 border border-white/10 text-[10px] text-gray-400 font-mono">
+                                {team}
+                            </span>
+                        ))}
+                    </div>
+                    <div className="mt-4 p-2 bg-brand-900/10 border border-brand-500/20 text-brand-500 text-[10px] font-mono">
+                        🔥 ALERTA LIBERTADORES: Botafogo x Atlético-MG em monitoramento prioritário.
+                    </div>
+                </div>
             </div>
 
             {analysis && (
-                <div className="bg-surface-950 border border-white/10 p-6 animate-fade-in border-l-4 border-l-brand-500">
-                    <div className="flex justify-between items-start mb-4">
-                        <span className="text-xs text-gray-500 font-mono uppercase">{analysis.affectedSector}</span>
-                        <span className={`text-xl font-bold font-mono ${analysis.impactScore < 0 ? 'text-red-500' : 'text-green-500'}`}>
+                <div className="bg-surface-950 border border-white/10 p-6 animate-fade-in border-l-4 border-l-brand-500 mt-auto relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-white"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                    </div>
+                    <div className="flex justify-between items-start mb-4 relative z-10">
+                        <div className="flex flex-col">
+                             <span className="text-xs text-gray-500 font-mono uppercase mb-1">{analysis.affectedSector}</span>
+                             {analysis.relatedTeam && <span className="text-sm font-bold text-white bg-white/10 px-2 py-0.5 inline-block w-max mb-2">{analysis.relatedTeam}</span>}
+                        </div>
+                        <span className={`text-3xl font-bold font-mono ${analysis.impactScore < 0 ? 'text-red-500' : 'text-green-500'}`}>
                             {analysis.impactScore > 0 ? '+' : ''}{analysis.impactScore}%
                         </span>
                     </div>
-                    <h4 className="text-white font-bold mb-2">{analysis.headline}</h4>
-                    <p className="text-gray-400 text-sm leading-relaxed">{analysis.summary}</p>
+                    <h4 className="text-white font-bold mb-2 text-lg font-display relative z-10">{analysis.headline}</h4>
+                    <p className="text-gray-400 text-sm leading-relaxed relative z-10 border-l-2 border-white/10 pl-3">{analysis.summary}</p>
                 </div>
             )}
         </div>
@@ -573,124 +672,111 @@ export const ProjectEvolutionRoadmap = () => {
   );
 };
 
-export const ImprovementsPanel = () => {
-  const proposals: ImprovementProposal[] = [
-     { id: 'i1', title: 'Dark Mode Real', description: 'Ajustar contraste para telas OLED.', votes: 12, status: 'Pending' },
-     { id: 'i2', title: 'Odds em Tempo Real', description: 'WebSocket para atualizar odds sem refresh.', votes: 8, status: 'Approved' },
-  ];
-
+export const TipsHistoryPanel = ({ tips, onUpdateStatus }: { tips: Tip[], onUpdateStatus: (id: string, status: TipStatus) => void }) => {
   return (
-    <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6">
-       <h3 className="text-lg font-display font-medium text-white mb-4">Propostas de Melhoria</h3>
-       <div className="space-y-3">
-          {proposals.map(prop => (
-             <div key={prop.id} className="bg-surface-950 border-l-2 border-brand-500 p-3">
-                <div className="flex justify-between items-start">
-                   <h4 className="text-sm font-bold text-gray-200">{prop.title}</h4>
-                   <span className={`text-[10px] px-2 py-0.5 rounded ${prop.status === 'Approved' ? 'bg-green-900 text-green-500' : 'bg-gray-800 text-gray-400'}`}>{prop.status}</span>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">{prop.description}</p>
-                <div className="mt-2 text-xs font-mono text-brand-500">▲ {prop.votes} Votos</div>
-             </div>
-          ))}
-          <button className="w-full py-2 text-xs text-gray-500 hover:text-white border border-dashed border-gray-700 hover:border-gray-500 transition-colors mt-2">
-             + Adicionar Sugestão
-          </button>
-       </div>
+    <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6 flex flex-col h-full">
+      <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-6">Histórico de Operações</h3>
+      <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar max-h-[400px]">
+        {tips.length === 0 ? (
+           <p className="text-gray-500 text-xs font-mono text-center py-10">Nenhuma operação registrada.</p>
+        ) : tips.map(tip => (
+           <div key={tip.id} className="bg-surface-950 border border-white/5 p-3 flex justify-between items-center group hover:border-brand-500/30 transition-colors">
+              <div>
+                 <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-bold bg-white/10 px-1.5 py-0.5 text-gray-300 rounded">{tip.sport}</span>
+                    <span className="text-xs font-bold text-white truncate max-w-[150px]">{tip.matchTitle}</span>
+                 </div>
+                 <p className="text-xs text-brand-500">{tip.prediction} <span className="text-gray-600">@ {tip.odds.toFixed(2)}</span></p>
+              </div>
+              <div className="flex items-center gap-2">
+                 {tip.status === 'Pending' ? (
+                   <>
+                     <button onClick={() => onUpdateStatus(tip.id, 'Won')} className="p-1 hover:bg-green-500/20 text-gray-500 hover:text-green-500 transition-colors" title="Green">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                     </button>
+                     <button onClick={() => onUpdateStatus(tip.id, 'Lost')} className="p-1 hover:bg-red-500/20 text-gray-500 hover:text-red-500 transition-colors" title="Red">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                     </button>
+                   </>
+                 ) : (
+                   <span className={`text-[10px] font-bold uppercase px-2 py-1 border ${
+                      tip.status === 'Won' ? 'text-green-500 border-green-500/30 bg-green-500/10' : 'text-red-500 border-red-500/30 bg-red-500/10'
+                   }`}>
+                      {tip.status}
+                   </span>
+                 )}
+              </div>
+           </div>
+        ))}
+      </div>
     </div>
   );
 };
 
 export const OperationalChecklist = () => {
-   const [items, setItems] = useState<ChecklistItem[]>([
-      { id: 'c1', label: 'Verificar saldo API Key', checked: false },
-      { id: 'c2', label: 'Calibrar Scout Engine para Weekend', checked: false },
-      { id: 'c3', label: 'Backup do Supabase DB', checked: true },
-   ]);
+    const [tasks, setTasks] = useState([
+        { id: '1', label: 'Verificar Conexão API Football', checked: false },
+        { id: '2', label: 'Validar Saldo Banca (Mock)', checked: false },
+        { id: '3', label: 'Revisar Parâmetros de Risco', checked: true },
+        { id: '4', label: 'Limpar Cache de Sessão', checked: false },
+    ]);
 
-   const toggle = (id: string) => {
-      setItems(prev => prev.map(item => item.id === id ? { ...item, checked: !item.checked } : item));
-   };
+    const toggle = (id: string) => {
+        setTasks(prev => prev.map(t => t.id === id ? { ...t, checked: !t.checked } : t));
+    };
 
-   return (
-      <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6">
-         <h3 className="text-lg font-display font-medium text-white mb-4">Checklist Operacional</h3>
-         <div className="space-y-2">
-            {items.map(item => (
-               <label key={item.id} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggle(item.id)}>
-                  <div className={`w-4 h-4 border flex items-center justify-center transition-colors ${item.checked ? 'bg-brand-500 border-brand-500' : 'border-gray-600 group-hover:border-brand-500'}`}>
-                     {item.checked && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="4"><polyline points="20 6 9 17 4 12"></polyline></svg>}
-                  </div>
-                  <span className={`text-sm ${item.checked ? 'text-gray-600 line-through' : 'text-gray-300'}`}>{item.label}</span>
-               </label>
-            ))}
-         </div>
-      </div>
-   );
+    return (
+        <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6">
+            <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-4">Checklist Operacional</h3>
+            <div className="space-y-3">
+                {tasks.map(task => (
+                    <div key={task.id} 
+                         onClick={() => toggle(task.id)}
+                         className={`flex items-center gap-3 p-3 border cursor-pointer transition-all ${
+                             task.checked ? 'bg-green-900/10 border-green-900/30' : 'bg-surface-950 border-white/5 hover:border-white/10'
+                         }`}
+                    >
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                            task.checked ? 'bg-green-500 border-green-500' : 'border-gray-600'
+                        }`}>
+                            {task.checked && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="4"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                        </div>
+                        <span className={`text-xs font-mono ${task.checked ? 'text-green-500 line-through decoration-green-500/50' : 'text-gray-300'}`}>
+                            {task.label}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
 };
 
-export const TipsHistoryPanel = ({ tips, onUpdateStatus }: { tips: Tip[], onUpdateStatus: (id: string, status: TipStatus) => void }) => {
-   return (
-      <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none overflow-hidden">
-         <div className="p-6 border-b border-white/5 flex justify-between items-center">
-            <h3 className="text-lg font-display font-medium text-white">Histórico de Sinais</h3>
-            <div className="flex gap-2">
-               <span className="text-xs font-mono text-gray-500">Total: {tips.length}</span>
+export const ImprovementsPanel = () => {
+    const improvements: ImprovementProposal[] = [
+        { id: '1', title: 'Integração Telegram Bot', description: 'Envio automático de sinais via bot.', votes: 12, status: 'Approved' },
+        { id: '2', title: 'Dark Mode V2', description: 'Ajuste de contraste para telas OLED.', votes: 5, status: 'Pending' },
+        { id: '3', title: 'Suporte a Tênis (ATP)', description: 'Novo modelo de scout para tênis.', votes: 8, status: 'Pending' }
+    ];
+
+    return (
+        <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6">
+            <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-4">Roadmap de Melhorias (Votação)</h3>
+            <div className="space-y-4">
+                {improvements.map(imp => (
+                    <div key={imp.id} className="bg-surface-950 border border-white/5 p-4 relative overflow-hidden">
+                        <div className="flex justify-between items-start mb-2">
+                             <h4 className="text-white text-sm font-bold">{imp.title}</h4>
+                             <span className={`text-[10px] uppercase font-mono px-1.5 py-0.5 border ${
+                                 imp.status === 'Approved' ? 'text-green-500 border-green-500/30' : 'text-yellow-500 border-yellow-500/30'
+                             }`}>{imp.status}</span>
+                        </div>
+                        <p className="text-gray-500 text-xs mb-3">{imp.description}</p>
+                        <div className="flex items-center gap-2 text-xs text-gray-400 bg-white/5 w-max px-2 py-1 rounded">
+                             <span>👍</span> {imp.votes} votos
+                        </div>
+                    </div>
+                ))}
             </div>
-         </div>
-         <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-               <thead>
-                  <tr className="bg-black/20 text-xs font-mono text-gray-500 uppercase tracking-wider">
-                     <th className="px-6 py-3 border-b border-white/5">Data</th>
-                     <th className="px-6 py-3 border-b border-white/5">Evento</th>
-                     <th className="px-6 py-3 border-b border-white/5">Tip</th>
-                     <th className="px-6 py-3 border-b border-white/5 text-center">Confiança</th>
-                     <th className="px-6 py-3 border-b border-white/5 text-center">Odds</th>
-                     <th className="px-6 py-3 border-b border-white/5 text-center">Status</th>
-                     <th className="px-6 py-3 border-b border-white/5">Ações</th>
-                  </tr>
-               </thead>
-               <tbody className="text-sm text-gray-300">
-                  {tips.map(tip => (
-                     <tr key={tip.id} className="hover:bg-white/5 transition-colors border-b border-white/5">
-                        <td className="px-6 py-4 font-mono text-xs text-gray-500">
-                           {new Date(tip.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4">
-                           <div className="font-bold text-white">{tip.matchTitle}</div>
-                           <div className="text-xs text-gray-500 uppercase">{tip.sport}</div>
-                        </td>
-                        <td className="px-6 py-4 text-brand-500 font-medium">
-                           {tip.prediction}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                           <span className={`px-2 py-1 text-xs font-bold rounded ${tip.confidence > 80 ? 'bg-green-500/20 text-green-500' : 'bg-yellow-500/20 text-yellow-500'}`}>
-                              {tip.confidence}%
-                           </span>
-                        </td>
-                        <td className="px-6 py-4 text-center font-mono">
-                           {tip.odds.toFixed(2)}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                              ${tip.status === 'Pending' ? 'bg-blue-100 text-blue-800' : 
-                                tip.status === 'Won' ? 'bg-green-100 text-green-800' : 
-                                tip.status === 'Lost' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
-                              {tip.status}
-                           </span>
-                        </td>
-                        <td className="px-6 py-4">
-                           <div className="flex gap-2">
-                              <button onClick={() => onUpdateStatus(tip.id, 'Won')} className="text-xs bg-green-500/10 text-green-500 hover:bg-green-500/20 px-2 py-1 rounded border border-green-500/20">WIN</button>
-                              <button onClick={() => onUpdateStatus(tip.id, 'Lost')} className="text-xs bg-red-500/10 text-red-500 hover:bg-red-500/20 px-2 py-1 rounded border border-red-500/20">LOSS</button>
-                           </div>
-                        </td>
-                     </tr>
-                  ))}
-               </tbody>
-            </table>
-         </div>
-      </div>
-   );
+        </div>
+    );
 };

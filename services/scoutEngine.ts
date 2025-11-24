@@ -1,15 +1,16 @@
+
 import { Match, SportType, ScoutResult, CalibrationConfig, FootballStats, BasketballStats } from "../types";
 
 export const DEFAULT_CALIBRATION: CalibrationConfig = {
   football: { 
-    instruction: "Analista Oficial: Analise xG e confronto direto. Se xG > 1.5 e defesa fraca, recomende OVER. Seja direto.",
+    instruction: "ANALISTA OFICIAL MONKEY TIPS: Analise xG, confronto direto e FADIGA DE FIM DE SEMANA. Se o mandante jogou copa no meio da semana, considere UNDER ou zebra. Se xG > 1.8, recomende OVER. Seja direto.",
     weightRecentForm: 0.3, 
     weightHeadToHead: 0.2, 
     poissonStrength: 0.5, 
     over25Threshold: 55 
   },
   basketball: { 
-    instruction: "Analista Oficial NBA: Foco TOTAL na NBA. Jogos de 48 min. Pace alto (>100). Considere Back-to-Back e lesões de estrelas. Se o Pace for alto, a tendência é OVER 225.",
+    instruction: "ANALISTA OFICIAL NBA: Jogos de Fim de Semana tendem a ser espetáculos (High Scoring) ou rotação total (Low Scoring). Verifique se é Back-to-Back. Se Pace > 102, Over 230 é o alvo.",
     paceWeight: 0.7, 
     efficiencyWeight: 0.3, 
     lineThreshold: 220 // Ajustado para média NBA
@@ -58,8 +59,10 @@ export const runScoutAnalysis = (match: Match, config: CalibrationConfig): Scout
         
         details = `LIVE DATA | xG: ${estimatedXG.toFixed(1)} | Cantos: ${corners}`;
     } else {
-        probOver25 = 60; 
-        details = "PRE-GAME | Baseado em Histórico (IA)";
+        // Se for Scheduled (Pré-jogo), o Scout usa expectativa baseada no histórico se disponível
+        // Se stats estiverem vazios (0), assumimos expectativa neutra ajustada pela calibração
+        probOver25 = 55 + (config.football.weightRecentForm * 10); 
+        details = "PRE-GAME | Scout baseado em Expectativa de Mercado";
     }
 
     return {
@@ -108,8 +111,8 @@ export const runScoutAnalysis = (match: Match, config: CalibrationConfig): Scout
         details = `NBA LIVE | Proj: ${Math.floor(finalProjection)} pts | Pace: ${stats.pace || 'N/A'}`;
     } else {
         // Pré-jogo NBA: Times modernos pontuam muito. Viés de Alta.
-        probOver = 68;
-        details = "NBA PRE-GAME | Tendência High Scoring";
+        probOver = 60 + (config.basketball.paceWeight * 10);
+        details = "NBA PRE-GAME | Tendência High Scoring (Weekend)";
     }
 
     return {

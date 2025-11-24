@@ -124,6 +124,8 @@ export interface NewsAnalysis {
   impactScore: number; // -100 to +100
   affectedSector: 'MORALE' | 'TACTICAL' | 'MARKET_ODDS';
   summary: string;
+  sourceUrl?: string;
+  relatedTeam?: string;
 }
 
 export interface ImprovementProposal {
@@ -181,3 +183,8 @@ export interface CalibrationConfig {
   iceHockey: { instruction: string; powerPlayWeight: number; goalieSaveRateWeight: number };
   onlineGames: { instruction: string; volatilityIndex: number; rtpThreshold: number };
 }
+
+export const TARGET_TEAMS_BRASILEIRAO = [
+  "Botafogo", "Palmeiras", "Fortaleza", "Flamengo", "Internacional", 
+  "São Paulo", "Bahia", "Cruzeiro", "Vasco", "Atlético-MG"
+];
