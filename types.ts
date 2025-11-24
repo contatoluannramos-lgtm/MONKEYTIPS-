@@ -49,6 +49,15 @@ export interface Tip {
   status: TipStatus;
 }
 
+export interface TicketAnalysis {
+  isValid: boolean;
+  extractedTeams: string;
+  extractedOdds: number;
+  verdict: 'APPROVED' | 'REJECTED' | 'RISKY';
+  aiAnalysis: string;
+  suggestedAction: string;
+}
+
 export interface ImprovementProposal {
   id: string;
   title: string;
@@ -83,4 +92,4 @@ export interface RoadmapPhase {
 }
 
 // --- ADMIN NAVIGATION ---
-export type AdminView = 'DASHBOARD' | 'ACTIVATION' | 'PERFORMANCE';
+export type AdminView = 'DASHBOARD' | 'ACTIVATION' | 'PERFORMANCE' | 'MONKEY_LABS';

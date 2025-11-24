@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
-import { generateBulkInsights } from '../services/geminiService';
+import React, { useState, useRef } from 'react';
+import { generateBulkInsights, analyzeTicketImage } from '../services/geminiService';
 import { fetchLiveFixtures } from '../services/liveDataService';
 import { dbService } from '../services/databaseService';
 import { authService } from '../services/authService';
-import { Match, Tip, SportType, AdminView, TipStatus } from '../types';
+import { Match, Tip, SportType, AdminView, TipStatus, TicketAnalysis } from '../types';
 import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel, TipsHistoryPanel } from '../components/AdminComponents';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -20,6 +20,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [selectedSport, setSelectedSport] = useState<SportType | 'All'>('All');
+  
+  // Monkey Labs State
+  const [ticketAnalysis, setTicketAnalysis] = useState<TicketAnalysis | null>(null);
+  const [isAnalyzingTicket, setIsAnalyzingTicket] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogout = async () => {
     await authService.signOut();
@@ -46,7 +51,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
          alert("Dados atualizados, mas nenhuma partida nova encontrada.");
       }
     } else {
-      if(!apiKey) alert("Modo Demo: Configure a API Key na aba Ativação para dados reais.");
+      if(!apiKey) alert("Configure a API Key na aba Ativação para dados reais.");
       else alert("Nenhuma partida ao vivo no momento (ou erro de API).");
     }
     setIsSyncing(false);
@@ -82,6 +87,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     setTips(prev => prev.map(t => t.id === id ? { ...t, status } : t));
     // Update DB
     await dbService.updateTipStatus(id, status);
+  };
+
+  // Monkey Labs Logic
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsAnalyzingTicket(true);
+    setTicketAnalysis(null);
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64String = reader.result as string;
+      const analysis = await analyzeTicketImage(base64String);
+      setTicketAnalysis(analysis);
+      setIsAnalyzingTicket(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   // Performance Calculations
@@ -120,9 +143,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         <nav className="mt-8 space-y-1 px-3">
           {[
             { name: 'Visão Geral', icon: '⚡', id: 'DASHBOARD' },
+            { name: 'Laboratório IA', icon: '🧪', id: 'MONKEY_LABS' },
             { name: 'Ativação', icon: '🗝️', id: 'ACTIVATION' },
             { name: 'Performance', icon: '📈', id: 'PERFORMANCE' }, 
-            { name: 'Motor de IA', icon: '🧠', id: 'DASHBOARD' }, 
           ].map((item, idx) => (
              <button 
                key={idx} 
@@ -163,7 +186,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         <header className="flex justify-between items-end mb-10 relative z-10">
           <div>
             <h2 className="text-2xl font-display font-medium text-white">
-              {currentView === 'DASHBOARD' ? 'Dashboard do Sistema' : currentView === 'ACTIVATION' ? 'Configuração de Infraestrutura' : 'Performance Analítica'}
+              {currentView === 'DASHBOARD' ? 'Dashboard do Sistema' : 
+               currentView === 'ACTIVATION' ? 'Configuração de Infraestrutura' : 
+               currentView === 'MONKEY_LABS' ? 'Monkey Labs: Inteligência Visual' :
+               'Performance Analítica'}
             </h2>
             <p className="text-gray-500 text-sm mt-1 font-mono">SERVER_TIME: {new Date().toLocaleTimeString('pt-BR')}</p>
           </div>
@@ -178,6 +204,76 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         {currentView === 'ACTIVATION' ? (
            <div className="relative z-10 max-w-5xl mx-auto">
              <ActivationPanel />
+           </div>
+        ) : currentView === 'MONKEY_LABS' ? (
+           <div className="relative z-10 max-w-6xl mx-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                 {/* Upload Area */}
+                 <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-8 flex flex-col items-center justify-center text-center min-h-[400px] border-dashed hover:border-brand-500/50 transition-colors cursor-pointer group"
+                      onClick={() => fileInputRef.current?.click()}>
+                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
+                    
+                    <div className="w-20 h-20 bg-black/50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-500"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">Upload de Bilhete</h3>
+                    <p className="text-gray-500 font-mono text-xs max-w-xs">
+                       Envie um print de aposta para análise automática de EV+ via Gemini Vision.
+                    </p>
+                 </div>
+
+                 {/* Analysis Result */}
+                 <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-8 flex flex-col relative overflow-hidden">
+                    <h3 className="text-lg font-bold text-white mb-6 font-display flex items-center gap-2">
+                       🧪 Resultado da Análise
+                       {isAnalyzingTicket && <span className="animate-pulse text-brand-500 text-xs">● PROCESSANDO...</span>}
+                    </h3>
+                    
+                    {isAnalyzingTicket ? (
+                       <div className="flex-1 flex flex-col items-center justify-center text-brand-500 space-y-4">
+                          <div className="w-16 h-16 border-4 border-brand-500/30 border-t-brand-500 rounded-full animate-spin"></div>
+                          <p className="font-mono text-xs animate-pulse">Lendo imagem (OCR)...</p>
+                          <p className="font-mono text-xs animate-pulse delay-75">Validando Odds...</p>
+                       </div>
+                    ) : ticketAnalysis ? (
+                       <div className="space-y-6 animate-fade-in">
+                          <div className="flex justify-between items-center p-4 bg-black/30 border border-white/5">
+                             <span className="text-gray-400 text-xs font-mono uppercase">Veredito IA</span>
+                             <span className={`px-3 py-1 text-sm font-bold border uppercase tracking-wider ${
+                                ticketAnalysis.verdict === 'APPROVED' ? 'bg-green-900/20 text-green-500 border-green-500' : 
+                                ticketAnalysis.verdict === 'REJECTED' ? 'bg-red-900/20 text-red-500 border-red-500' : 'bg-yellow-900/20 text-yellow-500 border-yellow-500'
+                             }`}>
+                                {ticketAnalysis.verdict}
+                             </span>
+                          </div>
+
+                          <div className="space-y-2">
+                             <p className="text-gray-500 text-xs font-mono uppercase">Times Identificados</p>
+                             <p className="text-white font-medium">{ticketAnalysis.extractedTeams}</p>
+                          </div>
+
+                          <div className="space-y-2">
+                             <p className="text-gray-500 text-xs font-mono uppercase">Odd Total</p>
+                             <p className="text-brand-500 font-mono text-xl">{ticketAnalysis.extractedOdds}</p>
+                          </div>
+
+                          <div className="space-y-2">
+                             <p className="text-gray-500 text-xs font-mono uppercase">Análise Matemática</p>
+                             <p className="text-gray-300 text-sm leading-relaxed border-l-2 border-brand-500 pl-4">{ticketAnalysis.aiAnalysis}</p>
+                          </div>
+                          
+                          <div className="mt-8 pt-6 border-t border-white/10">
+                             <p className="text-gray-500 text-xs font-mono uppercase mb-2">Ação Recomendada</p>
+                             <p className="text-white font-bold tracking-wide">{ticketAnalysis.suggestedAction}</p>
+                          </div>
+                       </div>
+                    ) : (
+                       <div className="flex-1 flex items-center justify-center text-gray-600 font-mono text-xs">
+                          Aguardando upload de imagem...
+                       </div>
+                    )}
+                 </div>
+              </div>
            </div>
         ) : currentView === 'PERFORMANCE' ? (
            <div className="relative z-10">

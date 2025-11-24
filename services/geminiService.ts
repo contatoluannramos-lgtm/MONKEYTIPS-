@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Match, Tip, SportType } from "../types";
+import { Match, Tip, SportType, TicketAnalysis } from "../types";
 
 const tipSchema: Schema = {
   type: Type.OBJECT,
@@ -13,19 +13,34 @@ const tipSchema: Schema = {
   required: ["prediction", "confidence", "reasoning", "odds"],
 };
 
-export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | null> => {
-  // Read API Key from LocalStorage (set via Admin Activation Panel)
+const ticketSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    isValid: { type: Type.BOOLEAN, description: "Se é um bilhete de aposta válido/legível." },
+    extractedTeams: { type: Type.STRING, description: "Times identificados na imagem." },
+    extractedOdds: { type: Type.NUMBER, description: "Odd total identificada." },
+    verdict: { type: Type.STRING, enum: ["APPROVED", "REJECTED", "RISKY"] },
+    aiAnalysis: { type: Type.STRING, description: "Análise matemática do valor da aposta." },
+    suggestedAction: { type: Type.STRING, description: "Ação recomendada (Cobrir, Cashout, Manter)." }
+  },
+  required: ["isValid", "extractedTeams", "extractedOdds", "verdict", "aiAnalysis", "suggestedAction"]
+};
+
+const getAIClient = () => {
   const apiKey = localStorage.getItem('monkey_gemini_api_key');
-  
-  if (!apiKey) {
-    console.error("Gemini API Key is missing in LocalStorage");
+  if (!apiKey) return null;
+  return new GoogleGenAI({ apiKey });
+}
+
+export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | null> => {
+  const ai = getAIClient();
+  if (!ai) {
+    console.error("Gemini API Key is missing");
     return null;
   }
 
-  const ai = new GoogleGenAI({ apiKey });
-
   try {
-    const modelId = "gemini-2.5-flash"; // Efficient for structured data tasks
+    const modelId = "gemini-2.5-flash"; 
     
     const prompt = `
       Atue como um analista esportivo profissional de alto nível para o sistema 'Monkey Tips'.
@@ -47,7 +62,7 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
       config: {
         responseMimeType: "application/json",
         responseSchema: tipSchema,
-        temperature: 0.3, // Lower temperature for more analytical/consistent results
+        temperature: 0.3, 
       },
     });
 
@@ -69,10 +84,46 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
   }
 };
 
+export const analyzeTicketImage = async (base64Image: string): Promise<TicketAnalysis | null> => {
+  const ai = getAIClient();
+  if (!ai) return null;
+
+  try {
+    // Remover prefixo data:image/png;base64, se existir para enviar apenas os bytes
+    const cleanBase64 = base64Image.split(',')[1] || base64Image;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        {
+          inlineData: {
+            mimeType: "image/jpeg",
+            data: cleanBase64
+          }
+        },
+        {
+          text: "Analise este print de bilhete de aposta. Extraia os dados, verifique se as odds têm valor matemático esperado (EV+) e dê um veredito. Responda em JSON seguindo o schema."
+        }
+      ],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: ticketSchema
+      }
+    });
+
+    const text = response.text;
+    if (!text) return null;
+    return JSON.parse(text) as TicketAnalysis;
+
+  } catch (error) {
+    console.error("Erro na análise visual:", error);
+    return null;
+  }
+};
+
 export const generateBulkInsights = async (matches: Match[]): Promise<Tip[]> => {
   const tips: Tip[] = [];
   
-  // In a real app, we might parallelize this, but we'll do sequential for simplicity/rate limits
   for (const match of matches) {
     const analysis = await generateAnalysis(match);
     if (analysis) {
