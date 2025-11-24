@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { generateBulkInsights, analyzeTicketImage, analyzeScreenCapture } from '../services/geminiService';
 import { fetchLiveFixtures } from '../services/liveDataService';
@@ -137,13 +136,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
            await dbService.saveMatch(m);
          });
 
-         alert(`${newMatches.length} novas partidas sincronizadas!`);
+         alert(`${newMatches.length} novas partidas sincronizadas! (Semana)`);
       } else {
-         alert("Dados atualizados. Nenhuma partida NOVA encontrada.");
+         alert("Dados atualizados. Nenhuma partida NOVA encontrada para esta semana.");
       }
     } else {
       if(!apiKey) alert("Configure a API Key na aba Ativação para dados reais.");
-      else alert("Nenhuma partida encontrada para hoje na API.");
+      else alert("Nenhuma partida encontrada na API para os próximos 7 dias.");
     }
     setIsSyncing(false);
   };
@@ -567,7 +566,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                         disabled={isSyncing}
                         className="bg-surface-800 text-white border border-white/10 px-3 py-1.5 text-xs font-mono uppercase hover:bg-surface-700 transition-colors flex items-center gap-2"
                       >
-                         {isSyncing ? 'Sincronizando...' : '📡 Sync Data (Dia)'}
+                         {isSyncing ? 'Sincronizando...' : '📡 Sync Data (Semana)'}
                       </button>
                       <select 
                         className="bg-surface-950 text-gray-400 border border-white/10 rounded-none px-3 py-1.5 text-xs font-mono outline-none focus:border-brand-500 transition-colors uppercase"

@@ -20,9 +20,14 @@ export const fetchLiveFixtures = async (apiKey: string): Promise<Match[]> => {
       redirect: 'follow'
     };
 
-    // Busca jogos do dia
+    // Calcular datas para buscar a semana (Hoje até +7 dias)
     const today = new Date().toISOString().split('T')[0];
-    const response = await fetch(`${API_URL}/fixtures?date=${today}`, requestOptions);
+    const nextWeekDate = new Date();
+    nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+    const nextWeek = nextWeekDate.toISOString().split('T')[0];
+
+    // Busca jogos do intervalo (Semana)
+    const response = await fetch(`${API_URL}/fixtures?from=${today}&to=${nextWeek}`, requestOptions);
     
     if (!response.ok) throw new Error(`Erro API: ${response.statusText}`);
 
