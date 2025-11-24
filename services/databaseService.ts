@@ -1,5 +1,5 @@
 
-import { supabase } from './supabaseClient';
+import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { Match, Tip, SportType } from '../types';
 
 // Mappers para converter snake_case (banco) para camelCase (app)
@@ -30,19 +30,23 @@ const mapTipFromDB = (data: any): Tip => ({
 export const dbService = {
   // --- PARTIDAS ---
   async getMatches(): Promise<Match[]> {
+    if (!isSupabaseConfigured()) return [];
+
     const { data, error } = await supabase
       .from('matches')
       .select('*')
       .order('start_time', { ascending: true });
 
     if (error) {
-      console.error('Erro ao buscar partidas:', error);
+      console.error('Erro ao buscar partidas:', error.message || error);
       return [];
     }
-    return data.map(mapMatchFromDB);
+    return data ? data.map(mapMatchFromDB) : [];
   },
 
   async saveMatch(match: Match): Promise<void> {
+    if (!isSupabaseConfigured()) return;
+
     const { error } = await supabase
       .from('matches')
       .upsert({
@@ -56,24 +60,28 @@ export const dbService = {
         stats: match.stats
       });
 
-    if (error) console.error('Erro ao salvar partida:', error);
+    if (error) console.error('Erro ao salvar partida:', error.message || error);
   },
 
   // --- TIPS ---
   async getTips(): Promise<Tip[]> {
+    if (!isSupabaseConfigured()) return [];
+
     const { data, error } = await supabase
       .from('tips')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Erro ao buscar tips:', error);
+      console.error('Erro ao buscar tips:', error.message || error);
       return [];
     }
-    return data.map(mapTipFromDB);
+    return data ? data.map(mapTipFromDB) : [];
   },
 
   async saveTip(tip: Tip): Promise<void> {
+    if (!isSupabaseConfigured()) return;
+
     const { error } = await supabase
       .from('tips')
       .insert({
@@ -89,6 +97,6 @@ export const dbService = {
         is_premium: tip.isPremium
       });
 
-    if (error) console.error('Erro ao salvar tip:', error);
+    if (error) console.error('Erro ao salvar tip:', error.message || error);
   }
 };

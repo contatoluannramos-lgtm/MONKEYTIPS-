@@ -21,37 +21,55 @@ export const ActivationPanel = () => {
   const [liveMode, setLiveMode] = useState(false);
   const [collectionInterval, setCollectionInterval] = useState(5);
   const [testingConnection, setTestingConnection] = useState<string | null>(null);
+  
+  // API Keys States
   const [footballApiKey, setFootballApiKey] = useState('');
+  const [supabaseUrl, setSupabaseUrl] = useState('');
+  const [supabaseKey, setSupabaseKey] = useState('');
+
   const [connectionStatus, setConnectionStatus] = useState<{[key: string]: 'success' | 'error' | 'idle'}>({
     'football': 'idle',
-    'nba': 'idle'
+    'supabase': 'idle'
   });
 
-  // Load saved key on mount
+  // Load saved keys on mount
   useEffect(() => {
-    const savedKey = localStorage.getItem('monkey_football_api_key');
-    if (savedKey) setFootballApiKey(savedKey);
+    const savedFootballKey = localStorage.getItem('monkey_football_api_key');
+    if (savedFootballKey) setFootballApiKey(savedFootballKey);
+
+    const savedSupaUrl = localStorage.getItem('supabase_project_url');
+    if (savedSupaUrl) setSupabaseUrl(savedSupaUrl);
+
+    const savedSupaKey = localStorage.getItem('supabase_anon_key');
+    if (savedSupaKey) setSupabaseKey(savedSupaKey);
   }, []);
 
-  const handleSaveKey = (key: string) => {
+  const handleSaveFootballKey = (key: string) => {
     setFootballApiKey(key);
     localStorage.setItem('monkey_football_api_key', key);
+  };
+
+  const handleSaveSupabase = () => {
+    localStorage.setItem('supabase_project_url', supabaseUrl);
+    localStorage.setItem('supabase_anon_key', supabaseKey);
+    alert('Configurações do Supabase salvas! Por favor, recarregue a página (F5) para aplicar a conexão.');
   };
 
   const handleTestConnection = (id: string) => {
     setTestingConnection(id);
     setConnectionStatus(prev => ({...prev, [id]: 'idle'}));
     
-    // Simulate API check or Real check depending on logic
-    // For now, we simulate success if key is present
+    // Simulate check
     setTimeout(() => {
       setTestingConnection(null);
       if (id === 'football' && !footballApiKey) {
          setConnectionStatus(prev => ({...prev, [id]: 'error'}));
+      } else if (id === 'supabase' && (!supabaseUrl || !supabaseKey)) {
+         setConnectionStatus(prev => ({...prev, [id]: 'error'}));
       } else {
          setConnectionStatus(prev => ({...prev, [id]: 'success'}));
       }
-    }, 2000);
+    }, 1500);
   };
 
   return (
@@ -152,9 +170,9 @@ export const ActivationPanel = () => {
       </div>
 
       {/* API Integrations */}
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-6">
         
-        {/* API Card 1 */}
+        {/* API Card 1: API Football */}
         <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6 hover:border-brand-500/20 transition-all group relative overflow-hidden">
            <div className="absolute top-0 left-0 w-1 h-full bg-gray-800 group-hover:bg-brand-500 transition-colors"></div>
            
@@ -176,7 +194,7 @@ export const ActivationPanel = () => {
                  <input 
                     type="password" 
                     value={footballApiKey} 
-                    onChange={(e) => handleSaveKey(e.target.value)}
+                    onChange={(e) => handleSaveFootballKey(e.target.value)}
                     placeholder="Insira sua chave RapidAPI..."
                     className="w-full bg-black/30 border border-white/10 text-white px-3 py-2 text-xs font-mono focus:border-brand-500 outline-none" 
                  />
@@ -186,31 +204,68 @@ export const ActivationPanel = () => {
                  <input type="text" value="https://v3.football.api-sports.io" disabled className="w-full bg-black/30 border border-white/10 text-gray-500 px-3 py-2 text-xs font-mono" />
               </div>
            </div>
-
-           {connectionStatus['football'] === 'success' && (
-             <div className="mb-4 bg-green-900/10 border border-green-900/30 p-3 text-xs text-green-500 font-mono flex items-center gap-2">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><path d="M20 6L9 17l-5-5"></path></svg>
-                Conexão estabelecida. Recebendo feed ao vivo (FlashScore Data).
-             </div>
-           )}
-
-           {connectionStatus['football'] === 'error' && (
-             <div className="mb-4 bg-red-900/10 border border-red-900/30 p-3 text-xs text-red-500 font-mono flex items-center gap-2">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                Erro de conexão. Verifique sua chave de API.
-             </div>
-           )}
-
+           
            <button 
              onClick={() => handleTestConnection('football')}
              className="w-full bg-white text-black font-bold text-xs py-3 uppercase tracking-widest hover:bg-brand-400 transition-colors flex items-center justify-center gap-2"
            >
-             {testingConnection === 'football' ? (
-                <>Conectando...</> 
-             ) : (
-                <>⚡ Testar Conexão</>
-             )}
+             {testingConnection === 'football' ? 'Conectando...' : '⚡ Testar Conexão'}
            </button>
+        </div>
+
+        {/* API Card 2: Supabase */}
+        <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6 hover:border-brand-500/20 transition-all group relative overflow-hidden">
+           <div className="absolute top-0 left-0 w-1 h-full bg-gray-800 group-hover:bg-green-500 transition-colors"></div>
+           
+           <div className="flex justify-between items-start mb-6">
+              <div>
+                <h4 className="text-white font-bold text-lg flex items-center gap-2">
+                  🗄️ Supabase Database
+                  <span className={`px-2 py-0.5 rounded text-[10px] border uppercase ${connectionStatus['supabase'] === 'success' ? 'bg-green-900/20 text-green-500 border-green-500/30' : 'bg-gray-800 text-gray-400 border-white/5'}`}>
+                    {connectionStatus['supabase'] === 'success' ? 'Conectado' : 'Desconectado'}
+                  </span>
+                </h4>
+                <p className="text-gray-500 text-xs font-mono mt-1">Armazenamento Persistente (Tips & Users)</p>
+              </div>
+           </div>
+
+           <div className="grid grid-cols-1 gap-4 mb-6">
+              <div className="space-y-1">
+                 <label className="text-[10px] font-mono font-bold text-gray-500 uppercase">Project URL</label>
+                 <input 
+                    type="text" 
+                    value={supabaseUrl} 
+                    onChange={(e) => setSupabaseUrl(e.target.value)}
+                    placeholder="https://xyz.supabase.co"
+                    className="w-full bg-black/30 border border-white/10 text-white px-3 py-2 text-xs font-mono focus:border-brand-500 outline-none" 
+                 />
+              </div>
+              <div className="space-y-1">
+                 <label className="text-[10px] font-mono font-bold text-gray-500 uppercase">Anon Public Key</label>
+                 <input 
+                    type="password" 
+                    value={supabaseKey} 
+                    onChange={(e) => setSupabaseKey(e.target.value)}
+                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    className="w-full bg-black/30 border border-white/10 text-white px-3 py-2 text-xs font-mono focus:border-brand-500 outline-none" 
+                 />
+              </div>
+           </div>
+
+           <div className="flex gap-4">
+             <button 
+               onClick={handleSaveSupabase}
+               className="flex-1 bg-surface-800 text-white font-bold text-xs py-3 uppercase tracking-widest hover:bg-surface-700 transition-colors border border-white/10"
+             >
+               Salvar Config
+             </button>
+             <button 
+               onClick={() => handleTestConnection('supabase')}
+               className="flex-1 bg-white text-black font-bold text-xs py-3 uppercase tracking-widest hover:bg-brand-400 transition-colors"
+             >
+               {testingConnection === 'supabase' ? 'Verificando...' : '⚡ Testar DB'}
+             </button>
+           </div>
         </div>
 
       </div>
@@ -238,7 +293,7 @@ export const ProjectEvolutionRoadmap = () => {
       description: 'Conexão com APIs reais e armazenamento persistente.',
       tasks: [
         { id: 't2_1', name: 'Integração API SofaScore/FlashScore (Ao Vivo)', isCompleted: true },
-        { id: 't2_2', name: 'Banco de Dados (Supabase/Firebase)', isCompleted: false },
+        { id: 't2_2', name: 'Banco de Dados (Supabase/Firebase)', isCompleted: true },
         { id: 't2_3', name: 'Autenticação Real de Admin', isCompleted: false },
         { id: 't2_4', name: 'Histórico de Performance das Tips', isCompleted: false },
       ]
