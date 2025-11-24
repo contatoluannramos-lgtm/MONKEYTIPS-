@@ -88,6 +88,51 @@ export const ActivationPanel = () => {
          </div>
       </div>
 
+      {/* Version Control / Git Section */}
+      <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6 rounded-none">
+         <div className="flex justify-between items-center mb-6">
+            <h3 className="text-white font-bold font-display uppercase tracking-wider flex items-center gap-2">
+              📦 Controle de Versão & Deploy
+            </h3>
+            <span className="px-2 py-1 bg-white/5 text-gray-400 text-[10px] font-mono border border-white/10">
+              BRANCH: MAIN
+            </span>
+         </div>
+
+         <div className="bg-black/40 border border-white/10 p-4 font-mono text-xs space-y-2 mb-4">
+            <div className="flex items-center gap-2">
+               <span className="text-green-500">➜</span>
+               <span className="text-brand-500">git status</span>
+            </div>
+            <div className="text-gray-400 pl-4">
+               On branch main<br/>
+               Your branch is up to date with 'origin/main'.<br/>
+               <span className="text-green-500">nothing to commit, working tree clean</span>
+            </div>
+            <div className="flex items-center gap-2 pt-2">
+               <span className="text-green-500">➜</span>
+               <span className="text-brand-500">last commit</span>
+            </div>
+             <div className="text-gray-400 pl-4">
+               [3959ad8] feat: Implement activation panel and roadmap
+            </div>
+         </div>
+
+         <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+               <div className="w-2 h-2 rounded-full bg-green-500"></div>
+               <span className="text-xs text-gray-400 font-mono">Vercel: <span className="text-white">Conectado</span></span>
+            </div>
+            <div className="flex items-center gap-2">
+               <div className="w-2 h-2 rounded-full bg-green-500"></div>
+               <span className="text-xs text-gray-400 font-mono">Build: <span className="text-white">Passing</span></span>
+            </div>
+            <button className="ml-auto bg-white/5 hover:bg-white/10 text-white border border-white/10 px-4 py-2 text-xs font-mono uppercase transition-colors">
+               Forçar Deploy
+            </button>
+         </div>
+      </div>
+
       {/* API Integrations */}
       <div className="space-y-4">
         
