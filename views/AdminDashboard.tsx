@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { generateBulkInsights } from '../services/geminiService';
-import { Match, Tip, SportType } from '../types';
-import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap } from '../components/AdminComponents';
+import { Match, Tip, SportType, AdminView } from '../types';
+import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel } from '../components/AdminComponents';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface AdminDashboardProps {
@@ -11,6 +11,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, matches }) => {
+  const [currentView, setCurrentView] = useState<AdminView>('DASHBOARD');
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedSport, setSelectedSport] = useState<SportType | 'All'>('All');
 
@@ -53,12 +54,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         
         <nav className="mt-8 space-y-1 px-3">
           {[
-            { name: 'Visão Geral', icon: '⚡' },
-            { name: 'Motor de IA', icon: '🧠' },
-            { name: 'Analistas', icon: '👥' },
-            { name: 'Feeds de Dados', icon: '📡' }
+            { name: 'Visão Geral', icon: '⚡', id: 'DASHBOARD' },
+            { name: 'Ativação', icon: '🗝️', id: 'ACTIVATION' },
+            { name: 'Motor de IA', icon: '🧠', id: 'DASHBOARD' }, // Keeps on dashboard for now or could route elsewhere
+            { name: 'Feeds de Dados', icon: '📡', id: 'ACTIVATION' } // Shortcut to activation
           ].map((item, idx) => (
-             <button key={idx} className={`w-full flex items-center gap-3 px-3 py-3 rounded-none border-l-2 transition-all group ${idx === 0 ? 'bg-white/5 border-brand-500 text-white' : 'border-transparent text-gray-500 hover:text-white hover:bg-white/5'}`}>
+             <button 
+               key={idx} 
+               onClick={() => setCurrentView(item.id as AdminView)}
+               className={`w-full flex items-center gap-3 px-3 py-3 rounded-none border-l-2 transition-all group ${
+                 currentView === item.id 
+                 ? 'bg-white/5 border-brand-500 text-white' 
+                 : 'border-transparent text-gray-500 hover:text-white hover:bg-white/5'
+               }`}
+             >
                <span className="text-lg opacity-70">{item.icon}</span>
                <span className="hidden lg:block font-medium text-sm tracking-wide font-display">{item.name}</span>
              </button>
@@ -82,7 +91,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
 
         <header className="flex justify-between items-end mb-10 relative z-10">
           <div>
-            <h2 className="text-2xl font-display font-medium text-white">Dashboard do Sistema</h2>
+            <h2 className="text-2xl font-display font-medium text-white">
+              {currentView === 'DASHBOARD' ? 'Dashboard do Sistema' : 'Configuração de Infraestrutura'}
+            </h2>
             <p className="text-gray-500 text-sm mt-1 font-mono">SERVER_TIME: {new Date().toLocaleTimeString('pt-BR')}</p>
           </div>
           <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full">
@@ -93,125 +104,134 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
           </div>
         </header>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 relative z-10">
-          <StatCard title="Insights Gerados" value={tips.length.toString()} change="+12%" icon="📊" />
-          <StatCard title="Precisão Modelo" value="68.4%" change="+2.1%" icon="🎯" />
-          <StatCard title="Usuários Ativos" value="1,240" change="+5.4%" icon="👥" />
-          <StatCard title="Requisições API" value="45k" change="-1.2%" icon="📡" />
-        </div>
-
-        {/* --- ROADMAP INTEGRATION --- */}
-        <div className="mb-8 relative z-10">
-          <ProjectEvolutionRoadmap />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
-          
-          {/* Main Intelligence Module */}
-          <div className="lg:col-span-2 space-y-8">
-            <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-8">
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-lg font-display font-medium text-white flex items-center gap-2">
-                  <span className="text-brand-500">///</span> Núcleo Generativo (IA)
-                </h3>
-                <select 
-                  className="bg-surface-950 text-gray-400 border border-white/10 rounded-none px-3 py-1.5 text-xs font-mono outline-none focus:border-brand-500 transition-colors uppercase"
-                  value={selectedSport}
-                  onChange={(e) => setSelectedSport(e.target.value as SportType | 'All')}
-                >
-                  <option value="All">TODOS OS DADOS</option>
-                  <option value={SportType.FOOTBALL}>SEQ_FUTEBOL</option>
-                  <option value={SportType.BASKETBALL}>SEQ_BASQUETE</option>
-                  <option value={SportType.VOLLEYBALL}>SEQ_VOLEI</option>
-                </select>
-              </div>
-
-              <div className="bg-black/30 rounded-none border border-white/5 p-8 flex flex-col items-center justify-center text-center relative overflow-hidden group">
-                 {/* Decorative background element */}
-                 <div className="absolute inset-0 bg-gradient-to-b from-brand-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                 
-                 <div className="w-16 h-16 rounded-full border border-brand-500/30 flex items-center justify-center mb-6 relative">
-                    <div className="absolute inset-0 rounded-full border border-brand-500/30 animate-ping opacity-20"></div>
-                    <span className="text-2xl">🧠</span>
-                 </div>
-                 
-                 <h4 className="text-white font-medium mb-2 font-display">Iniciar Sequência de Análise</h4>
-                 <p className="text-gray-500 text-sm max-w-md mb-8 font-light">
-                   Implantar modelo Gemini 2.5 Flash para processar {matches.length} eventos pendentes. Correlacionando xG, Pace e bases de dados históricas.
-                 </p>
-                 
-                 <button
-                   onClick={handleGenerateIntelligence}
-                   disabled={isGenerating}
-                   className={`px-8 py-3 rounded-none text-sm font-bold tracking-widest uppercase transition-all relative overflow-hidden ${
-                     isGenerating 
-                       ? 'bg-surface-800 text-gray-500 cursor-not-allowed border border-white/5' 
-                       : 'bg-brand-600 text-white hover:bg-brand-500 shadow-[0_0_20px_rgba(217,119,6,0.2)]'
-                   }`}
-                 >
-                   {isGenerating ? (
-                     <span className="flex items-center gap-2">
-                       <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                       PROCESSANDO DADOS...
-                     </span>
-                   ) : (
-                     "EXECUTAR PROTOCOLO"
-                   )}
-                 </button>
-              </div>
+        {/* --- VIEW ROUTER --- */}
+        {currentView === 'ACTIVATION' ? (
+           <div className="relative z-10 max-w-5xl mx-auto">
+             <ActivationPanel />
+           </div>
+        ) : (
+          <div className="relative z-10">
+            {/* Stats Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <StatCard title="Insights Gerados" value={tips.length.toString()} change="+12%" icon="📊" />
+              <StatCard title="Precisão Modelo" value="68.4%" change="+2.1%" icon="🎯" />
+              <StatCard title="Usuários Ativos" value="1,240" change="+5.4%" icon="👥" />
+              <StatCard title="Requisições API" value="45k" change="-1.2%" icon="📡" />
             </div>
 
-            {/* Performance Chart */}
-            <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6">
-               <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-6">Métricas de Performance do Modelo</h3>
-               <div className="h-64 w-full">
-                 <ResponsiveContainer width="100%" height="100%">
-                   <BarChart data={performanceData} barSize={40}>
-                     <XAxis dataKey="name" stroke="#52525b" tick={{fill: '#71717a', fontSize: 12, fontFamily: 'JetBrains Mono'}} axisLine={false} tickLine={false} />
-                     <YAxis stroke="#52525b" tick={{fill: '#71717a', fontSize: 12, fontFamily: 'JetBrains Mono'}} axisLine={false} tickLine={false} />
-                     <Tooltip 
-                        contentStyle={{ backgroundColor: '#18181B', borderColor: '#27272A', color: '#fff', fontFamily: 'JetBrains Mono', fontSize: '12px' }}
-                        cursor={{ fill: '#ffffff', opacity: 0.05 }}
-                     />
-                     <Bar dataKey="tips" name="Gerados" fill="#3f3f46" radius={[2, 2, 0, 0]} />
-                     <Bar dataKey="wins" name="Sucesso" fill="#D97706" radius={[2, 2, 0, 0]} />
-                   </BarChart>
-                 </ResponsiveContainer>
-               </div>
+            {/* --- ROADMAP INTEGRATION --- */}
+            <div className="mb-8">
+              <ProjectEvolutionRoadmap />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              
+              {/* Main Intelligence Module */}
+              <div className="lg:col-span-2 space-y-8">
+                <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-8">
+                  <div className="flex justify-between items-center mb-8">
+                    <h3 className="text-lg font-display font-medium text-white flex items-center gap-2">
+                      <span className="text-brand-500">///</span> Núcleo Generativo (IA)
+                    </h3>
+                    <select 
+                      className="bg-surface-950 text-gray-400 border border-white/10 rounded-none px-3 py-1.5 text-xs font-mono outline-none focus:border-brand-500 transition-colors uppercase"
+                      value={selectedSport}
+                      onChange={(e) => setSelectedSport(e.target.value as SportType | 'All')}
+                    >
+                      <option value="All">TODOS OS DADOS</option>
+                      <option value={SportType.FOOTBALL}>SEQ_FUTEBOL</option>
+                      <option value={SportType.BASKETBALL}>SEQ_BASQUETE</option>
+                      <option value={SportType.VOLLEYBALL}>SEQ_VOLEI</option>
+                    </select>
+                  </div>
+
+                  <div className="bg-black/30 rounded-none border border-white/5 p-8 flex flex-col items-center justify-center text-center relative overflow-hidden group">
+                    {/* Decorative background element */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-brand-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    
+                    <div className="w-16 h-16 rounded-full border border-brand-500/30 flex items-center justify-center mb-6 relative">
+                        <div className="absolute inset-0 rounded-full border border-brand-500/30 animate-ping opacity-20"></div>
+                        <span className="text-2xl">🧠</span>
+                    </div>
+                    
+                    <h4 className="text-white font-medium mb-2 font-display">Iniciar Sequência de Análise</h4>
+                    <p className="text-gray-500 text-sm max-w-md mb-8 font-light">
+                      Implantar modelo Gemini 2.5 Flash para processar {matches.length} eventos pendentes. Correlacionando xG, Pace e bases de dados históricas.
+                    </p>
+                    
+                    <button
+                      onClick={handleGenerateIntelligence}
+                      disabled={isGenerating}
+                      className={`px-8 py-3 rounded-none text-sm font-bold tracking-widest uppercase transition-all relative overflow-hidden ${
+                        isGenerating 
+                          ? 'bg-surface-800 text-gray-500 cursor-not-allowed border border-white/5' 
+                          : 'bg-brand-600 text-white hover:bg-brand-500 shadow-[0_0_20px_rgba(217,119,6,0.2)]'
+                      }`}
+                    >
+                      {isGenerating ? (
+                        <span className="flex items-center gap-2">
+                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                          PROCESSANDO DADOS...
+                        </span>
+                      ) : (
+                        "EXECUTAR PROTOCOLO"
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Performance Chart */}
+                <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6">
+                  <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-6">Métricas de Performance do Modelo</h3>
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={performanceData} barSize={40}>
+                        <XAxis dataKey="name" stroke="#52525b" tick={{fill: '#71717a', fontSize: 12, fontFamily: 'JetBrains Mono'}} axisLine={false} tickLine={false} />
+                        <YAxis stroke="#52525b" tick={{fill: '#71717a', fontSize: 12, fontFamily: 'JetBrains Mono'}} axisLine={false} tickLine={false} />
+                        <Tooltip 
+                            contentStyle={{ backgroundColor: '#18181B', borderColor: '#27272A', color: '#fff', fontFamily: 'JetBrains Mono', fontSize: '12px' }}
+                            cursor={{ fill: '#ffffff', opacity: 0.05 }}
+                        />
+                        <Bar dataKey="tips" name="Gerados" fill="#3f3f46" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="wins" name="Sucesso" fill="#D97706" radius={[2, 2, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-8">
+                <OperationalChecklist />
+                <ImprovementsPanel />
+                
+                <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6">
+                  <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-4">Status dos Feeds</h3>
+                  <div className="space-y-3 font-mono text-xs">
+                    <div className="flex justify-between items-center p-2 bg-black/20 rounded-none border border-white/5">
+                      <span className="text-gray-300">SOFASCORE_API</span>
+                      <span className="text-green-500">● 24ms</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 bg-black/20 rounded-none border border-white/5">
+                      <span className="text-gray-300">FLASHSCORE_V2</span>
+                      <span className="text-green-500">● 41ms</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 bg-black/20 rounded-none border border-white/5">
+                      <span className="text-gray-300">NBA_OFFICIAL</span>
+                      <span className="text-brand-500 animate-pulse">● LATÊNCIA</span>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-white/5">
+                      <button className="w-full py-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-none transition-colors uppercase tracking-wider">
+                        Ver Logs do Sistema
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
-
-          {/* Right Column */}
-          <div className="space-y-8">
-            <OperationalChecklist />
-            <ImprovementsPanel />
-            
-            <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6">
-              <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-4">Status dos Feeds</h3>
-              <div className="space-y-3 font-mono text-xs">
-                <div className="flex justify-between items-center p-2 bg-black/20 rounded-none border border-white/5">
-                  <span className="text-gray-300">SOFASCORE_API</span>
-                  <span className="text-green-500">● 24ms</span>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-black/20 rounded-none border border-white/5">
-                  <span className="text-gray-300">FLASHSCORE_V2</span>
-                  <span className="text-green-500">● 41ms</span>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-black/20 rounded-none border border-white/5">
-                  <span className="text-gray-300">NBA_OFFICIAL</span>
-                  <span className="text-brand-500 animate-pulse">● LATÊNCIA</span>
-                </div>
-                <div className="mt-4 pt-4 border-t border-white/5">
-                  <button className="w-full py-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-none transition-colors uppercase tracking-wider">
-                    Ver Logs do Sistema
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
+        )}
       </main>
     </div>
   );

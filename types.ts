@@ -72,3 +72,6 @@ export interface RoadmapPhase {
   description: string;
   tasks: RoadmapTask[];
 }
+
+// --- ADMIN NAVIGATION ---
+export type AdminView = 'DASHBOARD' | 'ACTIVATION';

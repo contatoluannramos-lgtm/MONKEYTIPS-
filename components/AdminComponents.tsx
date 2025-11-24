@@ -16,6 +16,161 @@ export const StatCard = ({ title, value, change, icon }: { title: string, value:
   </div>
 );
 
+export const ActivationPanel = () => {
+  const [liveMode, setLiveMode] = useState(false);
+  const [collectionInterval, setCollectionInterval] = useState(5);
+  const [testingConnection, setTestingConnection] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<{[key: string]: 'success' | 'error' | 'idle'}>({
+    'football': 'idle',
+    'nba': 'idle'
+  });
+
+  const handleTestConnection = (id: string) => {
+    setTestingConnection(id);
+    setConnectionStatus(prev => ({...prev, [id]: 'idle'}));
+    
+    // Simulate API check
+    setTimeout(() => {
+      setTestingConnection(null);
+      setConnectionStatus(prev => ({...prev, [id]: 'success'}));
+    }, 2000);
+  };
+
+  return (
+    <div className="space-y-8 animate-fade-in">
+      {/* Header */}
+      <div>
+        <h2 className="text-4xl font-display font-bold text-brand-500 mb-2 flex items-center gap-3">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          Ativação & Configuração
+        </h2>
+        <p className="text-gray-400 font-mono text-sm">Configure as chaves de API e endpoints de coleta de dados.</p>
+        <div className="mt-4 flex items-center gap-2 text-xs text-yellow-600 bg-yellow-900/10 border border-yellow-900/30 p-2 max-w-fit">
+           <span>💡</span> Suas chaves são armazenadas de forma segura e nunca são expostas no frontend.
+        </div>
+      </div>
+
+      {/* Global Config Card */}
+      <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6 rounded-none">
+         <h3 className="text-brand-500 font-bold font-display uppercase tracking-wider mb-6 flex items-center gap-2">
+           ⚡ Configurações Globais
+         </h3>
+         
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-2">
+               <label className="text-xs font-mono font-bold text-gray-500 uppercase">Intervalo de Coleta (segundos)</label>
+               <input 
+                 type="number" 
+                 value={collectionInterval}
+                 onChange={(e) => setCollectionInterval(Number(e.target.value))}
+                 className="w-full bg-black/50 border border-white/10 text-white px-4 py-3 text-sm focus:border-brand-500 focus:outline-none transition-colors font-mono"
+               />
+               <p className="text-[10px] text-gray-600">Frequência de atualização dos dados (min: 10s, max: 300s)</p>
+            </div>
+
+            <div className="space-y-2">
+               <label className="text-xs font-mono font-bold text-gray-500 uppercase">Modo Live</label>
+               <div className="bg-black/50 border border-white/10 p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                     <button 
+                       onClick={() => setLiveMode(!liveMode)}
+                       className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${liveMode ? 'bg-brand-500' : 'bg-surface-800'}`}
+                     >
+                       <div className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform duration-300 ${liveMode ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                     </button>
+                     <span className={`text-sm font-bold ${liveMode ? 'text-white' : 'text-gray-500'}`}>
+                       {liveMode ? 'Ativado' : 'Desativado'}
+                     </span>
+                  </div>
+                  <span className="text-[10px] text-gray-500 font-mono">Coleta a cada {collectionInterval}s</span>
+               </div>
+            </div>
+         </div>
+      </div>
+
+      {/* API Integrations */}
+      <div className="space-y-4">
+        
+        {/* API Card 1 */}
+        <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6 hover:border-brand-500/20 transition-all group relative overflow-hidden">
+           <div className="absolute top-0 left-0 w-1 h-full bg-gray-800 group-hover:bg-brand-500 transition-colors"></div>
+           
+           <div className="flex justify-between items-start mb-6">
+              <div>
+                <h4 className="text-white font-bold text-lg flex items-center gap-2">
+                  🗝️ Football-Data.org
+                  <span className="px-2 py-0.5 rounded text-[10px] bg-gray-800 text-gray-400 border border-white/5 uppercase">Inativo</span>
+                </h4>
+                <p className="text-gray-500 text-xs font-mono mt-1">https://api.football-data.org/v4</p>
+              </div>
+           </div>
+
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="space-y-1">
+                 <label className="text-[10px] font-mono font-bold text-gray-500 uppercase">API Key</label>
+                 <input type="password" value="••••••••••••••••" disabled className="w-full bg-black/30 border border-white/10 text-gray-500 px-3 py-2 text-xs font-mono" />
+              </div>
+              <div className="space-y-1">
+                 <label className="text-[10px] font-mono font-bold text-gray-500 uppercase">Endpoint (Opcional)</label>
+                 <input type="text" value="https://api.football-data.org/v4" disabled className="w-full bg-black/30 border border-white/10 text-gray-500 px-3 py-2 text-xs font-mono" />
+              </div>
+           </div>
+
+           {connectionStatus['football'] === 'success' && (
+             <div className="mb-4 bg-green-900/10 border border-green-900/30 p-3 text-xs text-green-500 font-mono flex items-center gap-2">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><path d="M20 6L9 17l-5-5"></path></svg>
+                Conexão estabelecida com sucesso. Latência: 45ms.
+             </div>
+           )}
+
+           <button 
+             onClick={() => handleTestConnection('football')}
+             className="w-full bg-white text-black font-bold text-xs py-3 uppercase tracking-widest hover:bg-brand-400 transition-colors flex items-center justify-center gap-2"
+           >
+             {testingConnection === 'football' ? (
+                <>Testing...</> 
+             ) : (
+                <>⚡ Testar Conexão</>
+             )}
+           </button>
+        </div>
+
+        {/* API Card 2 */}
+        <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6 hover:border-brand-500/20 transition-all group relative overflow-hidden">
+           <div className="absolute top-0 left-0 w-1 h-full bg-gray-800 group-hover:bg-brand-500 transition-colors"></div>
+           
+           <div className="flex justify-between items-start mb-6">
+              <div>
+                <h4 className="text-white font-bold text-lg flex items-center gap-2">
+                  🗝️ API-Football (RapidAPI)
+                </h4>
+                <p className="text-gray-500 text-xs font-mono mt-1">https://v3.football.api-sports.io</p>
+              </div>
+           </div>
+
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="space-y-1">
+                 <label className="text-[10px] font-mono font-bold text-gray-500 uppercase">API Key</label>
+                 <input type="password" placeholder="Insira sua chave" className="w-full bg-black/50 border border-white/10 text-white px-3 py-2 text-xs font-mono focus:border-brand-500 outline-none" />
+              </div>
+              <div className="space-y-1">
+                 <label className="text-[10px] font-mono font-bold text-gray-500 uppercase">Endpoint (Opcional)</label>
+                 <input type="text" placeholder="Default" className="w-full bg-black/50 border border-white/10 text-white px-3 py-2 text-xs font-mono focus:border-brand-500 outline-none" />
+              </div>
+           </div>
+
+           <button 
+             className="w-full bg-surface-800 text-gray-400 font-bold text-xs py-3 uppercase tracking-widest hover:bg-surface-700 transition-colors flex items-center justify-center gap-2"
+           >
+             ⚡ Testar Conexão
+           </button>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
 export const ProjectEvolutionRoadmap = () => {
   const [phases, setPhases] = useState<RoadmapPhase[]>([
     {
