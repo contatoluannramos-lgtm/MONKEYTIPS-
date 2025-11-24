@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ClientDashboard } from './views/ClientDashboard';
@@ -122,7 +123,7 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
 export default function App() {
   const [tips, setTips] = useState<Tip[]>(INITIAL_TIPS);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [matches] = useState<Match[]>(INITIAL_MATCHES);
+  const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
 
   return (
     <Router>
@@ -138,7 +139,7 @@ export default function App() {
         
         <Route 
           path="/admin" 
-          element={isAuthenticated ? <AdminDashboard tips={tips} setTips={setTips} matches={matches} /> : <Navigate to="/admin/login" />} 
+          element={isAuthenticated ? <AdminDashboard tips={tips} setTips={setTips} matches={matches} setMatches={setMatches} /> : <Navigate to="/admin/login" />} 
         />
 
         {/* CATCH ALL */}

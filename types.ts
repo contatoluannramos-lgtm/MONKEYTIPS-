@@ -1,3 +1,4 @@
+
 export enum SportType {
   FOOTBALL = 'Futebol',
   BASKETBALL = 'Basquete',
@@ -14,10 +15,15 @@ export interface MatchStats {
   efficiency?: number; // Basketball
   errorsPerSet?: number; // Volleyball
   blockRate?: number; // Volleyball
+  // Live Data
+  homeScore?: number;
+  awayScore?: number;
+  currentMinute?: number;
 }
 
 export interface Match {
   id: string;
+  externalId?: number; // ID da API externa (FlashScore/API-Football)
   sport: SportType;
   teamA: string;
   teamB: string;

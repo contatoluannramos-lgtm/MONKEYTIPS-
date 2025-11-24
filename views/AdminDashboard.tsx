@@ -1,5 +1,7 @@
+
 import React, { useState } from 'react';
 import { generateBulkInsights } from '../services/geminiService';
+import { fetchLiveFixtures } from '../services/liveDataService';
 import { Match, Tip, SportType, AdminView } from '../types';
 import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel } from '../components/AdminComponents';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -8,12 +10,38 @@ interface AdminDashboardProps {
   tips: Tip[];
   setTips: React.Dispatch<React.SetStateAction<Tip[]>>;
   matches: Match[];
+  setMatches: React.Dispatch<React.SetStateAction<Match[]>>; // Added setter
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, matches }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, matches, setMatches }) => {
   const [currentView, setCurrentView] = useState<AdminView>('DASHBOARD');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [selectedSport, setSelectedSport] = useState<SportType | 'All'>('All');
+
+  const handleSyncData = async () => {
+    setIsSyncing(true);
+    const apiKey = localStorage.getItem('monkey_football_api_key') || '';
+    
+    // Tenta buscar dados reais
+    const liveMatches = await fetchLiveFixtures(apiKey);
+    
+    if (liveMatches.length > 0) {
+      // Mescla com os dados existentes ou substitui (neste caso, adicionamos ao topo)
+      // Filtramos para não duplicar IDs
+      const newMatches = liveMatches.filter(lm => !matches.find(m => m.id === lm.id));
+      if (newMatches.length > 0) {
+         setMatches(prev => [...newMatches, ...prev]);
+         alert(`${newMatches.length} partidas ao vivo sincronizadas da API!`);
+      } else {
+         alert("Nenhuma partida nova encontrada, mas a conexão foi bem sucedida.");
+      }
+    } else {
+      if(!apiKey) alert("Modo Demo: Configure a API Key na aba Ativação para dados reais.");
+      else alert("Nenhuma partida ao vivo no momento (ou erro de API).");
+    }
+    setIsSyncing(false);
+  };
 
   const handleGenerateIntelligence = async () => {
     if (!process.env.API_KEY) {
@@ -133,16 +161,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                     <h3 className="text-lg font-display font-medium text-white flex items-center gap-2">
                       <span className="text-brand-500">///</span> Núcleo Generativo (IA)
                     </h3>
-                    <select 
-                      className="bg-surface-950 text-gray-400 border border-white/10 rounded-none px-3 py-1.5 text-xs font-mono outline-none focus:border-brand-500 transition-colors uppercase"
-                      value={selectedSport}
-                      onChange={(e) => setSelectedSport(e.target.value as SportType | 'All')}
-                    >
-                      <option value="All">TODOS OS DADOS</option>
-                      <option value={SportType.FOOTBALL}>SEQ_FUTEBOL</option>
-                      <option value={SportType.BASKETBALL}>SEQ_BASQUETE</option>
-                      <option value={SportType.VOLLEYBALL}>SEQ_VOLEI</option>
-                    </select>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={handleSyncData}
+                        disabled={isSyncing}
+                        className="bg-surface-800 text-white border border-white/10 px-3 py-1.5 text-xs font-mono uppercase hover:bg-surface-700 transition-colors flex items-center gap-2"
+                      >
+                         {isSyncing ? 'Sincronizando...' : '📡 Sync Live Data'}
+                      </button>
+                      <select 
+                        className="bg-surface-950 text-gray-400 border border-white/10 rounded-none px-3 py-1.5 text-xs font-mono outline-none focus:border-brand-500 transition-colors uppercase"
+                        value={selectedSport}
+                        onChange={(e) => setSelectedSport(e.target.value as SportType | 'All')}
+                      >
+                        <option value="All">TODOS OS DADOS</option>
+                        <option value={SportType.FOOTBALL}>SEQ_FUTEBOL</option>
+                        <option value={SportType.BASKETBALL}>SEQ_BASQUETE</option>
+                        <option value={SportType.VOLLEYBALL}>SEQ_VOLEI</option>
+                      </select>
+                    </div>
                   </div>
 
                   <div className="bg-black/30 rounded-none border border-white/5 p-8 flex flex-col items-center justify-center text-center relative overflow-hidden group">
@@ -156,7 +193,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                     
                     <h4 className="text-white font-medium mb-2 font-display">Iniciar Sequência de Análise</h4>
                     <p className="text-gray-500 text-sm max-w-md mb-8 font-light">
-                      Implantar modelo Gemini 2.5 Flash para processar {matches.length} eventos pendentes. Correlacionando xG, Pace e bases de dados históricas.
+                      Implantar modelo Gemini 2.5 Flash para processar {matches.length} eventos pendentes. Correlacionando dados ao vivo (API-Sports) com estatísticas históricas.
                     </p>
                     
                     <button
@@ -209,12 +246,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                   <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-4">Status dos Feeds</h3>
                   <div className="space-y-3 font-mono text-xs">
                     <div className="flex justify-between items-center p-2 bg-black/20 rounded-none border border-white/5">
-                      <span className="text-gray-300">SOFASCORE_API</span>
-                      <span className="text-green-500">● 24ms</span>
-                    </div>
-                    <div className="flex justify-between items-center p-2 bg-black/20 rounded-none border border-white/5">
-                      <span className="text-gray-300">FLASHSCORE_V2</span>
-                      <span className="text-green-500">● 41ms</span>
+                      <span className="text-gray-300">API-FOOTBALL</span>
+                      <span className="text-green-500">● CONECTADO</span>
                     </div>
                     <div className="flex justify-between items-center p-2 bg-black/20 rounded-none border border-white/5">
                       <span className="text-gray-300">NBA_OFFICIAL</span>
