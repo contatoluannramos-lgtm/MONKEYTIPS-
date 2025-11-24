@@ -4,6 +4,16 @@ import { Match, SportType, FootballStats, TeamHistory } from "../types";
 const API_HOST = "v3.football.api-sports.io";
 const API_URL = "https://v3.football.api-sports.io";
 
+// Helper para data local (Brasil/Sistema) YYYY-MM-DD
+const getLocalDate = (addDays = 0) => {
+    const date = new Date();
+    date.setDate(date.getDate() + addDays);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 export const fetchLiveFixtures = async (apiKey: string): Promise<Match[]> => {
   if (!apiKey) {
     console.warn("API Key ausente. Usando dados mockados.");
@@ -21,26 +31,40 @@ export const fetchLiveFixtures = async (apiKey: string): Promise<Match[]> => {
       redirect: 'follow'
     };
 
-    // Calcular datas para buscar a semana (Hoje até +7 dias)
-    const today = new Date().toISOString().split('T')[0];
-    const nextWeekDate = new Date();
-    nextWeekDate.setDate(nextWeekDate.getDate() + 7);
-    const nextWeek = nextWeekDate.toISOString().split('T')[0];
+    const today = getLocalDate(0);
+    const nextWeek = getLocalDate(7);
 
-    // Busca jogos do intervalo (Semana)
-    const response = await fetch(`${API_URL}/fixtures?from=${today}&to=${nextWeek}`, requestOptions);
-    
-    if (!response.ok) throw new Error(`Erro API: ${response.statusText}`);
+    console.log(`📡 Buscando jogos de ${today} até ${nextWeek}...`);
 
-    const data = await response.json();
+    // TENTATIVA 1: Busca Geral da Semana
+    let response = await fetch(`${API_URL}/fixtures?from=${today}&to=${nextWeek}`, requestOptions);
+    let data = await response.json();
+
+    // TENTATIVA 2: Se vazio, busca especificamente BRASILEIRÃO (71) para hoje
+    if (!data.response || data.response.length === 0) {
+        console.warn("⚠️ Busca geral vazia. Tentando Brasileirão Série A...");
+        // 71 = Brasileirão Série A, 2024 (Hardcoded year fallback, ideally dynamic)
+        response = await fetch(`${API_URL}/fixtures?league=71&season=2024&date=${today}`, requestOptions);
+        data = await response.json();
+    }
+
+    // TENTATIVA 3: Se ainda vazio, busca TUDO que está AO VIVO agora
+    if (!data.response || data.response.length === 0) {
+        console.warn("⚠️ Busca por liga vazia. Tentando Jogos Ao Vivo (Live All)...");
+        response = await fetch(`${API_URL}/fixtures?live=all`, requestOptions);
+        data = await response.json();
+    }
 
     if (data.errors && Object.keys(data.errors).length > 0) {
-        console.error("Erros da API:", data.errors);
+        console.error("❌ Erros da API:", data.errors);
+        // Retorna array vazio mas loga erro para debug
         return [];
     }
 
+    if (!data.response) return [];
+
     const matches: Match[] = data.response.map((item: any) => {
-      // Basic Stats Mapping (Deep stats require separate call usually)
+      // Mapeamento básico de stats
       const stats: FootballStats = {
         homeScore: item.goals.home ?? 0,
         awayScore: item.goals.away ?? 0,
@@ -51,30 +75,32 @@ export const fetchLiveFixtures = async (apiKey: string): Promise<Match[]> => {
         shotsOffTarget: { home: 0, away: 0 },
         attacks: { dangerous: 0, total: 0 },
         cards: { yellow: 0, red: 0 },
-        recentForm: 'N/A' // Requires separate endpoint
+        recentForm: 'N/A'
       };
 
       return {
         id: `live-${item.fixture.id}`,
         externalId: item.fixture.id,
-        teamAId: item.teams.home.id, // Captura ID do time
-        teamBId: item.teams.away.id, // Captura ID do time
-        sport: SportType.FOOTBALL,
+        teamAId: item.teams.home.id,
+        teamBId: item.teams.away.id,
+        sport: SportType.FOOTBALL, // API default is football
         teamA: item.teams.home.name,
         teamB: item.teams.away.name,
         league: item.league.name,
         startTime: item.fixture.date,
+        // Normaliza status para o sistema
         status: ['1H', '2H', 'HT', 'ET', 'P', 'LIVE'].includes(item.fixture.status.short) ? 'Live' : 
                 ['FT', 'AET', 'PEN'].includes(item.fixture.status.short) ? 'Finished' : 'Scheduled',
-        referee: item.fixture.referee, // Captura do Árbitro
+        referee: item.fixture.referee,
         stats: stats
       };
     });
 
+    console.log(`✅ ${matches.length} partidas encontradas.`);
     return matches;
 
   } catch (error) {
-    console.error("Falha ao buscar dados ao vivo:", error);
+    console.error("❌ Falha crítica ao buscar dados:", error);
     return [];
   }
 };
