@@ -121,11 +121,16 @@ export interface ScreenAnalysisData {
 
 export interface NewsAnalysis {
   headline: string;
-  impactScore: number; // -100 to +100
-  affectedSector: 'MORALE' | 'TACTICAL' | 'MARKET_ODDS';
+  impactScore: number; // -30 to +30
+  affectedSector: 'MORALE' | 'TACTICAL' | 'MARKET_ODDS' | 'LINEUP';
   summary: string;
   sourceUrl?: string;
   relatedTeam?: string;
+  // New detailed report fields
+  facts: string[];
+  team1Impact: string;
+  team2Impact: string;
+  projectionChange: string;
 }
 
 export interface ImprovementProposal {
@@ -176,6 +181,7 @@ export interface FusionAnalysis {
   ev: number; // Expected Value
   marketOdd: number;
   verdict: 'GREEN_LIGHT' | 'YELLOW_WARNING' | 'RED_ALERT';
+  newsImpactScore?: number; // Impacto vindo do News Engine
 }
 
 export interface CalibrationConfig {

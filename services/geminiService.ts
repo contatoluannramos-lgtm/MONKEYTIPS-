@@ -51,12 +51,16 @@ const newsSchema: Schema = {
     type: Type.OBJECT,
     properties: {
         headline: { type: Type.STRING, description: "Manchete resumida do fato" },
-        impactScore: { type: Type.INTEGER, description: "Impacto percentual de -100 a +100" },
-        affectedSector: { type: Type.STRING, enum: ['MORALE', 'TACTICAL', 'MARKET_ODDS'] },
+        impactScore: { type: Type.INTEGER, description: "Impacto percentual de -30 a +30" },
+        affectedSector: { type: Type.STRING, enum: ['MORALE', 'TACTICAL', 'MARKET_ODDS', 'LINEUP'] },
         summary: { type: Type.STRING, description: "Resumo curto do impacto na aposta" },
-        relatedTeam: { type: Type.STRING, description: "Time do G10 afetado" }
+        relatedTeam: { type: Type.STRING, description: "Time do G10 afetado" },
+        facts: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Lista de fatos relevantes extraídos" },
+        team1Impact: { type: Type.STRING, description: "Impacto no time 1" },
+        team2Impact: { type: Type.STRING, description: "Impacto no time 2" },
+        projectionChange: { type: Type.STRING, description: "Como isso altera as projeções" }
     },
-    required: ["headline", "impactScore", "affectedSector", "summary"]
+    required: ["headline", "impactScore", "affectedSector", "summary", "facts", "team1Impact", "team2Impact", "projectionChange"]
 };
 
 const getAIClient = () => {
@@ -191,6 +195,74 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
   }
 };
 
+export const generateBulkInsights = async (matches: Match[]): Promise<Tip[]> => {
+  const promises = matches.map(async (match) => {
+    try {
+      const analysis = await generateAnalysis(match);
+      if (analysis && analysis.prediction && analysis.confidence && analysis.odds) {
+        return {
+          id: `tip-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          matchId: match.id,
+          matchTitle: `${match.teamA} x ${match.teamB}`,
+          sport: match.sport,
+          prediction: analysis.prediction,
+          confidence: analysis.confidence,
+          odds: analysis.odds,
+          reasoning: analysis.reasoning || '',
+          createdAt: new Date().toISOString(),
+          isPremium: analysis.confidence > 80,
+          status: 'Pending'
+        } as Tip;
+      }
+    } catch (e) {
+      console.error(`Failed to analyze match ${match.id}`, e);
+    }
+    return null;
+  });
+
+  const results = await Promise.all(promises);
+  return results.filter((t): t is Tip => t !== null);
+};
+
+export const analyzeSportsNews = async (input: string, mode: 'TEXT' | 'URL'): Promise<NewsAnalysis | null> => {
+  const ai = getAIClient();
+  if (!ai) return null;
+
+  try {
+    const prompt = `
+      ATUE COMO: Monkey News Engine (Sistema de Inteligência).
+      INPUT TYPE: ${mode}
+      INPUT DATA: "${input}"
+
+      CONTEXTO: Analise o impacto desta notícia para os seguintes times monitorados: ${TARGET_TEAMS_BRASILEIRAO.join(', ')}.
+
+      TAREFA:
+      1. Extraia a manchete e os fatos principais.
+      2. Avalie o impacto (-30 a +30) nas odds/moral.
+      3. Identifique se afeta escalação, tática ou mercado.
+      4. Gere um resumo focado em apostadores.
+
+      Retorne JSON conforme schema.
+    `;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: newsSchema
+      }
+    });
+
+    const text = response.text;
+    if (!text) return null;
+    return JSON.parse(text) as NewsAnalysis;
+  } catch (error) {
+    console.error("News Engine Error:", error);
+    return null;
+  }
+};
+
 export const analyzeTicketImage = async (base64Image: string): Promise<TicketAnalysis | null> => {
   const ai = getAIClient();
   if (!ai) return null;
@@ -280,84 +352,7 @@ export const analyzeScreenCapture = async (base64Image: string): Promise<ScreenA
     return JSON.parse(text) as ScreenAnalysisData;
 
   } catch (error) {
-    console.error("Erro na análise de tela:", error);
+    console.error("Erro na análise visual de tela:", error);
     return null;
   }
-}
-
-export const analyzeSportsNews = async (content: string, type: 'TEXT' | 'URL' = 'TEXT'): Promise<NewsAnalysis | null> => {
-    const ai = getAIClient();
-    if (!ai) return null;
-
-    try {
-        let promptContent = "";
-
-        if (type === 'URL') {
-            promptContent = `
-                SYSTEM: Monkey News Engine (URL Scraper Simulation).
-                TASK: O usuário forneceu a URL: "${content}".
-                CONTEXTO: Reta final do Campeonato Brasileiro (Top 10) e Final da Libertadores (Atlético-MG x Botafogo).
-                
-                AÇÃO: Como não podemos acessar a web diretamente, simule uma análise de notícias urgentes e recentes que estariam nesta página sobre:
-                Times Focados: ${TARGET_TEAMS_BRASILEIRAO.join(', ')}.
-                
-                Identifique fatos REAIS ou ALTAMENTE PROVÁVEIS dessa reta final (ex: lesões de titulares, poupar jogadores, clima de decisão).
-            `;
-        } else {
-            promptContent = `
-                SYSTEM: Monkey News Engine.
-                TASK: Analise o texto abaixo e determine o impacto nas probabilidades esportivas.
-                TEXTO: "${content}"
-            `;
-        }
-
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: `
-                ${promptContent}
-                
-                1. Extraia/Gere a manchete mais crítica.
-                2. Defina o Impact Score (-100 a +100). Ex: Lesão de estrela = -30. Chuva forte = Impacto Tático.
-                3. Resumo curto do impacto para o apostador.
-                4. Identifique qual time do G10 ou Finalista está envolvido.
-                
-                Responda apenas JSON.
-            `,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: newsSchema
-            }
-        });
-
-        const text = response.text;
-        if (!text) return null;
-        return JSON.parse(text) as NewsAnalysis;
-    } catch (e) {
-        console.error("News engine error", e);
-        return null;
-    }
-};
-
-export const generateBulkInsights = async (matches: Match[]): Promise<Tip[]> => {
-  const tips: Tip[] = [];
-  
-  for (const match of matches) {
-    const analysis = await generateAnalysis(match);
-    if (analysis) {
-      tips.push({
-        id: `tip-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        matchId: match.id,
-        matchTitle: `${match.teamA} x ${match.teamB}`,
-        sport: match.sport,
-        prediction: analysis.prediction || "N/A",
-        confidence: analysis.confidence || 0,
-        reasoning: analysis.reasoning || "Análise indisponível.",
-        odds: analysis.odds || 1.5,
-        createdAt: new Date().toISOString(),
-        isPremium: false,
-        status: 'Pending'
-      });
-    }
-  }
-  return tips;
 };
