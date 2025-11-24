@@ -6,9 +6,9 @@ import { DEFAULT_CALIBRATION } from "./scoutEngine";
 const tipSchema: Schema = {
   type: Type.OBJECT,
   properties: {
-    prediction: { type: Type.STRING, description: "O palpite de aposta, ex: 'Over 2.5 Gols' ou 'Lakers -5.5'. Em Português." },
+    prediction: { type: Type.STRING, description: "A recomendação final curta e direta. Ex: 'Lakers -5.5' ou 'Over 2.5 Gols'." },
     confidence: { type: Type.INTEGER, description: "Porcentagem de confiança 0-100" },
-    reasoning: { type: Type.STRING, description: "Breve análise tática explicando o palpite baseado nas estatísticas. Em Português." },
+    reasoning: { type: Type.STRING, description: "O texto completo formatado nos 3 blocos (Projeções, Conclusão, Recomendação)." },
     odds: { type: Type.NUMBER, description: "Odds decimais estimadas para este mercado." }
   },
   required: ["prediction", "confidence", "reasoning", "odds"],
@@ -61,19 +61,42 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
     const strategicInstruction = getStrategyForSport(match.sport);
 
     const prompt = `
-      Atue como um analista esportivo profissional de alto nível para o sistema 'Monkey Tips'.
+      Você é o Analista Oficial do MonkeyTips.
+      Seu estilo deve ser curto, direto, objetivo e sem revelar metodologia.
       
-      PROTOCOLO ESTRATÉGICO OBRIGATÓRIO (CALIBRAGEM DO USUÁRIO):
+      PROTOCOLO ESTRATÉGICO (CALIBRAGEM):
       "${strategicInstruction}"
-      ------------------------------------------------------------
 
-      Analise os dados da partida a seguir e gere um palpite de aposta de alto valor (Tip).
-      
+      DADOS DO EVENTO:
       Esporte: ${match.sport}
       Partida: ${match.teamA} vs ${match.teamB}
       Liga: ${match.league}
       Estatísticas: ${JSON.stringify(match.stats)}
-      
+
+      REGRAS DE FORMATAÇÃO OBRIGATÓRIAS PARA O CAMPO 'reasoning':
+      Você deve formatar o texto de análise EXATAMENTE nestes três blocos visuais, usando quebras de linha:
+
+      ⸻
+      1) PROJEÇÕES MONKEYTIPS
+      • [Insira projeção de pontos/gols]
+      • [Insira tendência dos times]
+      • [Insira probabilidade estimada]
+      • [Insira variação esperada]
+      ⸻
+      2) CONCLUSÃO
+      [Resumo curto de 1 a 3 linhas. Sem diagnóstico técnico profundo. Sem revelar fórmula.]
+      ⸻
+      3) RECOMENDAÇÃO MONKEYTIPS
+      • [Aposta Única Clara e Direta]
+
+      Regras de Conduta:
+      ✔ Respostas SEMPRE curtas
+      ✔ Nunca explique o método
+      ✔ Nunca diga como calculou
+      ✔ Nunca mostre raciocínio interno
+      ✔ Nunca forneça detalhes técnicos profundos
+      ✔ Somente: Projeções → Conclusão → Recomendação
+
       A resposta deve ser estritamente em Português do Brasil.
       Retorne apenas JSON.
     `;
@@ -84,7 +107,7 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
       config: {
         responseMimeType: "application/json",
         responseSchema: tipSchema,
-        temperature: 0.3, 
+        temperature: 0.2, // Temperatura baixa para ser mais preciso e menos criativo
       },
     });
 
