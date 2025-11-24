@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { generateBulkInsights, analyzeTicketImage } from '../services/geminiService';
 import { fetchLiveFixtures } from '../services/liveDataService';
 import { dbService } from '../services/databaseService';
@@ -26,7 +26,79 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
   // Monkey Labs State
   const [ticketAnalysis, setTicketAnalysis] = useState<TicketAnalysis | null>(null);
   const [isAnalyzingTicket, setIsAnalyzingTicket] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // --- MONKEY LABS LOGIC (Paste & Drop) ---
+  
+  // Helper centralizado para processar arquivo de imagem
+  const processTicketFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+        alert("Por favor, cole ou envie apenas arquivos de imagem.");
+        return;
+    }
+
+    setIsAnalyzingTicket(true);
+    setTicketAnalysis(null);
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64String = reader.result as string;
+      const analysis = await analyzeTicketImage(base64String);
+      setTicketAnalysis(analysis);
+      setIsAnalyzingTicket(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Listener para CTRL+V (Paste)
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (currentView !== 'MONKEY_LABS') return;
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+             e.preventDefault();
+             processTicketFile(file);
+             // Pega apenas a primeira imagem
+             break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [currentView]);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) processTicketFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processTicketFile(file);
+  };
+
+  // --- END MONKEY LABS LOGIC ---
 
   const handleLogout = async () => {
     await authService.signOut();
@@ -89,24 +161,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     setTips(prev => prev.map(t => t.id === id ? { ...t, status } : t));
     // Update DB
     await dbService.updateTipStatus(id, status);
-  };
-
-  // Monkey Labs Logic
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsAnalyzingTicket(true);
-    setTicketAnalysis(null);
-
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64String = reader.result as string;
-      const analysis = await analyzeTicketImage(base64String);
-      setTicketAnalysis(analysis);
-      setIsAnalyzingTicket(false);
-    };
-    reader.readAsDataURL(file);
   };
 
   // Engine Processing Helpers
@@ -260,17 +314,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
            <div className="relative z-10 max-w-6xl mx-auto">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                  {/* Upload Area */}
-                 <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-8 flex flex-col items-center justify-center text-center min-h-[400px] border-dashed hover:border-brand-500/50 transition-colors cursor-pointer group"
-                      onClick={() => fileInputRef.current?.click()}>
+                 <div 
+                    className={`bg-surface-900/50 backdrop-blur border p-8 flex flex-col items-center justify-center text-center min-h-[400px] border-dashed transition-all cursor-pointer group relative overflow-hidden ${
+                      isDragging ? 'border-brand-500 bg-brand-500/10' : 'border-white/5 hover:border-brand-500/50'
+                    }`}
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                 >
                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
                     
-                    <div className="w-20 h-20 bg-black/50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <div className="w-24 h-24 bg-black/50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-2xl border border-white/5">
                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-500"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                     </div>
                     <h3 className="text-xl font-bold text-white mb-2">Upload de Bilhete</h3>
-                    <p className="text-gray-500 font-mono text-xs max-w-xs">
-                       Envie um print de aposta para análise automática de EV+ via Gemini Vision.
+                    <p className="text-gray-500 font-mono text-xs max-w-xs mb-4">
+                       Arraste a imagem, clique para selecionar ou <span className="text-brand-500 font-bold">Cole (Ctrl+V)</span> direto aqui.
                     </p>
+                    {isDragging && (
+                       <div className="absolute inset-0 bg-brand-500/20 flex items-center justify-center backdrop-blur-sm">
+                          <p className="text-brand-500 font-bold font-display text-xl animate-bounce">SOLTE PARA ANALISAR</p>
+                       </div>
+                    )}
                  </div>
 
                  {/* Analysis Result */}
@@ -319,8 +385,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                           </div>
                        </div>
                     ) : (
-                       <div className="flex-1 flex items-center justify-center text-gray-600 font-mono text-xs">
-                          Aguardando upload de imagem...
+                       <div className="flex-1 flex items-center justify-center text-gray-600 font-mono text-xs text-center">
+                          Aguardando upload... <br/>
+                          Suporta: JPG, PNG, Print Screen
                        </div>
                     )}
                  </div>
