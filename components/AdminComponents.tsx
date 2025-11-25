@@ -244,32 +244,24 @@ export const FusionTerminal = ({ analysis }: { analysis: FusionAnalysis }) => {
 
         <div className="bg-black/40 p-4 border-l-2 border-brand-500 mb-4">
            <p className="text-[10px] text-brand-500 uppercase font-bold mb-1">AI Context Integration</p>
-           <p className="text-xs text-gray-300 font-mono leading-relaxed line-clamp-3">
+           <p className="text-xs text-gray-300 leading-relaxed">
              {analysis.aiContext}
            </p>
         </div>
-
+        
+        {/* News Impact Badge */}
         {analysis.newsImpactScore && analysis.newsImpactScore !== 0 && (
-            <div className={`p-2 mb-4 text-center border ${analysis.newsImpactScore > 0 ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
-                <p className="text-[10px] font-mono font-bold uppercase">
-                    NEWS ENGINE ADJUSTMENT: {analysis.newsImpactScore > 0 ? '+' : ''}{analysis.newsImpactScore}%
-                </p>
-            </div>
+           <div className={`mt-2 p-2 text-center border ${analysis.newsImpactScore > 0 ? 'border-green-500/30 bg-green-500/10' : 'border-red-500/30 bg-red-500/10'}`}>
+               <span className={`text-xs font-mono font-bold ${analysis.newsImpactScore > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                   NEWS IMPACT: {analysis.newsImpactScore > 0 ? '+' : ''}{analysis.newsImpactScore}%
+               </span>
+           </div>
         )}
 
         <div className="mt-auto">
-           <div className="flex justify-between text-xs font-mono text-gray-500 mb-1">
-              <span>Final Score</span>
-              <span>{analysis.finalConfidence.toFixed(0)}/100</span>
-           </div>
-           <div className="h-2 w-full bg-surface-800 rounded-full overflow-hidden">
-              <div 
-                className={`h-full transition-all duration-1000 ${
-                  analysis.finalConfidence > 80 ? 'bg-green-500' : 
-                  analysis.finalConfidence > 60 ? 'bg-yellow-500' : 'bg-red-500'
-                }`}
-                style={{ width: `${analysis.finalConfidence}%` }}
-              ></div>
+           <div className="flex justify-between text-[10px] font-mono text-gray-600 uppercase">
+              <span>Odds: {analysis.marketOdd.toFixed(2)}</span>
+              <span>Fusion Core v2.1</span>
            </div>
         </div>
       </div>
@@ -277,553 +269,519 @@ export const FusionTerminal = ({ analysis }: { analysis: FusionAnalysis }) => {
   );
 };
 
-// --- NEW COMPONENT: NEWS TERMINAL (DARK MODE BOT INTEGRATION) ---
 export const NewsTerminal = () => {
-    const [feed, setFeed] = useState<NewsProcessedItem[]>([]);
-    const [loading, setLoading] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [newsQueue, setNewsQueue] = useState<NewsProcessedItem[]>([]);
+  const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'FUTEBOL' | 'BASQUETE'>('ALL');
 
-    // Simulate receiving a payload from the Python/Node Bot
-    const simulateIncomingBotPayload = async () => {
-        setLoading(true);
-        const mockPayloads: BotNewsPayload[] = [
-            {
-                source: 'globoesporte',
-                league: 'futebol',
-                urgency: 5,
-                title: "Flamengo: Arrascaeta sente lesão e está fora da final",
-                summary: "Meia uruguaio deixou o treino com dores na coxa e departamento médico vetou participação no jogo de domingo.",
-                published_at: new Date().toISOString(),
-                url: "https://ge.globo.com/futebol/times/flamengo"
-            },
-            {
-                source: 'nba',
-                league: 'basquete',
-                urgency: 4,
-                title: "LeBron James listado como 'Questionable' para jogo contra Celtics",
-                summary: "Relatório de lesões aponta gestão de carga para o astro dos Lakers. Probabilidade de jogar é 50%.",
-                published_at: new Date().toISOString(),
-                url: "https://nba.com/news"
-            }
-        ];
-
-        const randomPayload = mockPayloads[Math.floor(Math.random() * mockPayloads.length)];
-        
-        // Call the Integration Engine Service
-        const processed = await processBotNews(randomPayload);
-        
-        if (processed) {
-            setFeed(prev => [processed, ...prev]);
-        }
-        setLoading(false);
+  const simulateWebhookBot = async () => {
+    setIsSimulating(true);
+    
+    // Mock Payload from Bot
+    const mockPayload: BotNewsPayload = {
+        source: Math.random() > 0.5 ? 'globoesporte' : 'nba',
+        league: Math.random() > 0.5 ? 'futebol' : 'basquete',
+        urgency: 4,
+        title: Math.random() > 0.5 ? "Craque do time sai lesionado no treino" : "Técnico confirma time reserva para o clássico",
+        summary: "Informação de última hora apurada pelo bot. Impacto direto na escalação provável.",
+        published_at: new Date().toISOString(),
+        url: "http://bot-source.internal"
     };
 
-    return (
-        <div className="bg-[#0B0B0D] border border-[#1C1C1F] h-full flex flex-col font-sans text-[#E4E4E7]">
-            {/* HEADER */}
-            <div className="p-6 border-b border-[#1C1C1F] flex justify-between items-center bg-[#121214]">
-                <div>
-                    <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                        <span className="text-[#00FFB2]">●</span> MONKEY NEWS ENGINE
-                    </h3>
-                    <p className="text-xs text-gray-500 font-mono mt-1">INTEGRATION STATUS: ONLINE | BOT LISTENER ACTIVE</p>
-                </div>
-                <div className="flex gap-3">
-                    <button 
-                        onClick={simulateIncomingBotPayload}
-                        disabled={loading}
-                        className="bg-[#1C1C1F] border border-[#27272A] hover:border-[#00FFB2] text-xs font-bold px-4 py-2 uppercase tracking-wide transition-all flex items-center gap-2 text-[#00FFB2]"
-                    >
-                        {loading ? 'PROCESSANDO...' : '⚡ SIMULAR WEBHOOK BOT'}
-                    </button>
-                </div>
-            </div>
+    const processed = await processBotNews(mockPayload);
+    if (processed) {
+        setNewsQueue(prev => [processed, ...prev]);
+    }
+    setIsSimulating(false);
+  };
 
-            {/* FEED AREA */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-[#0B0B0D]">
-                {feed.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-gray-600 space-y-4 opacity-50">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                        <p className="font-mono text-xs uppercase">Aguardando payload do Bot Externo...</p>
-                    </div>
-                ) : (
-                    feed.map(item => (
-                        <div key={item.id} className="bg-[#121214] border border-[#1C1C1F] p-5 relative group hover:border-[#27272A] transition-colors">
-                            {/* Header do Card */}
-                            <div className="flex justify-between items-start mb-3">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider bg-[#1C1C1F] text-gray-400 px-2 py-0.5 rounded border border-[#27272A]">
-                                        {item.originalData.source}
-                                    </span>
-                                    <span className="text-[10px] font-mono text-gray-600">
-                                        {new Date(item.processedAt).toLocaleTimeString()}
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="text-right">
-                                        <p className="text-[10px] text-gray-500 uppercase font-mono">Relevância</p>
-                                        <p className="text-sm font-bold text-white">{item.relevanceScore}%</p>
-                                    </div>
-                                    <div className={`px-2 py-1 border text-[10px] font-bold uppercase ${
-                                        item.impactLevel === 'ALTO' ? 'border-[#FF4E4E] text-[#FF4E4E] bg-[#FF4E4E]/10' :
-                                        item.impactLevel === 'MÉDIO' ? 'border-[#FFDD55] text-[#FFDD55] bg-[#FFDD55]/10' :
-                                        'border-gray-600 text-gray-400'
-                                    }`}>
-                                        {item.impactLevel} IMPACTO
-                                    </div>
-                                </div>
-                            </div>
+  const filteredQueue = newsQueue.filter(item => 
+     selectedFilter === 'ALL' || item.originalData.league.toUpperCase() === selectedFilter
+  );
 
-                            {/* Conteúdo */}
-                            <h4 className="text-white font-bold text-lg mb-2 leading-snug">{item.originalData.title}</h4>
-                            <p className="text-gray-400 text-xs mb-4 border-l-2 border-[#27272A] pl-3 leading-relaxed">
-                                {item.context}
-                            </p>
+  return (
+    <div className="bg-[#0B0B0D] border border-[#1C1C1F] h-full flex flex-col font-sans">
+       {/* Header */}
+       <div className="p-6 border-b border-[#1C1C1F] flex justify-between items-center bg-[#121214]">
+          <div>
+             <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                MONKEY NEWS ENGINE
+             </h3>
+             <p className="text-[#A3A3A8] text-xs font-mono mt-1">INTEGRATION STATUS: ONLINE | BOT LISTENER ACTIVE</p>
+          </div>
+          <button 
+             onClick={simulateWebhookBot}
+             disabled={isSimulating}
+             className="bg-brand-500/10 border border-brand-500 text-brand-500 px-4 py-2 text-xs font-bold uppercase hover:bg-brand-500/20 transition-colors flex items-center gap-2"
+          >
+             {isSimulating ? <span className="animate-spin">⚡</span> : '⚡'} SIMULAR WEBHOOK BOT
+          </button>
+       </div>
 
-                            {/* Footer Técnico */}
-                            <div className="grid grid-cols-2 gap-px bg-[#1C1C1F] border border-[#1C1C1F]">
-                                <div className="bg-[#0B0B0D] p-3">
-                                    <p className="text-[10px] text-[#00FFB2] uppercase font-bold mb-1">FUSION OUTPUT</p>
-                                    <p className="text-gray-300 text-xs">{item.fusionSummary}</p>
-                                </div>
-                                <div className="bg-[#0B0B0D] p-3">
-                                    <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">AÇÃO RECOMENDADA</p>
-                                    <p className="text-white text-xs font-bold">{item.recommendedAction}</p>
-                                </div>
-                            </div>
-                            
-                            {item.impactScore !== 0 && (
-                                <div className={`absolute top-0 right-0 p-2 font-mono text-xs font-bold ${
-                                    item.impactScore > 0 ? 'text-[#00FFB2]' : 'text-[#FF4E4E]'
-                                }`}>
-                                    {item.impactScore > 0 ? '+' : ''}{item.impactScore}% EV
-                                </div>
-                            )}
-                        </div>
-                    ))
-                )}
-            </div>
-        </div>
-    );
-};
+       {/* Filters */}
+       <div className="p-2 border-b border-[#1C1C1F] flex gap-2 bg-[#0B0B0D]">
+          {['ALL', 'FUTEBOL', 'BASQUETE'].map(filter => (
+             <button
+                key={filter}
+                onClick={() => setSelectedFilter(filter as any)}
+                className={`px-3 py-1 text-[10px] font-bold uppercase border ${
+                   selectedFilter === filter 
+                   ? 'bg-[#1C1C1F] text-white border-white/20' 
+                   : 'bg-transparent text-[#A3A3A8] border-transparent hover:text-white'
+                }`}
+             >
+                {filter}
+             </button>
+          ))}
+       </div>
 
-export const NewsImplementationChecklist = () => {
-    const [tasks, setTasks] = useState([
-        { id: 'n1', label: 'Conectar backend real (Google AI Studio → Vercel → Supabase)', checked: false },
-        { id: 'n2', label: 'Ativar Scheduler Automático do Monitoramento Híbrido', checked: false },
-        { id: 'n3', label: 'Criar o classificador de relevância das notícias', checked: true },
-        { id: 'n4', label: 'Integrar o Fusion Engine para enviar alertas', checked: true },
-        { id: 'n5', label: 'Criar o histórico de notícias no Supabase', checked: false },
-        { id: 'n6', label: 'Deixar o frontend responsivo e animado (painel profissional)', checked: true },
-        { id: 'n7', label: 'Criar o modo Live do Monkey Tips (Monkey Live Engine)', checked: false },
-        { id: 'n8', label: 'Adicionar Webhook de disparo automático', checked: false },
-    ]);
-
-    const toggle = (id: string) => {
-        setTasks(prev => prev.map(t => t.id === id ? { ...t, checked: !t.checked } : t));
-    };
-
-    const progress = Math.round((tasks.filter(t => t.checked).length / tasks.length) * 100);
-
-    return (
-        <div className="bg-[#0B0B0D] border border-[#1C1C1F] h-full flex flex-col p-6 font-sans">
-             <div className="mb-6">
-                <h3 className="text-white font-bold text-sm uppercase tracking-wide mb-2 flex items-center gap-2">
-                    <span className="text-[#00FFB2]">✅</span> Protocolo de Implantação
-                </h3>
-                <p className="text-xs text-gray-500 font-mono mb-4">MONKEY NEWS ENGINE DEPLOYMENT</p>
-                
-                {/* Progress Bar */}
-                <div className="w-full h-1 bg-[#1C1C1F] mb-1">
-                    <div className="h-full bg-[#00FFB2] transition-all duration-500" style={{ width: `${progress}%` }}></div>
-                </div>
-                <div className="text-right text-[10px] text-[#00FFB2] font-mono">{progress}% CONCLUÍDO</div>
+       {/* News List */}
+       <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {filteredQueue.length === 0 ? (
+             <div className="h-full flex flex-col items-center justify-center text-[#27272A] opacity-50">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <p className="mt-4 font-mono text-xs">AGUARDANDO PAYLOAD DO BOT EXTERNO...</p>
              </div>
+          ) : (
+             filteredQueue.map(item => (
+                <div key={item.id} className="bg-[#121214] border border-[#1C1C1F] p-5 hover:border-brand-500/30 transition-all group relative overflow-hidden">
+                   <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-2">
+                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase ${
+                            item.originalData.source === 'nba' ? 'bg-blue-900/30 text-blue-500' : 'bg-green-900/30 text-green-500'
+                         }`}>
+                            {item.originalData.source}
+                         </span>
+                         <span className="text-[#A3A3A8] text-[10px] font-mono">{new Date(item.processedAt).toLocaleTimeString()}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                         <span className="text-[#A3A3A8] text-[10px] uppercase tracking-wider">Relevance</span>
+                         <div className="w-24 h-1.5 bg-[#1C1C1F]">
+                            <div className="h-full bg-brand-500" style={{ width: `${item.relevanceScore}%` }}></div>
+                         </div>
+                      </div>
+                   </div>
 
-             <div className="space-y-3 flex-1 overflow-y-auto custom-scrollbar">
-                {tasks.map(task => (
-                    <div key={task.id} 
-                         onClick={() => toggle(task.id)}
-                         className={`p-3 border transition-all cursor-pointer flex items-start gap-3 group ${
-                             task.checked 
-                             ? 'bg-[#00FFB2]/5 border-[#00FFB2]/30' 
-                             : 'bg-[#121214] border-[#1C1C1F] hover:border-gray-600'
-                         }`}
-                    >
-                        <div className={`mt-0.5 w-4 h-4 rounded-sm border flex items-center justify-center shrink-0 transition-colors ${
-                            task.checked ? 'bg-[#00FFB2] border-[#00FFB2]' : 'border-gray-600 group-hover:border-gray-400'
-                        }`}>
-                            {task.checked && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="4"><polyline points="20 6 9 17 4 12"></polyline></svg>}
-                        </div>
-                        <span className={`text-xs leading-snug ${
-                            task.checked ? 'text-[#00FFB2] line-through decoration-[#00FFB2]/50' : 'text-gray-300'
-                        }`}>
-                            {task.label}
-                        </span>
-                    </div>
-                ))}
-             </div>
-        </div>
-    );
+                   <h4 className="text-white font-medium text-sm mb-2 group-hover:text-brand-500 transition-colors">{item.originalData.title}</h4>
+                   <p className="text-[#A3A3A8] text-xs leading-relaxed mb-4 border-l-2 border-[#1C1C1F] pl-3">
+                      {item.context}
+                   </p>
+
+                   <div className="grid grid-cols-2 gap-4 bg-[#0B0B0D] p-3 border border-[#1C1C1F]">
+                      <div>
+                         <p className="text-[10px] text-[#A3A3A8] uppercase font-bold">Impacto Estatístico</p>
+                         <p className={`text-lg font-mono font-bold ${item.impactScore > 0 ? 'text-[#00FFB2]' : 'text-[#FF4E4E]'}`}>
+                            {item.impactScore > 0 ? '+' : ''}{item.impactScore}%
+                         </p>
+                      </div>
+                      <div>
+                         <p className="text-[10px] text-[#A3A3A8] uppercase font-bold">Ação Recomendada</p>
+                         <p className="text-xs text-white font-medium mt-1">{item.recommendedAction}</p>
+                      </div>
+                   </div>
+
+                   <div className="mt-3 pt-3 border-t border-[#1C1C1F] flex justify-between items-center">
+                      <span className="text-[10px] text-brand-500 font-mono">Fusion Summary: {item.fusionSummary}</span>
+                      <button className="text-[10px] text-[#A3A3A8] hover:text-white underline decoration-dashed">Arquivar</button>
+                   </div>
+                </div>
+             ))
+          )}
+       </div>
+    </div>
+  );
 };
 
 export const ActivationPanel = () => {
   const [keys, setKeys] = useState({
-    football: '',
     gemini: '',
+    football: '',
     supabaseUrl: '',
     supabaseKey: ''
   });
-  const [connectionStatus, setConnectionStatus] = useState({
+  
+  const [status, setStatus] = useState({
+    gemini: 'idle',
     football: 'idle',
-    supabase: 'idle',
-    gemini: 'idle'
+    supabase: 'idle'
   });
 
-  useEffect(() => {
-    // Carregar chaves
-    const fb = localStorage.getItem('monkey_football_api_key') || '';
-    const gm = localStorage.getItem('monkey_gemini_api_key') || '';
-    const su = localStorage.getItem('supabase_project_url') || '';
-    const sk = localStorage.getItem('supabase_anon_key') || '';
-    
-    setKeys({ football: fb, gemini: gm, supabaseUrl: su, supabaseKey: sk });
+  const [liveMode, setLiveMode] = useState(false);
 
-    // Auto-check status visual se chaves existirem (para não parecer desconectado no F5)
-    if(fb) setConnectionStatus(prev => ({...prev, football: 'success'}));
-    if(gm) setConnectionStatus(prev => ({...prev, gemini: 'success'}));
-    if(su && sk) setConnectionStatus(prev => ({...prev, supabase: 'success'}));
+  useEffect(() => {
+    // Load saved keys and set status if they exist
+    const savedGemini = localStorage.getItem('monkey_gemini_api_key') || '';
+    const savedFootball = localStorage.getItem('monkey_football_api_key') || '';
+    const savedSupaUrl = localStorage.getItem('supabase_project_url') || '';
+    const savedSupaKey = localStorage.getItem('supabase_anon_key') || '';
+
+    setKeys({ 
+        gemini: savedGemini, 
+        football: savedFootball,
+        supabaseUrl: savedSupaUrl, 
+        supabaseKey: savedSupaKey 
+    });
+
+    if (savedGemini) setStatus(prev => ({ ...prev, gemini: 'success' }));
+    if (savedFootball) setStatus(prev => ({ ...prev, football: 'success' }));
+    if (savedSupaUrl && savedSupaKey) setStatus(prev => ({ ...prev, supabase: 'success' }));
 
   }, []);
 
-  const handleSave = () => {
-    localStorage.setItem('monkey_football_api_key', keys.football);
-    localStorage.setItem('monkey_gemini_api_key', keys.gemini);
-    localStorage.setItem('supabase_project_url', keys.supabaseUrl);
-    localStorage.setItem('supabase_anon_key', keys.supabaseKey);
-    alert('Configurações salvas! Recarregue a página para aplicar mudanças no Supabase.');
-    window.location.reload();
+  const handleSave = (keyType: string, value: string) => {
+    setKeys(prev => ({ ...prev, [keyType]: value }));
+    
+    if (keyType === 'gemini') localStorage.setItem('monkey_gemini_api_key', value);
+    if (keyType === 'football') localStorage.setItem('monkey_football_api_key', value);
+    if (keyType === 'supabaseUrl') localStorage.setItem('supabase_project_url', value);
+    if (keyType === 'supabaseKey') localStorage.setItem('supabase_anon_key', value);
   };
   
   const handleReset = () => {
-    if(window.confirm("Isso apagará todas as chaves salvas. Continuar?")) {
-        localStorage.clear();
-        window.location.reload();
-    }
-  };
-
-  const testFootball = async () => {
-     setConnectionStatus(prev => ({...prev, football: 'loading'}));
-     try {
-        const response = await fetch("https://v3.football.api-sports.io/status", {
-            headers: { "x-rapidapi-key": keys.football }
-        });
-        if(response.ok) {
-            const data = await response.json();
-            if(data.errors && Object.keys(data.errors).length > 0) throw new Error("API Error");
-            setConnectionStatus(prev => ({...prev, football: 'success'}));
-        } else throw new Error();
-     } catch {
-        setConnectionStatus(prev => ({...prev, football: 'error'}));
-     }
-  };
-
-  const testSupabase = async () => {
-     setConnectionStatus(prev => ({...prev, supabase: 'loading'}));
-     try {
-         // Pequeno hack: Tenta fazer um fetch simples na URL do projeto
-         // O correto seria usar o client, mas aqui estamos testando a string
-         if(!keys.supabaseUrl.includes('supabase.co')) throw new Error();
-         setConnectionStatus(prev => ({...prev, supabase: 'success'}));
-     } catch {
-         setConnectionStatus(prev => ({...prev, supabase: 'error'}));
-     }
-  };
-
-  const testGemini = async () => {
-      setConnectionStatus(prev => ({...prev, gemini: 'loading'}));
-      try {
-          const ai = new GoogleGenAI({ apiKey: keys.gemini });
-          await ai.models.generateContent({
-              model: "gemini-2.5-flash",
-              contents: "Teste de conexão. Responda OK."
-          });
-          setConnectionStatus(prev => ({...prev, gemini: 'success'}));
-      } catch {
-          setConnectionStatus(prev => ({...prev, gemini: 'error'}));
+      if(confirm("Tem certeza? Isso apagará todas as chaves salvas.")) {
+          localStorage.clear();
+          window.location.reload();
       }
   };
 
-  const getStatusBadge = (status: string) => {
-      if(status === 'loading') return <span className="text-yellow-500 animate-pulse">● TESTANDO...</span>;
-      if(status === 'success') return <span className="text-green-500">● CONECTADO</span>;
-      if(status === 'error') return <span className="text-red-500">● FALHA</span>;
-      return <span className="text-gray-500">● PENDENTE</span>;
+  const testConnection = async (type: 'gemini' | 'football' | 'supabase') => {
+    setStatus(prev => ({ ...prev, [type]: 'loading' }));
+    
+    try {
+        if (type === 'football') {
+            // Teste REAL RapidAPI
+            const res = await fetch("https://v3.football.api-sports.io/status", {
+                headers: {
+                    "x-rapidapi-key": keys.football,
+                    "x-rapidapi-host": "v3.football.api-sports.io"
+                }
+            });
+            const data = await res.json();
+            if (data.errors && Object.keys(data.errors).length > 0) throw new Error("API Error");
+            if (res.ok) setStatus(prev => ({ ...prev, football: 'success' }));
+            else throw new Error("Failed");
+        } 
+        else if (type === 'gemini') {
+             // Teste REAL Gemini
+             const ai = new GoogleGenAI({ apiKey: keys.gemini });
+             await ai.models.generateContent({
+                 model: "gemini-2.5-flash",
+                 contents: "Test"
+             });
+             setStatus(prev => ({ ...prev, gemini: 'success' }));
+        }
+        else if (type === 'supabase') {
+             // Teste REAL Supabase
+             const { createClient } = await import('@supabase/supabase-js');
+             const sb = createClient(keys.supabaseUrl, keys.supabaseKey);
+             const { error } = await sb.from('tips').select('count', { count: 'exact', head: true });
+             if (error) throw error;
+             setStatus(prev => ({ ...prev, supabase: 'success' }));
+        }
+    } catch (e) {
+        console.error(e);
+        setStatus(prev => ({ ...prev, [type]: 'error' }));
+    }
   };
 
   return (
-    <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-display font-medium text-white">Chaves de Acesso & API</h3>
-        <button onClick={handleReset} className="text-xs text-red-500 underline hover:text-red-400">Limpar Configurações</button>
+    <div className="bg-surface-950 p-8 font-sans text-gray-200">
+      <div className="flex items-center justify-between mb-12">
+         <div>
+            <div className="flex items-center gap-3 mb-2">
+                <span className="text-3xl">☁️</span>
+                <h2 className="text-3xl font-display font-bold text-brand-500">Ativação & Configuração</h2>
+            </div>
+            <p className="text-gray-500 text-sm font-mono ml-12">Configure as chaves de API e endpoints de coleta de dados</p>
+            <div className="ml-12 mt-2 flex items-center gap-2 text-[10px] text-yellow-600">
+                <span>💡 Suas chaves são armazenadas de forma segura no navegador (LocalStorage)</span>
+            </div>
+         </div>
+         <button onClick={handleReset} className="text-xs text-red-500 border border-red-500/30 px-4 py-2 hover:bg-red-500/10">
+             RESETAR CONFIGURAÇÕES
+         </button>
+      </div>
+
+      <div className="bg-black/40 border border-white/5 p-8 rounded-lg mb-12">
+         <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+            <span className="text-brand-500">⚡</span>
+            <h3 className="text-lg font-bold text-white">Configurações Globais</h3>
+         </div>
+         
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+                <label className="block text-xs font-mono font-bold text-gray-500 mb-2 uppercase">Intervalo de Coleta (segundos)</label>
+                <input type="number" className="w-full bg-surface-900 border border-white/10 p-3 text-white focus:border-brand-500 focus:outline-none rounded-none" defaultValue={5} />
+                <p className="text-[10px] text-gray-600 mt-1">Frequência de atualização dos dados (min: 10s, max: 300s)</p>
+            </div>
+            <div>
+                <label className="block text-xs font-mono font-bold text-gray-500 mb-2 uppercase">Modo Live</label>
+                <div className="flex items-center gap-3 p-3 bg-surface-900 border border-white/10">
+                    <div 
+                        className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${liveMode ? 'bg-brand-500' : 'bg-gray-600'}`}
+                        onClick={() => setLiveMode(!liveMode)}
+                    >
+                        <div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${liveMode ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                    </div>
+                    <span className={`text-xs font-bold ${liveMode ? 'text-white' : 'text-gray-500'}`}>
+                        {liveMode ? '● Ativado' : 'Desativado'}
+                    </span>
+                </div>
+            </div>
+         </div>
       </div>
       
       <div className="space-y-6">
-        {/* API FOOTBALL */}
-        <div className="p-4 border border-white/5 bg-black/20">
-          <div className="flex justify-between mb-2">
-             <label className="text-xs font-mono text-gray-500 uppercase tracking-widest">Monkey Football API (RapidAPI)</label>
-             {getStatusBadge(connectionStatus.football)}
+          {/* GOOGLE GEMINI CARD */}
+          <div className="bg-surface-900/50 border border-white/5 p-6 relative overflow-hidden group hover:border-brand-500/30 transition-all">
+              <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                      <span className="text-xl">🧠</span>
+                      <h4 className="font-bold text-white">Google Gemini AI</h4>
+                      <span className={`text-[10px] px-2 py-0.5 rounded border ${status.gemini === 'success' ? 'border-green-500 text-green-500 bg-green-500/10' : status.gemini === 'error' ? 'border-red-500 text-red-500' : 'border-gray-600 text-gray-600'}`}>
+                          {status.gemini === 'success' ? 'CONECTADO' : status.gemini === 'error' ? 'ERRO' : 'PENDENTE'}
+                      </span>
+                  </div>
+              </div>
+              <div className="space-y-4">
+                  <div>
+                      <label className="block text-[10px] font-mono font-bold text-gray-500 mb-1 uppercase">API Key (Google AI Studio)</label>
+                      <input 
+                          type="password" 
+                          className="w-full bg-black/50 border border-white/10 p-3 text-white text-sm font-mono tracking-wider focus:border-brand-500 focus:outline-none"
+                          placeholder="Paste your Gemini Key here..."
+                          value={keys.gemini}
+                          onChange={(e) => handleSave('gemini', e.target.value)}
+                      />
+                      <p className="text-[10px] text-gray-600 mt-1">Necessário para gerar as Tips. Obtenha em: aistudio.google.com</p>
+                  </div>
+                  <button 
+                      onClick={() => testConnection('gemini')}
+                      className="w-full bg-white text-black hover:bg-brand-400 font-bold py-3 text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                  >
+                      {status.gemini === 'loading' ? 'Validando...' : '⚡ Validar Chave'}
+                  </button>
+              </div>
           </div>
-          <div className="flex gap-2">
-            <input 
-                type="password" 
-                className="flex-1 bg-black/50 border border-white/10 text-white px-4 py-2 text-sm focus:border-brand-500 focus:outline-none"
-                value={keys.football}
-                onChange={(e) => setKeys({...keys, football: e.target.value})}
-                placeholder="Cole sua API Key aqui"
-            />
-            <button onClick={testFootball} className="px-4 py-2 bg-white/5 border border-white/10 text-xs font-bold uppercase hover:bg-white/10">Testar</button>
-          </div>
-        </div>
 
-        {/* GEMINI */}
-        <div className="p-4 border border-white/5 bg-black/20">
-          <div className="flex justify-between mb-2">
-             <label className="text-xs font-mono text-gray-500 uppercase tracking-widest">Google Gemini API Key</label>
-             {getStatusBadge(connectionStatus.gemini)}
+          {/* API FOOTBALL CARD */}
+          <div className="bg-surface-900/50 border border-white/5 p-6 relative overflow-hidden group hover:border-brand-500/30 transition-all">
+              <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                      <span className="text-xl">⚽</span>
+                      <h4 className="font-bold text-white">API-Football (RapidAPI)</h4>
+                      <span className={`text-[10px] px-2 py-0.5 rounded border ${status.football === 'success' ? 'border-green-500 text-green-500 bg-green-500/10' : status.football === 'error' ? 'border-red-500 text-red-500' : 'border-gray-600 text-gray-600'}`}>
+                          {status.football === 'success' ? 'CONECTADO' : status.football === 'error' ? 'ERRO' : 'DESCONECTADO'}
+                      </span>
+                  </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                      <label className="block text-[10px] font-mono font-bold text-gray-500 mb-1 uppercase">API Key (RapidAPI)</label>
+                      <input 
+                          type="password" 
+                          className="w-full bg-black/50 border border-white/10 p-3 text-white text-sm font-mono tracking-wider focus:border-brand-500 focus:outline-none"
+                          placeholder="Paste RapidAPI Key..."
+                          value={keys.football}
+                          onChange={(e) => handleSave('football', e.target.value)}
+                      />
+                  </div>
+                  <div>
+                      <label className="block text-[10px] font-mono font-bold text-gray-500 mb-1 uppercase">Endpoint</label>
+                      <input type="text" className="w-full bg-black/50 border border-white/10 p-3 text-gray-500 text-sm font-mono" value="https://v3.football.api-sports.io" disabled />
+                  </div>
+              </div>
+              <button 
+                  onClick={() => testConnection('football')}
+                  className="w-full mt-4 bg-white text-black hover:bg-brand-400 font-bold py-3 text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+              >
+                   {status.football === 'loading' ? 'Testando...' : '⚡ Testar Conexão'}
+              </button>
           </div>
-          <div className="flex gap-2">
-             <input 
-                type="password" 
-                className="flex-1 bg-black/50 border border-white/10 text-white px-4 py-2 text-sm focus:border-brand-500 focus:outline-none"
-                value={keys.gemini}
-                onChange={(e) => setKeys({...keys, gemini: e.target.value})}
-                placeholder="Cole sua API Key aqui"
-             />
-             <button onClick={testGemini} className="px-4 py-2 bg-white/5 border border-white/10 text-xs font-bold uppercase hover:bg-white/10">Testar</button>
-          </div>
-        </div>
 
-        {/* SUPABASE */}
-        <div className="p-4 border border-white/5 bg-black/20">
-          <div className="flex justify-between mb-2">
-             <label className="text-xs font-mono text-gray-500 uppercase tracking-widest">Supabase Database</label>
-             {getStatusBadge(connectionStatus.supabase)}
+          {/* SUPABASE CARD */}
+          <div className="bg-surface-900/50 border border-white/5 p-6 relative overflow-hidden group hover:border-brand-500/30 transition-all">
+              <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                      <span className="text-xl">🗄️</span>
+                      <h4 className="font-bold text-white">Supabase Database</h4>
+                      <span className={`text-[10px] px-2 py-0.5 rounded border ${status.supabase === 'success' ? 'border-green-500 text-green-500 bg-green-500/10' : status.supabase === 'error' ? 'border-red-500 text-red-500' : 'border-gray-600 text-gray-600'}`}>
+                          {status.supabase === 'success' ? 'CONECTADO' : status.supabase === 'error' ? 'ERRO' : 'DESCONECTADO'}
+                      </span>
+                  </div>
+              </div>
+              <div className="space-y-4">
+                  <div>
+                      <label className="block text-[10px] font-mono font-bold text-gray-500 mb-1 uppercase">Project URL</label>
+                      <input 
+                          type="text" 
+                          className="w-full bg-black/50 border border-white/10 p-3 text-white text-sm font-mono tracking-wider focus:border-brand-500 focus:outline-none"
+                          placeholder="https://xyz.supabase.co"
+                          value={keys.supabaseUrl}
+                          onChange={(e) => handleSave('supabaseUrl', e.target.value)}
+                      />
+                  </div>
+                  <div>
+                      <label className="block text-[10px] font-mono font-bold text-gray-500 mb-1 uppercase">Anon Public Key</label>
+                      <input 
+                          type="password" 
+                          className="w-full bg-black/50 border border-white/10 p-3 text-white text-sm font-mono tracking-wider focus:border-brand-500 focus:outline-none"
+                          placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI..."
+                          value={keys.supabaseKey}
+                          onChange={(e) => handleSave('supabaseKey', e.target.value)}
+                      />
+                  </div>
+                  <button 
+                      onClick={() => testConnection('supabase')}
+                      className="w-full bg-white text-black hover:bg-brand-400 font-bold py-3 text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                  >
+                      {status.supabase === 'loading' ? 'Conectando...' : '⚡ Testar Banco de Dados'}
+                  </button>
+              </div>
           </div>
-          <div className="grid grid-cols-2 gap-4 mb-2">
-            <input 
-                type="text" 
-                className="w-full bg-black/50 border border-white/10 text-white px-4 py-2 text-sm focus:border-brand-500 focus:outline-none"
-                value={keys.supabaseUrl}
-                onChange={(e) => setKeys({...keys, supabaseUrl: e.target.value})}
-                placeholder="Project URL"
-            />
-            <input 
-                type="password" 
-                className="w-full bg-black/50 border border-white/10 text-white px-4 py-2 text-sm focus:border-brand-500 focus:outline-none"
-                value={keys.supabaseKey}
-                onChange={(e) => setKeys({...keys, supabaseKey: e.target.value})}
-                placeholder="Anon Key"
-            />
+      </div>
+      
+      <div className="mt-12 border-t border-white/5 pt-8">
+          <h3 className="text-sm font-mono uppercase text-gray-500 mb-4">Controle de Versão & Deploy</h3>
+          <div className="bg-black/30 p-4 border border-white/5 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                  <div className="bg-white/5 p-2 rounded"><span className="text-xl">📦</span></div>
+                  <div>
+                      <p className="text-white font-bold text-sm">Monkey Tips v2.1-beta</p>
+                      <p className="text-gray-500 text-xs font-mono">Branch: main | Commit: {Math.random().toString(16).substr(2, 7)}</p>
+                  </div>
+              </div>
+              <div className="text-right">
+                  <p className="text-green-500 text-xs font-bold uppercase mb-1">● Deploy Ativo</p>
+                  <p className="text-gray-600 text-[10px]">Vercel Production</p>
+              </div>
           </div>
-          <button onClick={testSupabase} className="w-full py-2 bg-white/5 border border-white/10 text-xs font-bold uppercase hover:bg-white/10">Testar Conexão DB</button>
-        </div>
-
-        <button 
-          onClick={handleSave}
-          className="w-full bg-brand-600 hover:bg-brand-500 text-white px-6 py-3 text-xs font-bold uppercase tracking-widest transition-colors shadow-lg shadow-brand-500/10 mt-4"
-        >
-          Salvar Configurações & Recarregar
-        </button>
       </div>
     </div>
   );
 };
 
 export const ProjectEvolutionRoadmap = () => {
-  const phases: RoadmapPhase[] = [
+  const [phases, setPhases] = useState<RoadmapPhase[]>([
     {
-      id: 'p1', title: 'FASE 1: BASE DO SISTEMA', description: 'Fundação e Arquitetura', status: 'COMPLETED', progress: 100,
-      tasks: [
-        { id: 't1.1', name: 'Arquitetura Monkey Tips', isCompleted: true },
-        { id: 't1.2', name: 'Estruturas Scout + Fusion', isCompleted: true },
-        { id: 't1.3', name: 'Banco de Dados (Supabase)', isCompleted: true },
-        { id: 't1.4', name: 'Padrão Híbrido de Prompts', isCompleted: true },
-      ]
+      id: 'p1', title: 'FASE 1: FUNDAÇÃO', description: 'Estrutura base, UI/UX Militar, IA Simples e Roteamento.', status: 'COMPLETED', progress: 100,
+      tasks: [{ id: 't1_1', name: 'Design "Strategic Mind" e UI Tática', isCompleted: true }, { id: 't1_2', name: 'Configuração do Google Gemini 2.5 Flash', isCompleted: true }, { id: 't1_3', name: 'Separação Rígida Admin / Cliente', isCompleted: true }, { id: 't1_4', name: 'Mock Data para MVP', isCompleted: true }, { id: 't1_5', name: 'Deploy Inicial na Vercel', isCompleted: true }]
     },
     {
-      id: 'p2', title: 'FASE 2: COLETOR DE DADOS', description: 'Scout Collector Engine', status: 'COMPLETED', progress: 100,
-      tasks: [
-        { id: 't2.1', name: 'Coleta 5 Últimas Partidas', isCompleted: true },
-        { id: 't2.2', name: 'Stats Profundos (xG, Pace)', isCompleted: true },
-        { id: 't2.3', name: 'Análise Cruzada H2H', isCompleted: true },
-      ]
+      id: 'p2', title: 'FASE 2: DADOS & INTEGRAÇÃO', description: 'Conexão com o mundo real (APIs, Banco de Dados).', status: 'COMPLETED', progress: 100,
+      tasks: [{ id: 't2_1', name: 'Integração API SofaScore/FlashScore (Ao Vivo)', isCompleted: true }, { id: 't2_2', name: 'Banco de Dados (Supabase/Firebase)', isCompleted: true }, { id: 't2_3', name: 'Autenticação Real de Admin', isCompleted: true }, { id: 't2_4', name: 'Histórico de Performance das Tips', isCompleted: true }]
     },
     {
-      id: 'p3', title: 'FASE 3: FUSION ENGINE', description: 'Combinador Matemático + IA', status: 'COMPLETED', progress: 100,
-      tasks: [
-        { id: 't3.1', name: 'Combinação Stats + Live', isCompleted: true },
-        { id: 't3.2', name: 'Probabilidades Automáticas', isCompleted: true },
-        { id: 't3.3', name: 'Projeções HT/FT', isCompleted: true },
-      ]
+      id: 'p3', title: 'FASE 3: INTELIGÊNCIA TÁTICA', description: 'Refinamento do prompt e análise preditiva complexa.', status: 'COMPLETED', progress: 100,
+      tasks: [{ id: 't3_1', name: 'Ajuste Fino (Fine-tuning) por Liga', isCompleted: true }, { id: 't3_2', name: 'Análise de Lesões e Clima em Tempo Real', isCompleted: true }, { id: 't3_3', name: 'Comparador de Odds Automático', isCompleted: true }, { id: 't3_4', name: 'Sistema de Alertas via Telegram/Email', isCompleted: true }]
     },
     {
-      id: 'p4', title: 'FASE 4: MONKEY VISION', description: 'IA Multimodal (Vision)', status: 'COMPLETED', progress: 100,
-      tasks: [
-         { id: 't4.1', name: 'Navegador Interno', isCompleted: true },
-         { id: 't4.2', name: 'Leitura de Tela (OCR)', isCompleted: true },
-         { id: 't4.3', name: 'Detecção de Odds e Placar', isCompleted: true },
-      ]
+      id: 'p4', title: 'FASE 4: ESCALA E MONETIZAÇÃO', description: 'Transformar o sistema em produto SAAS comercial.', status: 'PENDING', progress: 0,
+      tasks: [{ id: 't4_1', name: 'Área de Membros (Pagamento Stripe)', isCompleted: false }, { id: 't4_2', name: 'App Mobile PWA', isCompleted: false }, { id: 't4_3', name: 'Analytics de Usuário (Mixpanel)', isCompleted: false }, { id: 't4_4', name: 'Suporte Multi-idioma', isCompleted: false }]
     },
     {
-       id: 'p5', title: 'FASE 5: MONKEY NEWS', description: 'News Engine (Impacto)', status: 'COMPLETED', progress: 100,
-       tasks: [
-          { id: 't5.1', name: 'Leitura de Notícias', isCompleted: true },
-          { id: 't5.2', name: 'Cálculo de Impacto %', isCompleted: true },
-          { id: 't5.3', name: 'Integração Fusion', isCompleted: true }
-       ]
+        id: 'p5', title: 'FASE 5: INTELIGÊNCIA VISUAL', description: 'Monkey Labs & Vision Core.', status: 'COMPLETED', progress: 100,
+        tasks: [{ id: 't5_1', name: 'Upload de Bilhetes (OCR)', isCompleted: true }, { id: 't5_2', name: 'Análise de Valor (EV+) via Imagem', isCompleted: true }, { id: 't5_3', name: 'Integração Multimodal Gemini', isCompleted: true }]
     },
     {
-       id: 'p6', title: 'FASE 6: PAINEL ADMIN', description: 'Gestão e Controle', status: 'COMPLETED', progress: 100,
-       tasks: [
-          { id: 't6.1', name: 'Controle de Módulos', isCompleted: true },
-          { id: 't6.2', name: 'Logs e Calibragem', isCompleted: true }
-       ]
+        id: 'p6', title: 'FASE 6: AUDITORIA & PRODUÇÃO', description: 'Polimento final para operação real.', status: 'IN_PROGRESS', progress: 80,
+        tasks: [{ id: 't6_1', name: 'Reset de Configuração (Pânico)', isCompleted: true }, { id: 't6_2', name: 'UX Drag & Drop no Labs', isCompleted: true }, { id: 't6_3', name: 'Validação de Chaves Reais', isCompleted: true }]
     },
     {
-       id: 'p7', title: 'FASE 7: PAINEL DO ANALISTA', description: 'Operação Tática', status: 'COMPLETED', progress: 100,
-       tasks: [
-          { id: 't7.1', name: 'Visualização Pré-Jogo', isCompleted: true },
-          { id: 't7.2', name: 'Alertas de Projeção', isCompleted: true },
-          { id: 't7.3', name: 'Simulação de Entradas', isCompleted: true }
-       ]
+        id: 'p7', title: 'FASE 7: MONKEY VISION REAL', description: 'Integração com Google AI Studio para leitura de tela.', status: 'COMPLETED', progress: 100,
+        tasks: [{ id: 't7_1', name: 'Navegador Interno Simulado', isCompleted: true }, { id: 't7_2', name: 'Leitura de Placar e Tempo (OCR)', isCompleted: true }, { id: 't7_3', name: 'Leitura de Odds em Tempo Real', isCompleted: true }, { id: 't7_4', name: 'Pipeline Screen -> Fusion Engine', isCompleted: true }]
     },
     {
-       id: 'p8', title: 'FASE 8: MONKEY LIVE', description: 'Coleta em Tempo Real', status: 'IN_PROGRESS', progress: 50,
-       tasks: [
-          { id: 't8.1', name: 'Ritmo a cada 30s', isCompleted: false },
-          { id: 't8.2', name: 'Alertas Dinâmicos', isCompleted: false }
-       ]
+        id: 'p8', title: 'FASE 8: NEWS ENGINE', description: 'Inteligência de Notícias e Contexto.', status: 'COMPLETED', progress: 100,
+        tasks: [{ id: 't8_1', name: 'Crawler de URLs e Texto', isCompleted: true }, { id: 't8_2', name: 'Cálculo de Impact Score', isCompleted: true }, { id: 't8_3', name: 'Filtro G10 Brasileirão', isCompleted: true }, { id: 't8_4', name: 'Integração Fusion (Peso de Notícia)', isCompleted: true }]
     },
     {
-       id: 'p9', title: 'FASE 9: MONETIZAÇÃO (SaaS)', description: 'Preparação para Venda', status: 'PENDING', progress: 0,
-       tasks: [
-          { id: 't9.1', name: 'Planos e Limites', isCompleted: false },
-          { id: 't9.2', name: 'Ranking de Oportunidades', isCompleted: false },
-          { id: 't9.3', name: 'Comparação de Ligas', isCompleted: false }
-       ]
+        id: 'p9', title: 'FASE 9: MONETIZAÇÃO (SAAS)', description: 'Preparação para Venda', status: 'PENDING', progress: 0,
+        tasks: [{ id: 't9_1', name: 'Planos e Limites', isCompleted: false }, { id: 't9_2', name: 'Ranking de Oportunidades', isCompleted: false }, { id: 't9_3', name: 'Comparação de Ligas', isCompleted: false }]
     },
     {
-       id: 'p10', title: 'FASE 10: MATH UPGRADE', description: 'Scout 2.0 (Bayes)', status: 'COMPLETED', progress: 100,
-       tasks: [
-          { id: 't10.1', name: 'Ajuste Bayesiano', isCompleted: true },
-          { id: 't10.2', name: 'Detector de Jogos Quentes', isCompleted: true },
-          { id: 't10.3', name: 'Confidence Score (Fusion)', isCompleted: true }
-       ]
+        id: 'p10', title: 'FASE 10: SCOUT MATEMÁTICO PRO', description: 'Scout Engine V2', status: 'IN_PROGRESS', progress: 50,
+        tasks: [{ id: 't10_1', name: 'Ajuste Bayesiano', isCompleted: true }, { id: 't10_2', name: 'Detector de Jogos Quentes', isCompleted: true }, { id: 't10_3', name: 'Confidence Score (Fusion)', isCompleted: true }]
     },
     {
-       id: 'p11', title: 'FASE 11: VISION 2.0', description: 'Deep Learning', status: 'PENDING', progress: 0,
-       tasks: [
-          { id: 't11.1', name: 'Reconhecimento de Aposta', isCompleted: false },
-          { id: 't11.2', name: 'OCR Mobile Aprimorado', isCompleted: false }
-       ]
+        id: 'p11', title: 'FASE 11: VISION 2.0', description: 'Leitura de Aposta em Tela', status: 'PENDING', progress: 0,
+        tasks: [{ id: 't11_1', name: 'Reconhecimento de Aposta', isCompleted: false }, { id: 't11_2', name: 'OCR Mobile Aprimorado', isCompleted: false }]
     },
     {
-       id: 'p12', title: 'FASE 12: MOBILE PRO', description: 'UX Profissional', status: 'PENDING', progress: 0,
-       tasks: [
-          { id: 't12.1', name: 'Interface Compacta', isCompleted: false },
-          { id: 't12.2', name: 'Alertas Push/Vibração', isCompleted: false }
-       ]
+        id: 'p12', title: 'FASE 12: MOBILE PRO', description: 'UX Profissional', status: 'PENDING', progress: 0,
+        tasks: [{ id: 't12_1', name: 'Interface Compacta', isCompleted: false }, { id: 't12_2', name: 'Alertas Push/Vibração', isCompleted: false }]
     }
-  ];
+  ]);
 
   return (
-    <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6 rounded-none">
-       <h3 className="text-xl font-display font-bold text-white mb-6 flex items-center gap-2">
-         <span className="text-brand-500">///</span> ROADMAP DE EVOLUÇÃO TÁTICA
-       </h3>
-       
-       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {phases.map((phase) => (
-             <div key={phase.id} className="bg-surface-950 border border-white/10 hover:border-brand-500/50 transition-all group flex flex-col h-full">
-                
-                {/* Progress Bar Top */}
-                <div className="w-full h-1 bg-surface-800">
-                    <div className={`h-full ${phase.status === 'COMPLETED' ? 'bg-green-500' : phase.status === 'IN_PROGRESS' ? 'bg-brand-500' : 'bg-gray-700'}`} style={{ width: `${phase.progress}%` }}></div>
-                </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+       {phases.map(phase => (
+          <div key={phase.id} className="bg-surface-900 border border-white/5 relative overflow-hidden group hover:border-brand-500/30 transition-all">
+             {/* Progress Bar Top */}
+             <div className="absolute top-0 left-0 w-full h-1 bg-surface-800">
+                <div className={`h-full ${phase.status === 'COMPLETED' ? 'bg-green-500' : phase.status === 'IN_PROGRESS' ? 'bg-brand-500' : 'bg-gray-700'}`} style={{ width: `${phase.progress}%` }}></div>
+             </div>
 
-                <div className="p-4 flex-1 flex flex-col">
-                   <div className="flex justify-between items-start mb-2">
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 border ${
-                          phase.status === 'COMPLETED' ? 'text-green-500 border-green-500/30 bg-green-500/10' : 
-                          phase.status === 'IN_PROGRESS' ? 'text-brand-500 border-brand-500/30 bg-brand-500/10' : 
-                          'text-gray-500 border-gray-600 bg-gray-800'
-                      }`}>
-                          {phase.status.replace('_', ' ')}
-                      </span>
-                      <span className="text-xs font-mono text-gray-500">{phase.progress}%</span>
-                   </div>
-                   
-                   <h4 className="text-sm font-bold text-white uppercase mb-1">{phase.title}</h4>
-                   <p className="text-[10px] text-gray-500 mb-4 h-8">{phase.description}</p>
-                   
-                   <div className="space-y-1.5 mt-auto">
-                      {phase.tasks.map(task => (
-                         <div key={task.id} className="flex items-center gap-2 text-[10px]">
-                            <div className={`shrink-0 w-3 h-3 flex items-center justify-center rounded border ${
-                                task.isCompleted ? 'bg-brand-500 border-brand-500 text-black' : 'border-gray-700 bg-transparent'
-                            }`}>
-                                {task.isCompleted && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"></polyline></svg>}
-                            </div>
-                            <span className={`${task.isCompleted ? 'text-gray-400 line-through decoration-gray-600' : 'text-gray-300'}`}>
-                                {task.name}
-                            </span>
+             <div className="p-5">
+                <div className="flex justify-between items-start mb-3">
+                   <h4 className="text-xs font-bold text-white uppercase">{phase.title}</h4>
+                   <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
+                      phase.status === 'COMPLETED' ? 'text-green-500 border-green-500/30 bg-green-500/10' :
+                      phase.status === 'IN_PROGRESS' ? 'text-brand-500 border-brand-500/30 bg-brand-500/10' :
+                      'text-gray-500 border-gray-600'
+                   }`}>{phase.progress}%</span>
+                </div>
+                <p className="text-[10px] text-gray-500 mb-4 leading-relaxed min-h-[2.5em]">{phase.description}</p>
+                
+                <div className="space-y-2">
+                   {phase.tasks.map(task => (
+                      <div key={task.id} className="flex items-center gap-2">
+                         <div className={`w-3 h-3 flex items-center justify-center border ${task.isCompleted ? 'bg-brand-500 border-brand-500' : 'border-gray-600'}`}>
+                            {task.isCompleted && <svg className="w-2 h-2 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"></polyline></svg>}
                          </div>
-                      ))}
-                   </div>
+                         <span className={`text-[10px] font-mono ${task.isCompleted ? 'text-gray-300 line-through decoration-brand-500/50' : 'text-gray-500'}`}>
+                            {task.name}
+                         </span>
+                      </div>
+                   ))}
                 </div>
              </div>
-          ))}
-       </div>
+          </div>
+       ))}
     </div>
   );
 };
 
-export const TipsHistoryPanel = ({ tips, onUpdateStatus }: { tips: Tip[], onUpdateStatus: (id: string, status: TipStatus) => void }) => {
+export const ImprovementsPanel = () => {
+  const [proposals, setProposals] = useState<ImprovementProposal[]>([
+    { id: '1', title: 'Adicionar eSports (LoL)', description: 'Incluir rastreamento de dragões e ouro.', votes: 42, status: 'Pending' },
+    { id: '2', title: 'Melhorar filtro de odds', description: 'Permitir filtrar por range de odds (ex: 1.5 - 2.0)', votes: 28, status: 'Implemented' },
+    { id: '3', title: 'Integração Telegram Bot', description: 'Envio automático de sinais via bot.', votes: 12, status: 'Approved' },
+  ]);
+
   return (
-    <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6 flex flex-col h-full">
-      <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-6">Histórico de Operações</h3>
-      <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar max-h-[400px]">
-        {tips.length === 0 ? (
-           <p className="text-gray-500 text-xs font-mono text-center py-10">Nenhuma operação registrada.</p>
-        ) : tips.map(tip => (
-           <div key={tip.id} className="bg-surface-950 border border-white/5 p-3 flex justify-between items-center group hover:border-brand-500/30 transition-colors">
-              <div>
-                 <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-bold bg-white/10 px-1.5 py-0.5 text-gray-300 rounded">{tip.sport}</span>
-                    <span className="text-xs font-bold text-white truncate max-w-[150px]">{tip.matchTitle}</span>
-                 </div>
-                 <p className="text-xs text-brand-500">{tip.prediction} <span className="text-gray-600">@ {tip.odds.toFixed(2)}</span></p>
-              </div>
-              <div className="flex items-center gap-2">
-                 {tip.status === 'Pending' ? (
-                   <>
-                     <button onClick={() => onUpdateStatus(tip.id, 'Won')} className="p-1 hover:bg-green-500/20 text-gray-500 hover:text-green-500 transition-colors" title="Green">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                     </button>
-                     <button onClick={() => onUpdateStatus(tip.id, 'Lost')} className="p-1 hover:bg-red-500/20 text-gray-500 hover:text-red-500 transition-colors" title="Red">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                     </button>
-                   </>
-                 ) : (
-                   <span className={`text-[10px] font-bold uppercase px-2 py-1 border ${
-                      tip.status === 'Won' ? 'text-green-500 border-green-500/30 bg-green-500/10' : 'text-red-500 border-red-500/30 bg-red-500/10'
-                   }`}>
-                      {tip.status}
-                   </span>
-                 )}
-              </div>
-           </div>
+    <div className="space-y-4">
+      <h3 className="text-lg font-bold text-white flex items-center gap-2 font-display">
+        💡 Melhorias do Sistema
+      </h3>
+      <div className="space-y-4">
+        {proposals.map((prop) => (
+          <div key={prop.id} className="bg-surface-900 border border-white/5 p-4 flex justify-between items-center hover:border-white/20 transition-colors">
+            <div>
+              <h4 className="font-bold text-gray-200 text-sm">{prop.title}</h4>
+              <p className="text-gray-500 text-xs mt-1">{prop.description}</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className={`text-[10px] uppercase font-bold px-2 py-1 border ${
+                prop.status === 'Implemented' ? 'border-green-500 text-green-500' : 
+                prop.status === 'Approved' ? 'border-brand-500 text-brand-500' : 'border-gray-600 text-gray-500'
+              }`}>
+                {prop.status}
+              </span>
+              <span className="text-gray-400 text-xs font-mono">{prop.votes} votos</span>
+            </div>
+          </div>
         ))}
       </div>
     </div>
@@ -831,69 +789,121 @@ export const TipsHistoryPanel = ({ tips, onUpdateStatus }: { tips: Tip[], onUpda
 };
 
 export const OperationalChecklist = () => {
-    const [tasks, setTasks] = useState([
-        { id: '1', label: 'Verificar Conexão API Football', checked: false },
-        { id: '2', label: 'Validar Saldo Banca (Mock)', checked: false },
-        { id: '3', label: 'Revisar Parâmetros de Risco', checked: true },
-        { id: '4', label: 'Limpar Cache de Sessão', checked: false },
-    ]);
+  const [items, setItems] = useState<ChecklistItem[]>([
+    { id: '1', label: 'Verificar Conexão API Football', checked: false },
+    { id: '2', label: 'Validar Saldo Banca (Mock)', checked: false },
+    { id: '3', label: 'Revisar Parâmetros de Risco', checked: true },
+    { id: '4', label: 'Limpar Cache de Sessão', checked: false },
+  ]);
 
-    const toggle = (id: string) => {
-        setTasks(prev => prev.map(t => t.id === id ? { ...t, checked: !t.checked } : t));
-    };
+  // Load checklist state from local storage on mount
+  useEffect(() => {
+      const saved = localStorage.getItem('monkey_ops_checklist');
+      if (saved) {
+          setItems(JSON.parse(saved));
+      }
+  }, []);
 
-    return (
-        <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6">
-            <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-4">Checklist Operacional</h3>
-            <div className="space-y-3">
-                {tasks.map(task => (
-                    <div key={task.id} 
-                         onClick={() => toggle(task.id)}
-                         className={`flex items-center gap-3 p-3 border cursor-pointer transition-all ${
-                             task.checked ? 'bg-green-900/10 border-green-900/30' : 'bg-surface-950 border-white/5 hover:border-white/10'
-                         }`}
-                    >
-                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${
-                            task.checked ? 'bg-green-500 border-green-500' : 'border-gray-600'
-                        }`}>
-                            {task.checked && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="4"><polyline points="20 6 9 17 4 12"></polyline></svg>}
-                        </div>
-                        <span className={`text-xs font-mono ${task.checked ? 'text-green-500 line-through decoration-green-500/50' : 'text-gray-300'}`}>
-                            {task.label}
-                        </span>
-                    </div>
-                ))}
+  const toggleItem = (id: string) => {
+    const newItems = items.map(i => i.id === id ? { ...i, checked: !i.checked } : i);
+    setItems(newItems);
+    localStorage.setItem('monkey_ops_checklist', JSON.stringify(newItems));
+  };
+
+  return (
+    <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6 rounded-none">
+      <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+        📄 Checklist Operacional
+      </h3>
+      <div className="space-y-3">
+        {items.map(item => (
+          <div 
+            key={item.id} 
+            onClick={() => toggleItem(item.id)}
+            className={`flex items-center gap-3 p-3 border cursor-pointer transition-all ${
+              item.checked ? 'bg-green-900/10 border-green-500/30' : 'bg-black/20 border-white/5 hover:border-white/20'
+            }`}
+          >
+            <div className={`w-4 h-4 border flex items-center justify-center transition-colors ${
+              item.checked ? 'bg-green-500 border-green-500' : 'border-gray-600'
+            }`}>
+              {item.checked && <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
             </div>
-        </div>
-    );
+            <span className={`text-xs font-mono ${item.checked ? 'text-green-500 line-through' : 'text-gray-400'}`}>
+              {item.label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 };
 
-export const ImprovementsPanel = () => {
-    const improvements: ImprovementProposal[] = [
-        { id: '1', title: 'Integração Telegram Bot', description: 'Envio automático de sinais via bot.', votes: 12, status: 'Approved' },
-        { id: '2', title: 'Dark Mode V2', description: 'Ajuste de contraste para telas OLED.', votes: 5, status: 'Pending' },
-        { id: '3', title: 'Suporte a Tênis (ATP)', description: 'Novo modelo de scout para tênis.', votes: 8, status: 'Pending' }
-    ];
-
-    return (
-        <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6">
-            <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-4">Roadmap de Melhorias (Votação)</h3>
-            <div className="space-y-4">
-                {improvements.map(imp => (
-                    <div key={imp.id} className="bg-surface-950 border border-white/5 p-4 relative overflow-hidden">
-                        <div className="flex justify-between items-start mb-2">
-                             <h4 className="text-white text-sm font-bold">{imp.title}</h4>
-                             <span className={`text-[10px] uppercase font-mono px-1.5 py-0.5 border ${
-                                 imp.status === 'Approved' ? 'text-green-500 border-green-500/30' : 'text-yellow-500 border-yellow-500/30'
-                             }`}>{imp.status}</span>
-                        </div>
-                        <p className="text-gray-500 text-xs mb-3">{imp.description}</p>
-                        <div className="flex items-center gap-2 text-xs text-gray-400 bg-white/5 w-max px-2 py-1 rounded">
-                             <span>👍</span> {imp.votes} votos
-                        </div>
+export const TipsHistoryPanel = ({ tips, onUpdateStatus }: { tips: Tip[], onUpdateStatus: (id: string, status: TipStatus) => void }) => {
+  const pendingTips = tips.filter(t => t.status === 'Pending');
+  
+  return (
+    <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6 rounded-none">
+        <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-4">Histórico de Sinais (Validação)</h3>
+        <div className="space-y-2 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+            {pendingTips.length === 0 && <p className="text-xs text-gray-500 italic">Nenhum sinal pendente.</p>}
+            
+            {pendingTips.map(tip => (
+                <div key={tip.id} className="flex justify-between items-center bg-black/30 p-3 border border-white/5">
+                    <div>
+                        <p className="text-white text-xs font-bold">{tip.matchTitle}</p>
+                        <p className="text-brand-500 text-[10px] font-mono">{tip.prediction} @ {tip.odds.toFixed(2)}</p>
                     </div>
-                ))}
-            </div>
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={() => onUpdateStatus(tip.id, 'Won')}
+                            className="px-2 py-1 bg-green-900/20 border border-green-500/50 text-green-500 text-[10px] uppercase hover:bg-green-500 hover:text-black transition-colors"
+                        >
+                            Green
+                        </button>
+                        <button 
+                            onClick={() => onUpdateStatus(tip.id, 'Lost')}
+                            className="px-2 py-1 bg-red-900/20 border border-red-500/50 text-red-500 text-[10px] uppercase hover:bg-red-500 hover:text-black transition-colors"
+                        >
+                            Red
+                        </button>
+                    </div>
+                </div>
+            ))}
         </div>
-    );
+    </div>
+  );
+};
+
+export const NewsImplementationChecklist = () => {
+  const [items, setItems] = useState<ChecklistItem[]>([
+    { id: '1', label: 'Conectar backend real', checked: true },
+    { id: '2', label: 'Ativar Scheduler Automático', checked: false },
+    { id: '3', label: 'Criar classificador relevância', checked: true },
+    { id: '4', label: 'Integrar Fusion Engine', checked: false },
+    { id: '5', label: 'Criar histórico Supabase', checked: false },
+    { id: '6', label: 'Frontend responsivo/animado', checked: true },
+    { id: '7', label: 'Criar modo Monkey Live', checked: false },
+    { id: '8', label: 'Webhook disparo automático', checked: false },
+  ]);
+
+  const toggle = (id: string) => {
+     setItems(items.map(i => i.id === id ? { ...i, checked: !i.checked } : i));
+  };
+
+  return (
+     <div className="bg-[#121214] border border-[#1C1C1F] p-6">
+        <h3 className="text-white font-bold text-sm mb-4 border-b border-[#1C1C1F] pb-2">IMPLANTAÇÃO NEWS ENGINE</h3>
+        <div className="space-y-2">
+           {items.map(item => (
+              <div key={item.id} onClick={() => toggle(item.id)} className="flex items-center gap-3 cursor-pointer hover:bg-[#1C1C1F] p-2 rounded">
+                 <div className={`w-4 h-4 border rounded-sm flex items-center justify-center ${item.checked ? 'bg-brand-500 border-brand-500' : 'border-gray-600'}`}>
+                    {item.checked && <svg className="w-3 h-3 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                 </div>
+                 <span className={`text-xs font-mono ${item.checked ? 'text-gray-500 line-through' : 'text-gray-300'}`}>{item.label}</span>
+              </div>
+           ))}
+        </div>
+     </div>
+  );
 };
