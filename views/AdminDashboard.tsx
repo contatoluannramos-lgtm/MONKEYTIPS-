@@ -6,7 +6,7 @@ import { dbService } from '../services/databaseService';
 import { authService } from '../services/authService';
 import { runScoutAnalysis, DEFAULT_CALIBRATION } from '../services/scoutEngine';
 import { runFusionEngine } from '../services/fusionEngine';
-import { Match, Tip, SportType, AdminView, TipStatus, TicketAnalysis, ScoutResult, FusionAnalysis, ScreenAnalysisData } from '../types';
+import { Match, Tip, SportType, AdminView, TipStatus, TicketAnalysis, ScoutResult, FusionAnalysis, ScreenAnalysisData, NewsProcessedItem } from '../types';
 import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel, TipsHistoryPanel, CalibrationPanel, ScoutCard, FusionTerminal, NewsTerminal, NewsImplementationChecklist, MonkeyLivePanel } from '../components/AdminComponents';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -23,6 +23,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
   const [isSyncing, setIsSyncing] = useState(false);
   const [selectedSport, setSelectedSport] = useState<SportType | 'All'>('All');
   
+  // News Engine State (Lifted Up for Fusion Integration)
+  const [newsQueue, setNewsQueue] = useState<NewsProcessedItem[]>([]);
+
   // Monkey Labs State
   const [ticketAnalysis, setTicketAnalysis] = useState<TicketAnalysis | null>(null);
   const [isAnalyzingTicket, setIsAnalyzingTicket] = useState(false);
@@ -35,6 +38,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
   const [activeUrl, setActiveUrl] = useState("https://bet365.com/live");
   const [browserImage, setBrowserImage] = useState<string | null>(null); // To store the "pasted" screen
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Carregar notícias salvas ao montar
+  useEffect(() => {
+    const loadNews = async () => {
+        const savedNews = await dbService.getNews();
+        if (savedNews.length > 0) {
+            setNewsQueue(savedNews);
+        }
+    };
+    loadNews();
+  }, []);
+
+  const handleNewsProcessed = async (item: NewsProcessedItem) => {
+    // Atualiza estado local
+    setNewsQueue(prev => [item, ...prev]);
+    // Salva no Supabase (Histórico)
+    await dbService.saveNews(item);
+  };
+
+  const handleArchiveNews = async (id: string) => {
+    setNewsQueue(prev => prev.map(n => n.id === id ? { ...n, status: 'ARCHIVED' } : n));
+    await dbService.archiveNews(id);
+  };
 
   // --- MONKEY VISION REAL (SCREEN SHARE) ---
   const startScreenShare = async () => {
@@ -233,11 +259,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     await dbService.updateTipStatus(id, status);
   };
 
+  // --- FUSION ENGINE INTEGRATION WITH NEWS ---
   const getFusionAnalyses = (): FusionAnalysis[] => {
     return matches.slice(0, 6).map(m => {
+       // 1. Busca notícias relevantes para esta partida (Cruza nomes dos times)
+       const activeNews = newsQueue.filter(n => n.status !== 'ARCHIVED');
+       
+       let totalNewsImpact = 0;
+       activeNews.forEach(n => {
+           const title = n.originalData.title.toUpperCase();
+           const summary = n.originalData.summary.toUpperCase();
+           const context = n.context.toUpperCase();
+           const teamA = m.teamA.toUpperCase();
+           const teamB = m.teamB.toUpperCase();
+
+           // Se a notícia menciona um dos times, aplica o impacto
+           if (title.includes(teamA) || summary.includes(teamA) || context.includes(teamA) ||
+               title.includes(teamB) || summary.includes(teamB) || context.includes(teamB)) {
+               totalNewsImpact += n.impactScore;
+           }
+       });
+
        const scout = runScoutAnalysis(m, DEFAULT_CALIBRATION);
        const tip = tips.find(t => t.matchId === m.id) || null;
-       return runFusionEngine(m, scout, tip);
+       
+       // Passa o impacto acumulado das notícias para o Fusion Engine
+       return runFusionEngine(m, scout, tip, totalNewsImpact);
     });
   };
 
@@ -383,7 +430,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         {currentView === 'MONKEY_NEWS' && (
            <div className="relative z-10 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
              <div className="lg:col-span-2 h-[600px]">
-                <NewsTerminal />
+                <NewsTerminal 
+                   newsQueue={newsQueue} 
+                   onNewsProcessed={handleNewsProcessed}
+                   onArchiveNews={handleArchiveNews}
+                />
              </div>
              <div>
                 <NewsImplementationChecklist />

@@ -394,9 +394,14 @@ export const MonkeyLivePanel = ({ matches, tips }: { matches: Match[], tips: Tip
     );
   };
 
-export const NewsTerminal = () => {
+interface NewsTerminalProps {
+    newsQueue: NewsProcessedItem[];
+    onNewsProcessed: (item: NewsProcessedItem) => void;
+    onArchiveNews: (id: string) => void;
+}
+
+export const NewsTerminal: React.FC<NewsTerminalProps> = ({ newsQueue, onNewsProcessed, onArchiveNews }) => {
   const [isSimulating, setIsSimulating] = useState(false);
-  const [newsQueue, setNewsQueue] = useState<NewsProcessedItem[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'FUTEBOL' | 'BASQUETE'>('ALL');
 
   const simulateWebhookBot = async () => {
@@ -415,12 +420,13 @@ export const NewsTerminal = () => {
 
     const processed = await processBotNews(mockPayload);
     if (processed) {
-        setNewsQueue(prev => [processed, ...prev]);
+        onNewsProcessed(processed);
     }
     setIsSimulating(false);
   };
 
-  const filteredQueue = newsQueue.filter(item => 
+  const activeNews = newsQueue.filter(n => n.status !== 'ARCHIVED');
+  const filteredQueue = activeNews.filter(item => 
      selectedFilter === 'ALL' || item.originalData.league.toUpperCase() === selectedFilter
   );
 
@@ -508,7 +514,7 @@ export const NewsTerminal = () => {
 
                    <div className="mt-3 pt-3 border-t border-[#1C1C1F] flex justify-between items-center">
                       <span className="text-[10px] text-brand-500 font-mono">Fusion Summary: {item.fusionSummary}</span>
-                      <button className="text-[10px] text-[#A3A3A8] hover:text-white underline decoration-dashed">Arquivar</button>
+                      <button onClick={() => onArchiveNews(item.id)} className="text-[10px] text-[#A3A3A8] hover:text-white underline decoration-dashed">Arquivar</button>
                    </div>
                 </div>
              ))
@@ -890,7 +896,7 @@ export const ProjectEvolutionRoadmap = () => {
                          <div className={`w-3 h-3 flex items-center justify-center border ${task.isCompleted ? 'bg-brand-500 border-brand-500' : 'border-gray-600'}`}>
                             {task.isCompleted && <svg className="w-2 h-2 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"></polyline></svg>}
                          </div>
-                         <span className={`text-[10px] font-mono ${task.isCompleted ? 'text-gray-300 line-through decoration-brand-500/50' : 'text-gray-500'}`}>
+                         <span className={`text-xs font-mono ${task.isCompleted ? 'text-gray-300 line-through decoration-brand-500/50' : 'text-gray-500'}`}>
                             {task.name}
                          </span>
                       </div>
@@ -1030,8 +1036,8 @@ export const NewsImplementationChecklist = () => {
     { id: '1', label: 'Conectar backend real', checked: true },
     { id: '2', label: 'Ativar Scheduler Automático', checked: false },
     { id: '3', label: 'Criar classificador relevância', checked: true },
-    { id: '4', label: 'Integrar Fusion Engine', checked: false },
-    { id: '5', label: 'Criar histórico Supabase', checked: false },
+    { id: '4', label: 'Integrar Fusion Engine', checked: true },
+    { id: '5', label: 'Criar histórico Supabase', checked: true },
     { id: '6', label: 'Frontend responsivo/animado', checked: true },
     { id: '7', label: 'Criar modo Monkey Live', checked: true },
     { id: '8', label: 'Webhook disparo automático', checked: true },

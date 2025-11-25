@@ -1,6 +1,6 @@
 
 import { supabase, isSupabaseConfigured } from './supabaseClient';
-import { Match, Tip, SportType, TipStatus } from '../types';
+import { Match, Tip, SportType, TipStatus, NewsProcessedItem } from '../types';
 
 // Mappers para converter snake_case (banco) para camelCase (app)
 const mapMatchFromDB = (data: any): Match => ({
@@ -26,6 +26,19 @@ const mapTipFromDB = (data: any): Tip => ({
   createdAt: data.created_at,
   isPremium: data.is_premium,
   status: data.status || 'Pending'
+});
+
+const mapNewsFromDB = (data: any): NewsProcessedItem => ({
+  id: data.id,
+  originalData: data.original_data,
+  relevanceScore: data.relevance_score,
+  impactLevel: data.impact_level,
+  impactScore: data.impact_score,
+  context: data.context,
+  fusionSummary: data.fusion_summary,
+  recommendedAction: data.recommended_action,
+  status: data.status,
+  processedAt: data.processed_at
 });
 
 export const dbService = {
@@ -113,5 +126,54 @@ export const dbService = {
     if (error) {
       console.error('Erro ao atualizar status da tip:', error.message || error);
     }
+  },
+
+  // --- NEWS ENGINE ---
+  async getNews(): Promise<NewsProcessedItem[]> {
+    if (!isSupabaseConfigured()) return [];
+
+    const { data, error } = await supabase
+      .from('news')
+      .select('*')
+      .order('processed_at', { ascending: false })
+      .limit(50); // Limite para não pesar o frontend
+
+    if (error) {
+      console.error('Erro ao buscar notícias:', error.message || error);
+      return [];
+    }
+    return data ? data.map(mapNewsFromDB) : [];
+  },
+
+  async saveNews(item: NewsProcessedItem): Promise<void> {
+    if (!isSupabaseConfigured()) return;
+
+    const { error } = await supabase
+      .from('news')
+      .upsert({
+        id: item.id,
+        original_data: item.originalData,
+        relevance_score: item.relevanceScore,
+        impact_level: item.impactLevel,
+        impact_score: item.impactScore,
+        context: item.context,
+        fusion_summary: item.fusionSummary,
+        recommended_action: item.recommendedAction,
+        status: item.status,
+        processed_at: item.processedAt
+      });
+
+    if (error) console.error('Erro ao salvar notícia:', error.message || error);
+  },
+
+  async archiveNews(id: string): Promise<void> {
+    if (!isSupabaseConfigured()) return;
+
+    const { error } = await supabase
+      .from('news')
+      .update({ status: 'ARCHIVED' })
+      .eq('id', id);
+
+    if (error) console.error('Erro ao arquivar notícia:', error.message || error);
   }
 };
