@@ -43,7 +43,7 @@ const screenSchema: Schema = {
         properties: { market: { type: Type.STRING }, value: { type: Type.NUMBER } } 
       } 
     },
-    context: { type: Type.STRING, description: "Análise visual rápida: 'Pressão time A', 'Jogo parado VAR', etc." }
+    context: { type: Type.STRING, description: "A ANÁLISE TÉCNICA CURTA (MokenChips Output). Ex: 'Under 60 1Q, prob 81%, confiança 87%'." }
   },
   required: ["sport", "teamA", "teamB", "score", "time", "detectedOdds", "context"]
 };
@@ -405,16 +405,29 @@ export const analyzeScreenCapture = async (base64Image: string): Promise<ScreenA
         },
         {
           text: `
-            SYSTEM: Monkey Vision Engine (Screen Reader)
-            TASK: Analise esta captura de tela de um site de apostas (ao vivo).
+            VOCÊ É O MONKEY TIPS VISION ENGINE.
+            MODO: CONTÍNUO (MokenVideo -> MokenChips).
             
-            Extraia os seguintes dados para alimentar o Scout Engine:
-            1. Placar exato.
-            2. Tempo de jogo (minuto, período).
-            3. Odds visíveis na tela (Mercado e Valor).
-            4. Contexto visual (ex: estatísticas visíveis, gráficos de pressão, quem está atacando).
+            Sua função é ler a tela continuamente e gerar análise técnica imediata.
+            Trate este frame como streaming em tempo real.
+
+            PROTOCOLO DE SAÍDA OBRIGATÓRIO:
+            1. Detecte Placar, Tempo e Odds.
+            2. Gere automaticamente a análise no campo 'context'.
+            3. O campo 'context' DEVE conter:
+               - Projeção HT/FT ou Sets/Quartos.
+               - Ritmo e Tendência.
+               - Insight ÚNICO e DIRETO.
+               - Confiança %.
             
-            Seja preciso. O Scout Engine depende desses números.
+            FORMATO DA RESPOSTA NO CAMPO 'CONTEXT' (Exemplo):
+            "Under 60 1Q, prob 81%, confiança 87%. Ritmo lento, aproveitamento baixo."
+
+            SE FOR FUTEBOL: Aplique blocos GOL + ESCANTEIOS + CARTÕES no texto.
+            SE FOR BASQUETE: Projeção FT e Ritmo.
+            SE FOR VÔLEI: Ritmo de sets.
+
+            Não peça confirmação. Apenas entregue a análise técnica jsonificada.
           `
         }
       ],

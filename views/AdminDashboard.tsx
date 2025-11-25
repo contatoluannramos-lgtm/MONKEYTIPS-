@@ -35,6 +35,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
   // Monkey Vision State
   const [visionData, setVisionData] = useState<ScreenAnalysisData | null>(null);
   const [isScanningScreen, setIsScanningScreen] = useState(false);
+  const [isStreamingMode, setIsStreamingMode] = useState(false); // Auto-Scan Toggle
   const [activeUrl, setActiveUrl] = useState("https://bet365.com/live");
   const [browserImage, setBrowserImage] = useState<string | null>(null); // To store the "pasted" screen
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -99,6 +100,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     setVisionData(data);
     setIsScanningScreen(false);
   };
+
+  // Auto-Scan Loop for Streaming Mode
+  useEffect(() => {
+      let interval: ReturnType<typeof setInterval>;
+      if (isStreamingMode && currentView === 'MONKEY_VISION') {
+          interval = setInterval(() => {
+              if (!isScanningScreen) { // Prevent overlap
+                  captureFrame();
+              }
+          }, 8000); // Scan every 8 seconds (API Rate Limit Safe)
+      }
+      return () => clearInterval(interval);
+  }, [isStreamingMode, currentView, isScanningScreen]);
 
   // --- VISION & LABS LOGIC ---
   const processImageFile = async (file: File, mode: 'TICKET' | 'SCREEN') => {
@@ -491,7 +505,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                         </div>
                         <div className="flex-1 bg-black/50 rounded-sm px-3 py-1 text-xs font-mono text-gray-500 flex justify-between items-center">
                            <span>{activeUrl}</span>
-                           <span className="text-brand-500 animate-pulse">● LIVE CAPTURE</span>
+                           <div className="flex items-center gap-2">
+                               {isStreamingMode && <span className="text-red-500 animate-pulse text-[9px]">● REC</span>}
+                               <span className="text-brand-500 animate-pulse">● LIVE CAPTURE</span>
+                           </div>
                         </div>
                         <button 
                             onClick={startScreenShare}
@@ -521,12 +538,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                      </div>
                      
                      {/* Control Bar */}
-                     <div className="bg-surface-950 p-2 border-t border-white/5 flex justify-center">
+                     <div className="bg-surface-950 p-2 border-t border-white/5 flex justify-center gap-4">
                         <button 
                             onClick={captureFrame}
                             className="bg-brand-600 hover:bg-brand-500 text-white px-8 py-2 text-xs font-bold uppercase tracking-widest shadow-lg shadow-brand-500/20"
                         >
-                            SCAN NOW [ESCANEAR TELA]
+                            SCAN FRAME [SINGLE]
+                        </button>
+                        <button 
+                            onClick={() => setIsStreamingMode(!isStreamingMode)}
+                            className={`px-8 py-2 text-xs font-bold uppercase tracking-widest border transition-all ${
+                                isStreamingMode 
+                                ? 'bg-red-600 border-red-500 text-white animate-pulse shadow-[0_0_15px_rgba(220,38,38,0.5)]' 
+                                : 'bg-surface-800 border-white/10 text-gray-400 hover:text-white'
+                            }`}
+                        >
+                            {isStreamingMode ? 'STOP STREAM [AUTO]' : 'START STREAM [AUTO]'}
                         </button>
                      </div>
                   </div>
@@ -565,10 +592,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                               </div>
                            </div>
 
-                           {/* Contexto & AI */}
+                           {/* Contexto & AI - VISION ENGINE OUTPUT */}
                            <div className="bg-brand-900/10 border border-brand-500/20 p-3">
-                              <p className="text-[10px] text-brand-500 uppercase font-bold mb-1">Contexto Visual</p>
-                              <p className="text-xs text-gray-300 leading-relaxed">
+                              <p className="text-[10px] text-brand-500 uppercase font-bold mb-1">MokenChips Output</p>
+                              <p className="text-xs text-white leading-relaxed font-mono border-l-2 border-brand-500 pl-2">
                                  {visionData.context}
                               </p>
                            </div>
