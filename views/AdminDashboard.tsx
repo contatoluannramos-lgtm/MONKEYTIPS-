@@ -229,14 +229,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
        selectedSport === 'All' || m.sport === selectedSport
     );
 
-    // Passo Intermediário: Enriquecer com Histórico dos Últimos 5 Jogos
-    // Isso é crucial para o pedido de "Cruzar dados"
+    // 1. Enriquecer com Histórico (Last 5 Games)
     const enrichedMatches = await Promise.all(matchesToAnalyze.map(async (m) => {
-        // Se tiver ID de time e chave de API, busca o histórico
         if (m.teamAId && m.teamBId && footballKey) {
             const homeHist = await fetchTeamHistory(m.teamAId, footballKey);
             const awayHist = await fetchTeamHistory(m.teamBId, footballKey);
-            
             if (homeHist && awayHist) {
                 return { ...m, history: { home: homeHist, away: awayHist } };
             }
@@ -244,10 +241,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         return m;
     }));
 
-    const newTips = await generateBulkInsights(enrichedMatches);
-    setTips(prev => [...newTips, ...prev]);
+    // 2. Gerar Tips Base (AI - Gemini)
+    const aiTips = await generateBulkInsights(enrichedMatches);
+
+    // 3. INTEGRAR AO FUSION ENGINE (Pre-Game Full Cycle)
+    const finalTips = aiTips.map(tip => {
+       const match = enrichedMatches.find(m => m.id === tip.matchId);
+       if (!match) return tip;
+
+       // A. Calcular News Impact
+       const activeNews = newsQueue.filter(n => n.status !== 'ARCHIVED');
+       let totalNewsImpact = 0;
+       activeNews.forEach(n => {
+           const combinedText = (n.originalData.title + n.originalData.summary + n.context).toUpperCase();
+           const teamA = match.teamA.toUpperCase();
+           const teamB = match.teamB.toUpperCase();
+           if (combinedText.includes(teamA) || combinedText.includes(teamB)) {
+               totalNewsImpact += n.impactScore;
+           }
+       });
+
+       // B. Rodar Scout Engine (Matemática)
+       const scoutResult = runScoutAnalysis(match, DEFAULT_CALIBRATION);
+
+       // C. Rodar Fusion Engine
+       const fusionResult = runFusionEngine(match, scoutResult, tip, totalNewsImpact);
+
+       // D. Atualizar a Tip com a Inteligência do Fusion
+       return {
+           ...tip,
+           confidence: fusionResult.finalConfidence, // Confiança Ajustada
+           reasoning: `[FUSION v2.0: ${fusionResult.verdict.replace('_', ' ')}] EV: ${fusionResult.ev}% | Confidence Level: ${fusionResult.confidenceLevel}\n\n${tip.reasoning}`,
+           isPremium: fusionResult.verdict === 'GREEN_LIGHT'
+       };
+    });
+
+    setTips(prev => [...finalTips, ...prev]);
     
-    newTips.forEach(async (t) => {
+    finalTips.forEach(async (t) => {
       await dbService.saveTip(t);
     });
 
@@ -259,23 +290,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     await dbService.updateTipStatus(id, status);
   };
 
-  // --- FUSION ENGINE INTEGRATION WITH NEWS ---
+  // --- FUSION ENGINE INTEGRATION WITH NEWS (LIVE VIEW) ---
   const getFusionAnalyses = (): FusionAnalysis[] => {
     return matches.slice(0, 6).map(m => {
-       // 1. Busca notícias relevantes para esta partida (Cruza nomes dos times)
        const activeNews = newsQueue.filter(n => n.status !== 'ARCHIVED');
-       
        let totalNewsImpact = 0;
        activeNews.forEach(n => {
-           const title = n.originalData.title.toUpperCase();
-           const summary = n.originalData.summary.toUpperCase();
-           const context = n.context.toUpperCase();
+           const combinedText = (n.originalData.title + n.originalData.summary + n.context).toUpperCase();
            const teamA = m.teamA.toUpperCase();
            const teamB = m.teamB.toUpperCase();
-
-           // Se a notícia menciona um dos times, aplica o impacto
-           if (title.includes(teamA) || summary.includes(teamA) || context.includes(teamA) ||
-               title.includes(teamB) || summary.includes(teamB) || context.includes(teamB)) {
+           if (combinedText.includes(teamA) || combinedText.includes(teamB)) {
                totalNewsImpact += n.impactScore;
            }
        });
@@ -283,7 +307,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
        const scout = runScoutAnalysis(m, DEFAULT_CALIBRATION);
        const tip = tips.find(t => t.matchId === m.id) || null;
        
-       // Passa o impacto acumulado das notícias para o Fusion Engine
        return runFusionEngine(m, scout, tip, totalNewsImpact);
     });
   };
@@ -734,7 +757,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                     <p className="text-gray-500 text-sm max-w-md mb-8 font-light">
                       Implantar modelo Gemini 2.5 Flash para processar {matches.length} eventos. 
                       <br/>
-                      <span className="text-brand-500 font-bold">NOVO:</span> Inclui análise cruzada dos últimos 5 jogos (H2H).
+                      <span className="text-brand-500 font-bold">NOVO:</span> Integração Pre-Game Fusion (Scout + AI + News).
                     </p>
                     
                     <button
@@ -749,7 +772,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                       {isGenerating ? (
                         <span className="flex items-center gap-2">
                           <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                          COLETANDO HISTÓRICO & PROCESSANDO...
+                          EXECUTANDO FUSION ENGINE...
                         </span>
                       ) : (
                         "EXECUTAR PROTOCOLO"

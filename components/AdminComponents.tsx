@@ -285,12 +285,22 @@ export const MonkeyLivePanel = ({ matches, tips }: { matches: Match[], tips: Tip
     const [autoFire, setAutoFire] = useState(false);
     const [webhookUrl, setWebhookUrl] = useState('');
     const [logs, setLogs] = useState<string[]>([]);
+    const [heartbeat, setHeartbeat] = useState(false);
   
     useEffect(() => {
         const savedUrl = localStorage.getItem('monkey_webhook_url');
         if (savedUrl) setWebhookUrl(savedUrl);
+        
+        // PERSISTENCE 24/7: Restore auto-fire state on reload
+        const savedAutoFire = localStorage.getItem('monkey_autofire_state');
+        if (savedAutoFire === 'true') setAutoFire(true);
     }, []);
   
+    useEffect(() => {
+        // Persist auto-fire state whenever it changes
+        localStorage.setItem('monkey_autofire_state', autoFire.toString());
+    }, [autoFire]);
+
     useEffect(() => {
         // Filter only live matches
         const live = matches.filter(m => m.status === 'Live');
@@ -301,7 +311,13 @@ export const MonkeyLivePanel = ({ matches, tips }: { matches: Match[], tips: Tip
         // SCHEDULER: Updates every 30 seconds
         const interval: ReturnType<typeof setInterval> = setInterval(() => {
             setLastUpdate(new Date());
-            processLiveCycle();
+            setHeartbeat(prev => !prev); // Pulse effect
+            try {
+                processLiveCycle();
+            } catch (err) {
+                console.error("Live Cycle Error:", err);
+                addLog("⚠️ ERRO NO CICLO LIVE. RECUPERANDO...");
+            }
         }, 30000); // 30s cycle
   
         return () => clearInterval(interval);
@@ -309,15 +325,21 @@ export const MonkeyLivePanel = ({ matches, tips }: { matches: Match[], tips: Tip
   
     const processLiveCycle = () => {
         const time = new Date().toLocaleTimeString();
+        
+        if (liveMatches.length === 0) {
+            // addLog(`[${time}] 💤 Sem jogos ao vivo. Standby.`);
+            return;
+        }
+
         // Run Fusion Analysis on Live Matches
         liveMatches.forEach(async (match) => {
              const tip = tips.find(t => t.matchId === match.id) || null;
-             const config = DEFAULT_CALIBRATION; // Or load user config
+             const config = DEFAULT_CALIBRATION; 
              const scout = runScoutAnalysis(match, config);
              const fusion = runFusionEngine(match, scout, tip);
   
              if (fusion.verdict === 'GREEN_LIGHT') {
-                 addLog(`[${time}] GREEN LIGHT: ${match.teamA} vs ${match.teamB} (Conf: ${fusion.finalConfidence}%)`);
+                 addLog(`[${time}] 🔥 GREEN LIGHT: ${match.teamA} (Conf: ${fusion.finalConfidence}%)`);
                  if (autoFire && webhookUrl) {
                      const success = await webhookService.triggerAlert(match, fusion, webhookUrl);
                      if (success) addLog(`[${time}] 🚀 WEBHOOK DISPARADO!`);
@@ -337,10 +359,10 @@ export const MonkeyLivePanel = ({ matches, tips }: { matches: Match[], tips: Tip
                 <div className="flex justify-between items-center bg-surface-900 border border-white/5 p-4">
                     <div>
                         <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
-                            <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+                            <span className={`w-3 h-3 rounded-full ${heartbeat ? 'bg-green-500 shadow-green-500/50' : 'bg-green-900'} transition-colors duration-1000`}></span>
                             MONKEY LIVE ENGINE
                         </h3>
-                        <p className="text-xs font-mono text-gray-500">CYCLE: 30s | REAL-TIME MONITORING</p>
+                        <p className="text-xs font-mono text-gray-500">CYCLE: 30s | 24/7 MONITORING MODE</p>
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="text-right">
@@ -349,8 +371,8 @@ export const MonkeyLivePanel = ({ matches, tips }: { matches: Match[], tips: Tip
                         </div>
                         <button 
                             onClick={() => setAutoFire(!autoFire)}
-                            className={`px-4 py-2 text-xs font-bold uppercase border ${
-                                autoFire ? 'bg-red-500/20 border-red-500 text-red-500' : 'bg-gray-800 border-gray-600 text-gray-500'
+                            className={`px-4 py-2 text-xs font-bold uppercase border transition-all ${
+                                autoFire ? 'bg-red-500/20 border-red-500 text-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]' : 'bg-gray-800 border-gray-600 text-gray-500'
                             }`}
                         >
                             {autoFire ? '🚨 AUTO-FIRE: ON' : 'AUTO-FIRE: OFF'}
@@ -362,6 +384,7 @@ export const MonkeyLivePanel = ({ matches, tips }: { matches: Match[], tips: Tip
                     {liveMatches.length === 0 ? (
                         <div className="col-span-full py-20 text-center border border-dashed border-white/10 text-gray-500 font-mono">
                             NENHUMA PARTIDA AO VIVO DETECTADA NO MOMENTO.
+                            <br/> <span className="text-xs">O sistema entrará em repouso até o início dos jogos.</span>
                         </div>
                     ) : liveMatches.map(m => {
                          const scout = runScoutAnalysis(m, DEFAULT_CALIBRATION);
@@ -965,12 +988,12 @@ export const ProjectEvolutionRoadmap = () => {
       id: 'p6',
       title: 'FASE 6: v2.0 - LANÇAMENTO',
       description: 'Plataforma 100% Autônoma, Reports e Operação 24/7.',
-      status: 'IN_PROGRESS',
-      progress: 50,
+      status: 'COMPLETED',
+      progress: 100,
       tasks: [
         { id: 't6_1', name: 'Live 100% Autônomo', isCompleted: true },
         { id: 't6_2', name: 'Pré-jogo integrado ao Fusion', isCompleted: true },
-        { id: 't6_3', name: 'Sistema 24/7 Estável', isCompleted: false }
+        { id: 't6_3', name: 'Sistema 24/7 Estável', isCompleted: true }
       ]
     }
   ]);
