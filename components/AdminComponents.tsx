@@ -870,75 +870,84 @@ export const ActivationPanel = () => {
 
 export const ProjectEvolutionRoadmap = () => {
   const [phases, setPhases] = useState<RoadmapPhase[]>([
-    // --- BLOCO 1: FUNDAÇÃO & CONSTRUÇÃO (Fases 1-6) ---
     {
-      id: 'p1', title: 'FASE 1: IDENTIDADE & ARQUITETURA', description: 'Design Militar, Segurança Supabase e Estrutura Base.', status: 'COMPLETED', progress: 100,
-      tasks: [{ id: 't1_1', name: 'Design System Strategic Mind', isCompleted: true }, { id: 't1_2', name: 'Auth Real & DB Setup', isCompleted: true }]
+      id: 'p1',
+      title: 'FASE 1: v1.5 - CORE (RODANDO)',
+      description: 'Módulos Ativos: Pré-jogo, Live Padrão, Pré-Tips e Pipeline de Respostas.',
+      status: 'COMPLETED',
+      progress: 100,
+      tasks: [
+        { id: 't1_1', name: 'Modo Pré-Jogo (DanielScore)', isCompleted: true },
+        { id: 't1_2', name: 'Live Padrão (Gol/Canto/Cartão)', isCompleted: true },
+        { id: 't1_3', name: 'Pré-Tips Projetivas', isCompleted: true }
+      ]
     },
     {
-      id: 'p2', title: 'FASE 2: COLETOR DE DADOS', description: 'Integração API-Football, Deep Stats e Histórico H2H.', status: 'COMPLETED', progress: 100,
-      tasks: [{ id: 't2_1', name: 'Conexão RapidAPI', isCompleted: true }, { id: 't2_2', name: 'Coleta Profunda (xG/Pace)', isCompleted: true }]
+      id: 'p2',
+      title: 'FASE 2: v1.6 - BACKEND API',
+      description: 'Estrutura de APIs Server-side e validação de dados.',
+      status: 'PENDING',
+      progress: 0,
+      tasks: [
+        { id: 't2_1', name: 'API Endpoints (/tips/live, /pre)', isCompleted: false },
+        { id: 't2_2', name: 'Validação Server-side', isCompleted: false },
+        { id: 't2_3', name: 'Compatibilidade Vercel Edge', isCompleted: false }
+      ]
     },
     {
-      id: 'p3', title: 'FASE 3: CÉREBRO MATEMÁTICO', description: 'Scout Engine V2, Ajuste Bayesiano e Hot Games.', status: 'COMPLETED', progress: 100,
-      tasks: [{ id: 't3_1', name: 'Probabilidade Bayesiana', isCompleted: true }, { id: 't3_2', name: 'Detector de Jogos Quentes', isCompleted: true }]
+      id: 'p3',
+      title: 'FASE 3: v1.7 - INTERFACE',
+      description: 'Painéis Oficiais, Dashboard Dark Mode e Layout Responsivo.',
+      status: 'COMPLETED',
+      progress: 100,
+      tasks: [
+        { id: 't3_1', name: 'Interface Monkey Dark', isCompleted: true },
+        { id: 't3_2', name: 'Painéis Admin & Analista', isCompleted: true },
+        { id: 't3_3', name: 'Dashboard Estatístico', isCompleted: true }
+      ]
     },
     {
-      id: 'p4', title: 'FASE 4: MONKEY FUSION', description: 'Motor de Decisão, EV+ e Níveis de Confiança.', status: 'COMPLETED', progress: 100,
-      tasks: [{ id: 't4_1', name: 'Cálculo de Valor Esperado', isCompleted: true }, { id: 't4_2', name: 'Integração IA + Math', isCompleted: true }]
+      id: 'p4',
+      title: 'FASE 4: v1.8 - NEWS ENGINE',
+      description: 'Automação Híbrida, Classificador de Relevância e Impacto.',
+      status: 'IN_PROGRESS',
+      progress: 80,
+      tasks: [
+        { id: 't4_1', name: 'Classificador de Relevância', isCompleted: true },
+        { id: 't4_2', name: 'Módulo de Impacto na Aposta', isCompleted: true },
+        { id: 't4_3', name: 'Histórico Supabase', isCompleted: true },
+        { id: 't4_4', name: 'Automação Total (Scheduler)', isCompleted: false }
+      ]
     },
     {
-      id: 'p5', title: 'FASE 5: MONKEY VISION & LABS', description: 'Leitura de Tela, OCR de Bilhetes e Validação.', status: 'COMPLETED', progress: 100,
-      tasks: [{ id: 't5_1', name: 'OCR de Apostas (Labs)', isCompleted: true }, { id: 't5_2', name: 'Live Screen Reader', isCompleted: true }]
+      id: 'p5',
+      title: 'FASE 5: v1.9 - LIVE ENGINE',
+      description: 'Coleta Real-Time, Algoritmo de Ritmo e Detecção de Spikes.',
+      status: 'IN_PROGRESS',
+      progress: 70,
+      tasks: [
+        { id: 't5_1', name: 'Engine Coleta Ao Vivo', isCompleted: true },
+        { id: 't5_2', name: 'Pipeline Automático (Scout)', isCompleted: true },
+        { id: 't5_3', name: 'Algoritmo de Ritmo (Pace/xG)', isCompleted: true },
+        { id: 't5_4', name: 'Detecção de Spikes', isCompleted: false }
+      ]
     },
     {
-      id: 'p6', title: 'FASE 6: NEWS ENGINE', description: 'Ingestão de Notícias e Cálculo de Impacto.', status: 'COMPLETED', progress: 100,
-      tasks: [{ id: 't6_1', name: 'Terminal de Notícias', isCompleted: true }, { id: 't6_2', name: 'Impacto Estatístico (-30/+30)', isCompleted: true }]
-    },
-
-    // --- BLOCO 2: OPERAÇÃO & AUTOMAÇÃO (Fases 7-8) ---
-    {
-      id: 'p7', title: 'FASE 7: CONTROLE & ATIVAÇÃO', description: 'Painel Admin, Gestão de Chaves e Calibragem.', status: 'COMPLETED', progress: 100,
-      tasks: [{ id: 't7_1', name: 'Gestão de API via UI', isCompleted: true }, { id: 't7_2', name: 'Editor de Estratégia', isCompleted: true }]
-    },
-    {
-      id: 'p8', title: 'FASE 8: LIVE & AUTOMAÇÃO', description: 'Monitoramento em Tempo Real e Webhooks.', status: 'COMPLETED', progress: 100,
-      tasks: [{ id: 't8_1', name: 'Live Loop 30s', isCompleted: true }, { id: 't8_2', name: 'Disparo de Alertas (Webhook)', isCompleted: true }]
-    },
-
-    // --- BLOCO 3: FUTURO & EXPANSÃO (Fases 9-12) ---
-    {
-        id: 'p9', title: 'FASE 9: MOBILE PRO EXPERIENCE', description: 'Adaptação total para celulares e PWA.', status: 'PENDING', progress: 0,
-        tasks: [
-            { id: 't9_1', name: 'Interface Compacta', isCompleted: false },
-            { id: 't9_2', name: 'Alertas Push/Vibração', isCompleted: false }
-        ]
-    },
-    {
-        id: 'p10', title: 'FASE 10: VISION 2.0', description: 'Automação visual avançada.', status: 'PENDING', progress: 0,
-        tasks: [
-            { id: 't10_1', name: 'Reconhecimento de Bet Builder', isCompleted: false },
-            { id: 't10_2', name: 'OCR Mobile Nativo', isCompleted: false }
-        ]
-    },
-    {
-        id: 'p11', title: 'FASE 11: MONETIZAÇÃO (SAAS)', description: 'Venda e gestão de assinaturas.', status: 'PENDING', progress: 0,
-        tasks: [
-            { id: 't11_1', name: 'Gestão de Planos', isCompleted: false },
-            { id: 't11_2', name: 'Gateway Stripe', isCompleted: false }
-        ]
-    },
-    {
-        id: 'p12', title: 'FASE 12: EXPANSÃO GLOBAL', description: 'Apps Nativos e Multi-idioma.', status: 'PENDING', progress: 0,
-        tasks: [
-            { id: 't12_1', name: 'App iOS/Android', isCompleted: false },
-            { id: 't12_2', name: 'Suporte i18n', isCompleted: false }
-        ]
+      id: 'p6',
+      title: 'FASE 6: v2.0 - LANÇAMENTO',
+      description: 'Plataforma 100% Autônoma, Reports e Operação 24/7.',
+      status: 'PENDING',
+      progress: 0,
+      tasks: [
+        { id: 't6_1', name: 'Live 100% Autônomo', isCompleted: false },
+        { id: 't6_2', name: 'Pré-jogo integrado ao Fusion', isCompleted: false },
+        { id: 't6_3', name: 'Sistema 24/7 Estável', isCompleted: false }
+      ]
     }
   ]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
        {phases.map(phase => (
           <div key={phase.id} className="bg-surface-900 border border-white/5 relative overflow-hidden group hover:border-brand-500/30 transition-all">
              {/* Progress Bar Top */}
