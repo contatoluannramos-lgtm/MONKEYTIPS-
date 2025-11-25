@@ -402,6 +402,7 @@ interface NewsTerminalProps {
 
 export const NewsTerminal: React.FC<NewsTerminalProps> = ({ newsQueue, onNewsProcessed, onArchiveNews }) => {
   const [isSimulating, setIsSimulating] = useState(false);
+  const [isAutoMonitoring, setIsAutoMonitoring] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'FUTEBOL' | 'BASQUETE'>('ALL');
 
   const simulateWebhookBot = async () => {
@@ -425,6 +426,17 @@ export const NewsTerminal: React.FC<NewsTerminalProps> = ({ newsQueue, onNewsPro
     setIsSimulating(false);
   };
 
+  // AUTOMATIC SCHEDULER
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (isAutoMonitoring) {
+        interval = setInterval(() => {
+            simulateWebhookBot();
+        }, 15000); // Check every 15 seconds
+    }
+    return () => clearInterval(interval);
+  }, [isAutoMonitoring]);
+
   const activeNews = newsQueue.filter(n => n.status !== 'ARCHIVED');
   const filteredQueue = activeNews.filter(item => 
      selectedFilter === 'ALL' || item.originalData.league.toUpperCase() === selectedFilter
@@ -441,13 +453,24 @@ export const NewsTerminal: React.FC<NewsTerminalProps> = ({ newsQueue, onNewsPro
              </h3>
              <p className="text-[#A3A3A8] text-xs font-mono mt-1">INTEGRATION STATUS: ONLINE | BOT LISTENER ACTIVE</p>
           </div>
-          <button 
-             onClick={simulateWebhookBot}
-             disabled={isSimulating}
-             className="bg-brand-500/10 border border-brand-500 text-brand-500 px-4 py-2 text-xs font-bold uppercase hover:bg-brand-500/20 transition-colors flex items-center gap-2"
-          >
-             {isSimulating ? <span className="animate-spin">⚡</span> : '⚡'} SIMULAR WEBHOOK BOT
-          </button>
+          <div className="flex gap-2">
+            <button 
+                onClick={() => setIsAutoMonitoring(!isAutoMonitoring)}
+                className={`px-3 py-2 text-[10px] font-bold uppercase border flex items-center gap-2 transition-all ${
+                    isAutoMonitoring ? 'bg-green-500/20 text-green-500 border-green-500' : 'bg-transparent text-gray-500 border-gray-600'
+                }`}
+            >
+                <div className={`w-2 h-2 rounded-full ${isAutoMonitoring ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`}></div>
+                {isAutoMonitoring ? 'Auto-Monitor: ON' : 'Auto-Monitor: OFF'}
+            </button>
+            <button 
+                onClick={simulateWebhookBot}
+                disabled={isSimulating}
+                className="bg-brand-500/10 border border-brand-500 text-brand-500 px-4 py-2 text-xs font-bold uppercase hover:bg-brand-500/20 transition-colors flex items-center gap-2"
+            >
+                {isSimulating ? <span className="animate-spin">⚡</span> : '⚡'} SIMULAR BOT
+            </button>
+          </div>
        </div>
 
        {/* Filters */}
@@ -468,7 +491,7 @@ export const NewsTerminal: React.FC<NewsTerminalProps> = ({ newsQueue, onNewsPro
        </div>
 
        {/* News List */}
-       <div className="flex-1 overflow-y-auto p-6 space-y-4">
+       <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
           {filteredQueue.length === 0 ? (
              <div className="h-full flex flex-col items-center justify-center text-[#27272A] opacity-50">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
@@ -1034,7 +1057,7 @@ export const TipsHistoryPanel = ({ tips, onUpdateStatus }: { tips: Tip[], onUpda
 export const NewsImplementationChecklist = () => {
   const [items, setItems] = useState<ChecklistItem[]>([
     { id: '1', label: 'Conectar backend real', checked: true },
-    { id: '2', label: 'Ativar Scheduler Automático', checked: false },
+    { id: '2', label: 'Ativar Scheduler Automático', checked: true },
     { id: '3', label: 'Criar classificador relevância', checked: true },
     { id: '4', label: 'Integrar Fusion Engine', checked: true },
     { id: '5', label: 'Criar histórico Supabase', checked: true },
