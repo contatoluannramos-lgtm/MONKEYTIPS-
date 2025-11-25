@@ -195,6 +195,8 @@ export interface ScoutResult {
   signal: 'STRONG_OVER' | 'OVER' | 'NEUTRAL' | 'UNDER' | 'STRONG_UNDER';
   details: string;
   isHotGame: boolean; // Novo campo: Indica jogo com alta volatilidade/ritmo
+  spikeDetected?: boolean; // Detecção de Pico de Mudança (Spike)
+  spikeDetails?: string;   // Detalhes do Spike
 }
 
 export interface FusionAnalysis {

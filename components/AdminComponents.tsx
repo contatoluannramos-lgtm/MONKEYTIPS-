@@ -177,6 +177,7 @@ export const ScoutCard = ({ result }: { result: ScoutResult }) => {
          <span className="text-xs text-gray-500 uppercase">Scout Engine</span>
          <div className="flex items-center gap-2">
              {result.isHotGame && <span className="text-[10px] bg-red-500 text-black font-bold px-1 animate-pulse">HOT 🔥</span>}
+             {result.spikeDetected && <span className="text-[10px] bg-brand-500 text-black font-bold px-1 animate-bounce">⚡ SPIKE</span>}
              <span className={`text-xs font-bold ${result.signal.includes('STRONG') ? 'text-brand-500' : 'text-gray-500'}`}>{result.signal}</span>
          </div>
       </div>
@@ -190,9 +191,16 @@ export const ScoutCard = ({ result }: { result: ScoutResult }) => {
          <div className="bg-brand-500 h-full" style={{ width: `${result.calculatedProbability}%` }}></div>
       </div>
 
-      <p className="text-[10px] text-gray-400 border-l border-brand-500 pl-2">
-        {result.details}
-      </p>
+      <div className="flex flex-col gap-1">
+        <p className="text-[10px] text-gray-400 border-l border-brand-500 pl-2">
+            {result.details}
+        </p>
+        {result.spikeDetected && (
+            <p className="text-[10px] text-brand-500 font-bold border-l border-brand-500 pl-2 animate-pulse">
+                ⚠️ {result.spikeDetails}
+            </p>
+        )}
+      </div>
     </div>
   );
 };
@@ -360,6 +368,7 @@ export const MonkeyLivePanel = ({ matches, tips }: { matches: Match[], tips: Tip
                          return (
                             <div key={m.id} className="bg-surface-900 border border-white/5 p-4 relative overflow-hidden">
                                 {scout.isHotGame && <div className="absolute top-0 right-0 p-1 bg-red-500/20 text-[10px] text-red-500 font-bold uppercase">HOT 🔥</div>}
+                                {scout.spikeDetected && <div className="absolute top-0 left-0 p-1 bg-brand-500 text-[10px] text-black font-bold uppercase animate-pulse">⚡ SPIKE DETECTED</div>}
                                 <div className="flex justify-between items-end mb-2">
                                     <span className="text-white font-bold text-sm">{m.teamA} v {m.teamB}</span>
                                     <span className="text-brand-500 font-mono text-xs">

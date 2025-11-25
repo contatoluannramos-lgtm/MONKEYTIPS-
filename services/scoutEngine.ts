@@ -73,10 +73,36 @@ const detectHotGame = (sport: SportType, stats: any): boolean => {
     return false;
 };
 
+// Detector de Spikes (Picos de Mudança Repentina)
+const detectSpikes = (sport: SportType, stats: any): { detected: boolean, details: string } => {
+    if (sport === SportType.FOOTBALL) {
+        // Detecta pressão absurda recente (ex: muitos ataques perigosos no tempo total vs tempo de jogo)
+        // Idealmente precisaria de snapshots, mas vamos usar a densidade atual
+        const mins = Math.max(stats.currentMinute || 1, 1);
+        const dangerousAttacks = stats.attacks?.dangerous || 0;
+        
+        // Se a média de ataques perigosos for muito alta (> 1.5/min), assume-se um pico de pressão
+        if ((dangerousAttacks / mins) > 1.5) {
+            return { detected: true, details: 'PRESSURE STORM (1.5+ Att/Min)' };
+        }
+    }
+
+    if (sport === SportType.BASKETBALL) {
+        // Detecta "Run" (Sequência de pontos)
+        // Se o Pace atual for absurdamente alto (> 110)
+        if (stats.pace && stats.pace > 110) {
+            return { detected: true, details: 'SCORING RUN DETECTED' };
+        }
+    }
+
+    return { detected: false, details: '' };
+};
+
 export const runScoutAnalysis = (match: Match, config: CalibrationConfig): ScoutResult => {
   
   const isLive = match.status === 'Live';
   let isHot = false;
+  let spikeInfo = { detected: false, details: '' };
 
   // --- FUTEBOL ---
   if (match.sport === SportType.FOOTBALL) {
@@ -103,6 +129,7 @@ export const runScoutAnalysis = (match: Match, config: CalibrationConfig): Scout
         finalProb = calculateBayesianProbability(priorProb, liveProb, matchProgress);
         
         isHot = detectHotGame(SportType.FOOTBALL, stats);
+        spikeInfo = detectSpikes(SportType.FOOTBALL, stats);
         
         details = `BAYESIAN | xG: ${estimatedXG.toFixed(1)} | Hot: ${isHot ? 'YES' : 'NO'}`;
     } else {
@@ -116,7 +143,9 @@ export const runScoutAnalysis = (match: Match, config: CalibrationConfig): Scout
       expectedGoals: { home: 1.5, away: 1.2 }, 
       signal: finalProb > config.football.over25Threshold ? 'STRONG_OVER' : 'NEUTRAL',
       details: details,
-      isHotGame: isHot
+      isHotGame: isHot,
+      spikeDetected: spikeInfo.detected,
+      spikeDetails: spikeInfo.details
     };
   }
 
@@ -156,6 +185,7 @@ export const runScoutAnalysis = (match: Match, config: CalibrationConfig): Scout
         finalProb = calculateBayesianProbability(priorProb, liveProb, matchProgress);
 
         isHot = detectHotGame(SportType.BASKETBALL, stats);
+        spikeInfo = detectSpikes(SportType.BASKETBALL, stats);
         
         details = `BAYESIAN NBA | Proj: ${Math.floor(liveProjection)} | Hot: ${isHot ? 'YES' : 'NO'}`;
     } else {
@@ -169,7 +199,9 @@ export const runScoutAnalysis = (match: Match, config: CalibrationConfig): Scout
       projectedPoints: 230,
       signal: finalProb > 65 ? 'STRONG_OVER' : (finalProb < 40 ? 'STRONG_UNDER' : 'NEUTRAL'),
       details: details,
-      isHotGame: isHot
+      isHotGame: isHot,
+      spikeDetected: spikeInfo.detected,
+      spikeDetails: spikeInfo.details
     };
   }
 
@@ -204,7 +236,8 @@ export const runScoutAnalysis = (match: Match, config: CalibrationConfig): Scout
         calculatedProbability: finalProb,
         signal: finalProb > 70 ? 'STRONG_OVER' : 'NEUTRAL',
         details: details,
-        isHotGame: isHot
+        isHotGame: isHot,
+        spikeDetected: false
     };
   }
 
