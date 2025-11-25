@@ -401,41 +401,56 @@ interface NewsTerminalProps {
 }
 
 export const NewsTerminal: React.FC<NewsTerminalProps> = ({ newsQueue, onNewsProcessed, onArchiveNews }) => {
-  const [isSimulating, setIsSimulating] = useState(false);
-  const [isAutoMonitoring, setIsAutoMonitoring] = useState(false);
+  const [manualInput, setManualInput] = useState('');
+  const [inputType, setInputType] = useState<'URL' | 'TEXT' | 'JSON'>('URL');
+  const [isProcessing, setIsProcessing] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'FUTEBOL' | 'BASQUETE'>('ALL');
 
-  const simulateWebhookBot = async () => {
-    setIsSimulating(true);
-    
-    // Mock Payload from Bot
-    const mockPayload: BotNewsPayload = {
-        source: Math.random() > 0.5 ? 'globoesporte' : 'nba',
-        league: Math.random() > 0.5 ? 'futebol' : 'basquete',
-        urgency: 4,
-        title: Math.random() > 0.5 ? "Craque do time sai lesionado no treino" : "Técnico confirma time reserva para o clássico",
-        summary: "Informação de última hora apurada pelo bot. Impacto direto na escalação provável.",
-        published_at: new Date().toISOString(),
-        url: "http://bot-source.internal"
-    };
+  const handleManualIngest = async () => {
+      if (!manualInput.trim()) return;
+      setIsProcessing(true);
+      
+      let payload: BotNewsPayload;
 
-    const processed = await processBotNews(mockPayload);
-    if (processed) {
-        onNewsProcessed(processed);
-    }
-    setIsSimulating(false);
+      if (inputType === 'JSON') {
+          try {
+              const json = JSON.parse(manualInput);
+              if (!json.title || !json.summary) throw new Error("JSON inválido: title e summary obrigatórios.");
+              payload = {
+                  source: json.source || 'other',
+                  league: json.league || 'futebol',
+                  urgency: json.urgency || 3,
+                  title: json.title,
+                  summary: json.summary,
+                  published_at: json.published_at || new Date().toISOString(),
+                  url: json.url || ''
+              };
+          } catch (e: any) {
+              alert("ERRO JSON: " + e.message);
+              setIsProcessing(false);
+              return;
+          }
+      } else {
+          // Mock a bot payload from manual input to reuse the same processing pipeline
+          payload = {
+              source: 'other',
+              league: 'futebol', // Default, AI will correct context
+              urgency: 3,
+              title: inputType === 'URL' ? 'Análise de URL Externa' : 'Inserção Manual de Texto',
+              summary: manualInput,
+              published_at: new Date().toISOString(),
+              url: inputType === 'URL' ? manualInput : ''
+          };
+      }
+
+      // Use the Bot Processor to keep consistency
+      const processed = await processBotNews(payload);
+      if (processed) {
+          onNewsProcessed(processed);
+          setManualInput('');
+      }
+      setIsProcessing(false);
   };
-
-  // AUTOMATIC SCHEDULER
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (isAutoMonitoring) {
-        interval = setInterval(() => {
-            simulateWebhookBot();
-        }, 15000); // Check every 15 seconds
-    }
-    return () => clearInterval(interval);
-  }, [isAutoMonitoring]);
 
   const activeNews = newsQueue.filter(n => n.status !== 'ARCHIVED');
   const filteredQueue = activeNews.filter(item => 
@@ -451,26 +466,38 @@ export const NewsTerminal: React.FC<NewsTerminalProps> = ({ newsQueue, onNewsPro
                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                 MONKEY NEWS ENGINE
              </h3>
-             <p className="text-[#A3A3A8] text-xs font-mono mt-1">INTEGRATION STATUS: ONLINE | BOT LISTENER ACTIVE</p>
+             <p className="text-[#A3A3A8] text-xs font-mono mt-1">INTEGRATION STATUS: ONLINE</p>
           </div>
+       </div>
+
+       {/* Controls Area */}
+       <div className="p-4 border-b border-[#1C1C1F] bg-[#0B0B0D]">
           <div className="flex gap-2">
-            <button 
-                onClick={() => setIsAutoMonitoring(!isAutoMonitoring)}
-                className={`px-3 py-2 text-[10px] font-bold uppercase border flex items-center gap-2 transition-all ${
-                    isAutoMonitoring ? 'bg-green-500/20 text-green-500 border-green-500' : 'bg-transparent text-gray-500 border-gray-600'
-                }`}
-            >
-                <div className={`w-2 h-2 rounded-full ${isAutoMonitoring ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`}></div>
-                {isAutoMonitoring ? 'Auto-Monitor: ON' : 'Auto-Monitor: OFF'}
-            </button>
-            <button 
-                onClick={simulateWebhookBot}
-                disabled={isSimulating}
-                className="bg-brand-500/10 border border-brand-500 text-brand-500 px-4 py-2 text-xs font-bold uppercase hover:bg-brand-500/20 transition-colors flex items-center gap-2"
-            >
-                {isSimulating ? <span className="animate-spin">⚡</span> : '⚡'} SIMULAR BOT
-            </button>
+              <select 
+                value={inputType} 
+                onChange={(e) => setInputType(e.target.value as any)}
+                className="bg-[#1C1C1F] text-white text-xs border border-white/10 px-3 outline-none uppercase font-mono"
+              >
+                  <option value="URL">LINK / URL</option>
+                  <option value="TEXT">TEXTO</option>
+                  <option value="JSON">JSON PAYLOAD (BOT)</option>
+              </select>
+              <input 
+                type="text" 
+                value={manualInput}
+                onChange={(e) => setManualInput(e.target.value)}
+                placeholder={inputType === 'JSON' ? 'Cole o JSON do Bot: {"title": "...", "summary": "..."}' : inputType === 'URL' ? "Cole o link da notícia..." : "Cole o texto da notícia..."}
+                className="flex-1 bg-[#1C1C1F] text-white text-xs border border-white/10 px-4 py-3 focus:border-brand-500 outline-none font-mono"
+              />
+              <button 
+                onClick={handleManualIngest}
+                disabled={isProcessing || !manualInput}
+                className="bg-brand-600 hover:bg-brand-500 text-white px-6 py-2 text-xs font-bold uppercase tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isProcessing ? 'PROCESSANDO...' : 'PROCESSAR'}
+              </button>
           </div>
+          {inputType === 'JSON' && <p className="text-[10px] text-gray-500 mt-2 font-mono">* Modo Debug: Cole aqui o payload que seu bot enviaria para o webhook.</p>}
        </div>
 
        {/* Filters */}
@@ -495,7 +522,7 @@ export const NewsTerminal: React.FC<NewsTerminalProps> = ({ newsQueue, onNewsPro
           {filteredQueue.length === 0 ? (
              <div className="h-full flex flex-col items-center justify-center text-[#27272A] opacity-50">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                <p className="mt-4 font-mono text-xs">AGUARDANDO PAYLOAD DO BOT EXTERNO...</p>
+                <p className="mt-4 font-mono text-xs">AGUARDANDO DADOS (MANUAL OU BOT)...</p>
              </div>
           ) : (
              filteredQueue.map(item => (
