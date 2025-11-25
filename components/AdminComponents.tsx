@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { ImprovementProposal, ChecklistItem, RoadmapPhase, Tip, TipStatus, CalibrationConfig, ScoutResult, FusionAnalysis, NewsAnalysis, TARGET_TEAMS_BRASILEIRAO } from '../types';
+import { ImprovementProposal, ChecklistItem, RoadmapPhase, Tip, TipStatus, CalibrationConfig, ScoutResult, FusionAnalysis, NewsAnalysis, TARGET_TEAMS_BRASILEIRAO, NewsProcessedItem, BotNewsPayload } from '../types';
 import { dbService } from '../services/databaseService';
 import { GoogleGenAI } from "@google/genai";
-import { analyzeSportsNews } from '../services/geminiService';
+import { analyzeSportsNews, processBotNews } from '../services/geminiService';
 import { DEFAULT_CALIBRATION } from '../services/scoutEngine';
 
 // --- EXISTING COMPONENTS ---
@@ -277,188 +277,131 @@ export const FusionTerminal = ({ analysis }: { analysis: FusionAnalysis }) => {
   );
 };
 
+// --- NEW COMPONENT: NEWS TERMINAL (DARK MODE BOT INTEGRATION) ---
 export const NewsTerminal = () => {
-    const [mode, setMode] = useState<'TEXT' | 'URL'>('URL');
-    const [input, setInput] = useState("");
-    const [analysis, setAnalysis] = useState<NewsAnalysis | null>(null);
+    const [feed, setFeed] = useState<NewsProcessedItem[]>([]);
     const [loading, setLoading] = useState(false);
-    const [sources, setSources] = useState([
-        { id: 1, name: "Futebol (GE)", url: "https://ge.globo.com/futebol/brasileirao-serie-a/" },
-        { id: 2, name: "NBA Official", url: "https://www.nba.com/nba-cup/2025" }
-    ]);
 
-    const handleAnalyze = async () => {
-        if(!input.trim()) return;
+    // Simulate receiving a payload from the Python/Node Bot
+    const simulateIncomingBotPayload = async () => {
         setLoading(true);
-        if (mode === 'URL') await new Promise(r => setTimeout(r, 1500)); 
+        const mockPayloads: BotNewsPayload[] = [
+            {
+                source: 'globoesporte',
+                league: 'futebol',
+                urgency: 5,
+                title: "Flamengo: Arrascaeta sente lesão e está fora da final",
+                summary: "Meia uruguaio deixou o treino com dores na coxa e departamento médico vetou participação no jogo de domingo.",
+                published_at: new Date().toISOString(),
+                url: "https://ge.globo.com/futebol/times/flamengo"
+            },
+            {
+                source: 'nba',
+                league: 'basquete',
+                urgency: 4,
+                title: "LeBron James listado como 'Questionable' para jogo contra Celtics",
+                summary: "Relatório de lesões aponta gestão de carga para o astro dos Lakers. Probabilidade de jogar é 50%.",
+                published_at: new Date().toISOString(),
+                url: "https://nba.com/news"
+            }
+        ];
+
+        const randomPayload = mockPayloads[Math.floor(Math.random() * mockPayloads.length)];
         
-        const result = await analyzeSportsNews(input, mode);
-        setAnalysis(result);
-        setLoading(false);
-    }
-    
-    const handleAddSource = () => {
-        const url = prompt("Adicionar nova fonte ao News Engine (URL):");
-        if(url) {
-            setSources([...sources, { id: Date.now(), name: "Nova Fonte", url }]);
+        // Call the Integration Engine Service
+        const processed = await processBotNews(randomPayload);
+        
+        if (processed) {
+            setFeed(prev => [processed, ...prev]);
         }
+        setLoading(false);
     };
 
     return (
-        <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-8 flex flex-col h-full rounded-none">
-            <div className="flex justify-between items-start mb-6">
-                <h3 className="text-lg font-display font-bold text-white flex items-center gap-2">
-                    📢 Monkey News Engine
-                    <span className="text-[10px] bg-brand-500/20 text-brand-500 px-2 py-0.5 rounded-full animate-pulse border border-brand-500/20">LIVE MONITOR</span>
-                </h3>
-                <button onClick={handleAddSource} className="text-[10px] text-brand-500 hover:underline font-mono">+ Add Fonte</button>
-            </div>
-            
-            <div className="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                    {/* Sources Quick Select */}
-                    <div className="mb-4 flex flex-wrap gap-2">
-                        {sources.map(src => (
-                            <button 
-                                key={src.id}
-                                onClick={() => { setMode('URL'); setInput(src.url); }}
-                                className="px-2 py-1 bg-surface-950 border border-white/10 hover:border-brand-500 text-[10px] text-gray-400 hover:text-white font-mono transition-colors"
-                            >
-                                {src.name}
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className="flex gap-4 mb-4">
-                        <button 
-                            onClick={() => setMode('URL')}
-                            className={`px-4 py-2 text-xs font-bold uppercase tracking-widest border transition-colors ${
-                                mode === 'URL' ? 'bg-brand-500 text-black border-brand-500' : 'bg-transparent text-gray-500 border-gray-700 hover:border-white'
-                            }`}
-                        >
-                            Varredura de URL
-                        </button>
-                        <button 
-                            onClick={() => setMode('TEXT')}
-                            className={`px-4 py-2 text-xs font-bold uppercase tracking-widest border transition-colors ${
-                                mode === 'TEXT' ? 'bg-brand-500 text-black border-brand-500' : 'bg-transparent text-gray-500 border-gray-700 hover:border-white'
-                            }`}
-                        >
-                            Texto Manual
-                        </button>
-                    </div>
-
-                    <label className="block text-xs font-mono text-gray-500 uppercase tracking-widest mb-2">
-                        {mode === 'URL' ? 'URL do Portal de Notícias' : 'Texto da Notícia'}
-                    </label>
-                    
-                    {mode === 'URL' ? (
-                        <input 
-                            type="text"
-                            className="w-full bg-black border border-white/10 text-white p-4 text-xs font-mono focus:border-brand-500 focus:outline-none"
-                            placeholder="https://ge.globo.com/futebol/brasileirao-serie-a/"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                        />
-                    ) : (
-                        <textarea 
-                            className="w-full h-32 bg-black border border-white/10 text-white p-4 text-xs font-mono focus:border-brand-500 focus:outline-none resize-none"
-                            placeholder="Cole aqui o texto da notícia sobre lesões ou bastidores..."
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                        />
-                    )}
-
+        <div className="bg-[#0B0B0D] border border-[#1C1C1F] h-full flex flex-col font-sans text-[#E4E4E7]">
+            {/* HEADER */}
+            <div className="p-6 border-b border-[#1C1C1F] flex justify-between items-center bg-[#121214]">
+                <div>
+                    <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                        <span className="text-[#00FFB2]">●</span> MONKEY NEWS ENGINE
+                    </h3>
+                    <p className="text-xs text-gray-500 font-mono mt-1">INTEGRATION STATUS: ONLINE | BOT LISTENER ACTIVE</p>
+                </div>
+                <div className="flex gap-3">
                     <button 
-                        onClick={handleAnalyze}
+                        onClick={simulateIncomingBotPayload}
                         disabled={loading}
-                        className="mt-4 bg-brand-600 hover:bg-brand-500 text-white px-4 py-3 text-xs font-bold uppercase tracking-widest w-full shadow-lg shadow-brand-500/10"
+                        className="bg-[#1C1C1F] border border-[#27272A] hover:border-[#00FFB2] text-xs font-bold px-4 py-2 uppercase tracking-wide transition-all flex items-center gap-2 text-[#00FFB2]"
                     >
-                        {loading ? (
-                            <span className="flex items-center justify-center gap-2">
-                                <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                {mode === 'URL' ? 'SCANEANDO PORTAL...' : 'PROCESSANDO IMPACTO...'}
-                            </span>
-                        ) : (
-                            mode === 'URL' ? 'INICIAR COLETOR AUTOMÁTICO' : 'ANALISAR TEXTO'
-                        )}
+                        {loading ? 'PROCESSANDO...' : '⚡ SIMULAR WEBHOOK BOT'}
                     </button>
                 </div>
-
-                {/* Focus List Panel */}
-                <div className="bg-surface-950 border border-white/5 p-4">
-                    <h4 className="text-xs font-bold text-white mb-3 uppercase tracking-wider border-b border-white/5 pb-2">
-                        Escopo de Vigilância (Top 10 + Final)
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                        {TARGET_TEAMS_BRASILEIRAO.map(team => (
-                            <span key={team} className="px-2 py-1 bg-surface-900 border border-white/10 text-[10px] text-gray-400 font-mono">
-                                {team}
-                            </span>
-                        ))}
-                    </div>
-                </div>
             </div>
 
-            {analysis && (
-                <div className="bg-surface-950 border border-white/10 p-6 animate-fade-in border-l-4 border-l-brand-500 mt-auto relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10">
-                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-white"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+            {/* FEED AREA */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-[#0B0B0D]">
+                {feed.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-gray-600 space-y-4 opacity-50">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        <p className="font-mono text-xs uppercase">Aguardando payload do Bot Externo...</p>
                     </div>
-                    
-                    {/* Header with Impact Score */}
-                    <div className="flex justify-between items-start mb-4 relative z-10">
-                        <div className="flex flex-col">
-                             <span className="text-xs text-gray-500 font-mono uppercase mb-1">{analysis.affectedSector}</span>
-                             {analysis.relatedTeam && <span className="text-sm font-bold text-white bg-white/10 px-2 py-0.5 inline-block w-max mb-2">{analysis.relatedTeam}</span>}
-                        </div>
-                        <div className="text-right">
-                             <p className="text-[10px] text-gray-500 font-mono uppercase">IMPACT SCORE</p>
-                             <span className={`text-4xl font-bold font-mono ${analysis.impactScore < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                                 {analysis.impactScore > 0 ? '+' : ''}{analysis.impactScore}%
-                             </span>
-                        </div>
-                    </div>
-                    
-                    {/* Detailed Report */}
-                    <div className="relative z-10 space-y-4">
-                        <div>
-                             <h4 className="text-white font-bold text-lg font-display mb-1">{analysis.headline}</h4>
-                             <p className="text-gray-400 text-sm leading-relaxed">{analysis.summary}</p>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono bg-black/20 p-4 border border-white/5">
-                             <div>
-                                 <p className="text-gray-500 uppercase mb-1">🔍 FATOS RELEVANTES</p>
-                                 <ul className="list-disc pl-4 space-y-1 text-gray-300">
-                                     {analysis.facts?.map((f, i) => <li key={i}>{f}</li>)}
-                                 </ul>
-                             </div>
-                             <div className="space-y-2">
-                                 <div>
-                                     <p className="text-gray-500 uppercase">📉 IMPACTO T1</p>
-                                     <p className="text-white">{analysis.team1Impact}</p>
-                                 </div>
-                                 <div>
-                                     <p className="text-gray-500 uppercase">📈 IMPACTO T2</p>
-                                     <p className="text-white">{analysis.team2Impact}</p>
-                                 </div>
-                             </div>
-                        </div>
+                ) : (
+                    feed.map(item => (
+                        <div key={item.id} className="bg-[#121214] border border-[#1C1C1F] p-5 relative group hover:border-[#27272A] transition-colors">
+                            {/* Header do Card */}
+                            <div className="flex justify-between items-start mb-3">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider bg-[#1C1C1F] text-gray-400 px-2 py-0.5 rounded border border-[#27272A]">
+                                        {item.originalData.source}
+                                    </span>
+                                    <span className="text-[10px] font-mono text-gray-600">
+                                        {new Date(item.processedAt).toLocaleTimeString()}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="text-right">
+                                        <p className="text-[10px] text-gray-500 uppercase font-mono">Relevância</p>
+                                        <p className="text-sm font-bold text-white">{item.relevanceScore}%</p>
+                                    </div>
+                                    <div className={`px-2 py-1 border text-[10px] font-bold uppercase ${
+                                        item.impactLevel === 'ALTO' ? 'border-[#FF4E4E] text-[#FF4E4E] bg-[#FF4E4E]/10' :
+                                        item.impactLevel === 'MÉDIO' ? 'border-[#FFDD55] text-[#FFDD55] bg-[#FFDD55]/10' :
+                                        'border-gray-600 text-gray-400'
+                                    }`}>
+                                        {item.impactLevel} IMPACTO
+                                    </div>
+                                </div>
+                            </div>
 
-                        <div>
-                            <p className="text-[10px] text-brand-500 uppercase font-bold mb-1">🎯 PROJEÇÕES ALTERADAS</p>
-                            <p className="text-gray-300 text-xs italic border-l-2 border-brand-500 pl-2">
-                                {analysis.projectionChange}
+                            {/* Conteúdo */}
+                            <h4 className="text-white font-bold text-lg mb-2 leading-snug">{item.originalData.title}</h4>
+                            <p className="text-gray-400 text-xs mb-4 border-l-2 border-[#27272A] pl-3 leading-relaxed">
+                                {item.context}
                             </p>
-                        </div>
 
-                        <div className="bg-brand-500/10 border border-brand-500/20 p-2 text-center text-brand-500 text-xs font-bold uppercase animate-pulse">
-                            🔄 Ajuste aplicado ao Fusion Engine.
+                            {/* Footer Técnico */}
+                            <div className="grid grid-cols-2 gap-px bg-[#1C1C1F] border border-[#1C1C1F]">
+                                <div className="bg-[#0B0B0D] p-3">
+                                    <p className="text-[10px] text-[#00FFB2] uppercase font-bold mb-1">FUSION OUTPUT</p>
+                                    <p className="text-gray-300 text-xs">{item.fusionSummary}</p>
+                                </div>
+                                <div className="bg-[#0B0B0D] p-3">
+                                    <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">AÇÃO RECOMENDADA</p>
+                                    <p className="text-white text-xs font-bold">{item.recommendedAction}</p>
+                                </div>
+                            </div>
+                            
+                            {item.impactScore !== 0 && (
+                                <div className={`absolute top-0 right-0 p-2 font-mono text-xs font-bold ${
+                                    item.impactScore > 0 ? 'text-[#00FFB2]' : 'text-[#FF4E4E]'
+                                }`}>
+                                    {item.impactScore > 0 ? '+' : ''}{item.impactScore}% EV
+                                </div>
+                            )}
                         </div>
-                    </div>
-                </div>
-            )}
+                    ))
+                )}
+            </div>
         </div>
     );
 };

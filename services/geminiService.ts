@@ -1,8 +1,9 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Match, Tip, SportType, TicketAnalysis, CalibrationConfig, ScreenAnalysisData, NewsAnalysis, TARGET_TEAMS_BRASILEIRAO } from "../types";
+import { Match, Tip, SportType, TicketAnalysis, CalibrationConfig, ScreenAnalysisData, NewsAnalysis, BotNewsPayload, NewsProcessedItem, TARGET_TEAMS_BRASILEIRAO } from "../types";
 import { DEFAULT_CALIBRATION } from "./scoutEngine";
 
+// --- SCHEMAS ---
 const tipSchema: Schema = {
   type: Type.OBJECT,
   properties: {
@@ -61,6 +62,19 @@ const newsSchema: Schema = {
         projectionChange: { type: Type.STRING, description: "Como isso altera as projeções (ex: Ajuste no motor ofensivo)" }
     },
     required: ["headline", "impactScore", "affectedSector", "summary", "facts", "team1Impact", "team2Impact", "projectionChange"]
+};
+
+const botNewsSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    relevance: { type: Type.INTEGER, description: "0-100" },
+    impact_level: { type: Type.STRING, enum: ["BAIXO", "MÉDIO", "ALTO"] },
+    impact_score: { type: Type.INTEGER, description: "-30 a +30" },
+    context: { type: Type.STRING, description: "Contexto esportivo gerado." },
+    fusion_output: { type: Type.STRING, description: "Resumo para o Fusion Engine." },
+    action: { type: Type.STRING, description: "Ação recomendada (Ex: Monitorar Odd, Suspender Tip)." }
+  },
+  required: ["relevance", "impact_level", "impact_score", "context", "fusion_output", "action"]
 };
 
 const getAIClient = () => {
@@ -260,6 +274,68 @@ export const analyzeSportsNews = async (input: string, mode: 'TEXT' | 'URL'): Pr
     return JSON.parse(text) as NewsAnalysis;
   } catch (error) {
     console.error("News Engine Error:", error);
+    return null;
+  }
+};
+
+// --- NEW FUNCTION: BOT PAYLOAD PROCESSOR ---
+export const processBotNews = async (payload: BotNewsPayload): Promise<NewsProcessedItem | null> => {
+  const ai = getAIClient();
+  if (!ai) return null;
+
+  try {
+    const prompt = `
+      SYSTEM ROLE: Monkey Tips Integration Engine.
+      TASK: Process raw news data from External Bot.
+      
+      RAW DATA:
+      Source: ${payload.source}
+      League: ${payload.league}
+      Title: "${payload.title}"
+      Summary: "${payload.summary}"
+      Urgency Level: ${payload.urgency}/5
+
+      PROTOCOL:
+      1. Clean and standardize the data.
+      2. Classify relevance (0-100) based on potential market impact.
+      3. Generate sport context explanation.
+      4. Calculate statistical impact (-30 to +30) on projections.
+      5. Create a short summary for the Fusion Engine.
+      6. Recommend an action (e.g., "Monitor Odds", "Suspend Betting").
+
+      OUTPUT FORMAT: Strict JSON.
+      STYLE: Technical, direct, objective. No fluff.
+    `;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: botNewsSchema
+      }
+    });
+
+    const text = response.text;
+    if (!text) return null;
+    
+    const aiData = JSON.parse(text);
+
+    return {
+      id: `news-${Date.now()}`,
+      originalData: payload,
+      relevanceScore: aiData.relevance,
+      impactLevel: aiData.impact_level,
+      impactScore: aiData.impact_score,
+      context: aiData.context,
+      fusionSummary: aiData.fusion_output,
+      recommendedAction: aiData.action,
+      status: 'PENDING',
+      processedAt: new Date().toISOString()
+    };
+
+  } catch (error) {
+    console.error("Integration Engine Error:", error);
     return null;
   }
 };

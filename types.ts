@@ -119,14 +119,39 @@ export interface ScreenAnalysisData {
   context: string;
 }
 
+// --- NEWS ENGINE TYPES ---
+
+export interface BotNewsPayload {
+  source: 'globoesporte' | 'nba' | 'other';
+  league: 'futebol' | 'basquete';
+  urgency: 1 | 2 | 3 | 4 | 5;
+  title: string;
+  summary: string;
+  published_at: string;
+  url: string;
+}
+
+export interface NewsProcessedItem {
+  id: string;
+  originalData: BotNewsPayload;
+  relevanceScore: number; // 0-100
+  impactLevel: 'BAIXO' | 'MÉDIO' | 'ALTO';
+  impactScore: number; // -30 to +30 (internal logic)
+  context: string;
+  fusionSummary: string;
+  recommendedAction: string;
+  status: 'PENDING' | 'ARCHIVED';
+  processedAt: string;
+}
+
+// Legacy type kept for compatibility, but moving towards NewsProcessedItem
 export interface NewsAnalysis {
   headline: string;
-  impactScore: number; // -30 to +30
+  impactScore: number; 
   affectedSector: 'MORALE' | 'TACTICAL' | 'MARKET_ODDS' | 'LINEUP';
   summary: string;
   sourceUrl?: string;
   relatedTeam?: string;
-  // New detailed report fields
   facts: string[];
   team1Impact: string;
   team2Impact: string;
