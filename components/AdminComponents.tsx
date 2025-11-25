@@ -415,7 +415,27 @@ export const NewsTerminal: React.FC<NewsTerminalProps> = ({ newsQueue, onNewsPro
       if (inputType === 'JSON') {
           try {
               const json = JSON.parse(manualInput);
-              if (!json.title || !json.summary) throw new Error("JSON inválido: title e summary obrigatórios.");
+              
+              // --- SERVER-SIDE VALIDATION TEST ---
+              // Hit the Edge API to validate payload
+              try {
+                  const res = await fetch('/api/news/ingest', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(json)
+                  });
+                  
+                  if (!res.ok) {
+                      const errData = await res.json();
+                      throw new Error(`SERVER ERROR: ${errData.error} - ${errData.details}`);
+                  }
+              } catch (apiErr: any) {
+                  alert(apiErr.message);
+                  setIsProcessing(false);
+                  return;
+              }
+              // ----------------------------------
+
               payload = {
                   source: json.source || 'other',
                   league: json.league || 'futebol',
@@ -431,7 +451,7 @@ export const NewsTerminal: React.FC<NewsTerminalProps> = ({ newsQueue, onNewsPro
               return;
           }
       } else {
-          // Mock a bot payload from manual input to reuse the same processing pipeline
+          // Manual Mode (Mock Payload for AI)
           payload = {
               source: 'other',
               league: 'futebol', // Default, AI will correct context
@@ -443,7 +463,7 @@ export const NewsTerminal: React.FC<NewsTerminalProps> = ({ newsQueue, onNewsPro
           };
       }
 
-      // Use the Bot Processor to keep consistency
+      // AI Processing
       const processed = await processBotNews(payload);
       if (processed) {
           onNewsProcessed(processed);
@@ -497,7 +517,7 @@ export const NewsTerminal: React.FC<NewsTerminalProps> = ({ newsQueue, onNewsPro
                 {isProcessing ? 'PROCESSANDO...' : 'PROCESSAR'}
               </button>
           </div>
-          {inputType === 'JSON' && <p className="text-[10px] text-gray-500 mt-2 font-mono">* Modo Debug: Cole aqui o payload que seu bot enviaria para o webhook.</p>}
+          {inputType === 'JSON' && <p className="text-[10px] text-gray-500 mt-2 font-mono">* Modo Debug: Cole o payload JSON. O sistema irá validar via API Server-side antes de processar.</p>}
        </div>
 
        {/* Filters */}
