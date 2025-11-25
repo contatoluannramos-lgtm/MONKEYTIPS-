@@ -897,7 +897,7 @@ export const ProjectEvolutionRoadmap = () => {
             { id: 't3_1', name: 'Ajuste Bayesiano (Histórico vs Live)', isCompleted: true },
             { id: 't3_2', name: 'Detector de Jogos Quentes (Hot)', isCompleted: true },
             { id: 't3_3', name: 'Confidence Score Nivelado', isCompleted: true },
-            { id: 't3_4', name: 'Calibragem Fina por Esporte', isCompleted: false }
+            { id: 't3_4', name: 'Calibragem Fina por Esporte', isCompleted: true }
         ]
     },
     {

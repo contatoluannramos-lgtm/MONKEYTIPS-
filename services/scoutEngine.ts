@@ -1,5 +1,5 @@
 
-import { Match, SportType, ScoutResult, CalibrationConfig, FootballStats, BasketballStats } from "../types";
+import { Match, SportType, ScoutResult, CalibrationConfig, FootballStats, BasketballStats, VolleyballStats } from "../types";
 
 export const DEFAULT_CALIBRATION: CalibrationConfig = {
   football: { 
@@ -16,12 +16,12 @@ export const DEFAULT_CALIBRATION: CalibrationConfig = {
     lineThreshold: 220 // Ajustado para média NBA
   },
   volleyball: { 
-    instruction: "Analista Oficial: Verifique erros de saque. Muitos erros = Sets longos (Over).",
+    instruction: "Analista Oficial: Verifique erros de saque. Muitos erros = Sets longos (Over). 24-24 é gatilho de Hot Game.",
     setWinProbability: 0.7, 
     blockWeight: 0.3 
   },
   iceHockey: { 
-    instruction: "Analista Oficial: Power Play define o jogo. PP% > 25% é vantagem clara.",
+    instruction: "Analista Oficial: Power Play define o jogo. PP% > 25% é vantagem clara. Goleiro com SV% < .900 é alvo de Over.",
     powerPlayWeight: 0.4, 
     goalieSaveRateWeight: 0.6 
   },
@@ -61,6 +61,13 @@ const detectHotGame = (sport: SportType, stats: any): boolean => {
         
         // > 0.8 ataques perigosos por minuto é pressão alta
         return attacksPerMin > 0.8;
+    }
+
+    if (sport === SportType.VOLLEYBALL) {
+        // Vôlei Hot: Set decisivo ou Placar apertado no final (ex: 23-23)
+        const home = stats.currentSetScore?.home || 0;
+        const away = stats.currentSetScore?.away || 0;
+        return (home > 20 || away > 20) && Math.abs(home - away) <= 2;
     }
     
     return false;
@@ -164,6 +171,54 @@ export const runScoutAnalysis = (match: Match, config: CalibrationConfig): Scout
       details: details,
       isHotGame: isHot
     };
+  }
+
+  // --- VÔLEI (CALIBRADO) ---
+  if (match.sport === SportType.VOLLEYBALL) {
+    const stats = match.stats as VolleyballStats;
+    const priorProb = 50; 
+    let finalProb = priorProb;
+    let details = "PRE-GAME";
+
+    if (isLive) {
+        const setsPlayed = stats.homeScore + stats.awayScore;
+        
+        // Lógica de Sets: 2-2 = 100% chance de 5 sets (Over)
+        // 1-1 = Alta chance de Over
+        if (setsPlayed >= 4) finalProb = 95;
+        else if (setsPlayed === 2 && stats.homeScore === 1) finalProb = 75;
+        else finalProb = 50;
+
+        // Aplicação do peso de Erros/Bloqueios da Calibragem
+        // Se o jogo tem muitos erros, tende a sets mais longos
+        if (stats.errors && (stats.errors.home + stats.errors.away) > 12) {
+             finalProb += (config.volleyball.blockWeight * 10);
+        }
+
+        isHot = detectHotGame(SportType.VOLLEYBALL, stats);
+        details = `SETS: ${stats.homeScore}-${stats.awayScore} | Hot: ${isHot ? 'YES' : 'NO'}`;
+    }
+
+    return {
+        matchId: match.id,
+        calculatedProbability: finalProb,
+        signal: finalProb > 70 ? 'STRONG_OVER' : 'NEUTRAL',
+        details: details,
+        isHotGame: isHot
+    };
+  }
+
+  // --- HÓQUEI (SIMPLIFICADO) ---
+  if (match.sport === SportType.ICE_HOCKEY) {
+      // Placeholder logic using calibration weights
+      const powerPlayFactor = config.iceHockey.powerPlayWeight * 100; // Ex: 40%
+      return {
+          matchId: match.id,
+          calculatedProbability: 50 + (powerPlayFactor / 5),
+          signal: 'NEUTRAL',
+          details: 'PowerPlay Analysis Active',
+          isHotGame: false
+      };
   }
   
   // Default
