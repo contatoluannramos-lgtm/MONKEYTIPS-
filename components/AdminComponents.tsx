@@ -886,12 +886,12 @@ export const ProjectEvolutionRoadmap = () => {
       id: 'p2',
       title: 'FASE 2: v1.6 - BACKEND API',
       description: 'Estrutura de APIs Server-side e validação de dados.',
-      status: 'PENDING',
-      progress: 0,
+      status: 'COMPLETED',
+      progress: 100,
       tasks: [
-        { id: 't2_1', name: 'API Endpoints (/tips/live, /pre)', isCompleted: false },
-        { id: 't2_2', name: 'Validação Server-side', isCompleted: false },
-        { id: 't2_3', name: 'Compatibilidade Vercel Edge', isCompleted: false }
+        { id: 't2_1', name: 'API Endpoints (/tips/live, /pre)', isCompleted: true },
+        { id: 't2_2', name: 'Validação Server-side', isCompleted: true },
+        { id: 't2_3', name: 'Compatibilidade Vercel Edge', isCompleted: true }
       ]
     },
     {
