@@ -1,20 +1,62 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# 🦍 Monkey Tips - Sports Intelligence Platform (v2.0)
 
-# Run and deploy your AI Studio app
+**Monkey Tips** is a high-end, dual-interface sports intelligence system designed to operate as a "Strategic Mind" terminal rather than a traditional betting site. It utilizes Advanced Mathematics (Bayesian Inference) and Multimodal AI (Google Gemini 2.5) to generate Value Bets (+EV).
 
-This contains everything you need to run your app locally.
+## 🚀 Features
 
-View your app in AI Studio: https://ai.studio/apps/drive/1jPJbauPrT2LWo62U1EqlT1rh6mV1W7uN
+### 🧠 Core Intelligence
+*   **Scout Engine:** Pure mathematical model using Poisson Distribution (Football) and Pace/Efficiency Projections (NBA). Includes Bayesian adjustments for live games.
+*   **Fusion Engine:** The decision-making core that combines Math + AI Context + Market Odds to determine "Green Lights".
+*   **News Engine:** Analyzes sports news via NLP to calculate statistical impact scores (-30% to +30%) on match probabilities.
 
-## Run Locally
+### 👁️ Computer Vision
+*   **Monkey Vision:** Real-time screen reader that captures data from betting sites via browser stream.
+*   **Monkey Labs:** OCR module for analyzing ticket screenshots and validating EV.
 
-**Prerequisites:**  Node.js
+### ⚡ Automation
+*   **Live Engine:** 30-second cycle loop for real-time monitoring.
+*   **Auto-Webhooks:** Dispatches alerts to Discord/Telegram/n8n.
+*   **Edge API:** Server-side validation and data ingestion endpoints.
 
+## 🛠️ Tech Stack
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+*   **Frontend:** React 18, Vite, Tailwind CSS
+*   **Language:** TypeScript
+*   **AI:** Google Gemini 2.5 Flash (Multimodal)
+*   **Database & Auth:** Supabase
+*   **API:** Vercel Edge Functions
+
+## 📦 Installation
+
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/your-org/monkey-tips.git
+    cd monkey-tips
+    ```
+
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+
+3.  Start the development server:
+    ```bash
+    npm run dev
+    ```
+
+## 🔐 Configuration
+
+Access the `/admin` route and navigate to the **Ativação** tab to configure your keys securely (stored in LocalStorage):
+*   **Google Gemini API Key**
+*   **API-Football Key** (RapidAPI)
+*   **Supabase URL & Key**
+
+## 📊 Roadmap Status
+
+*   [x] **Phase 1-3:** Core, UI, Backend (Completed)
+*   [x] **Phase 4:** News Engine & Automation (Completed)
+*   [x] **Phase 5:** Live Engine & Scout V2 (Completed)
+*   [ ] **Phase 6:** SaaS & Mobile Pro (In Progress)
+
+---
+*© 2024 Monkey Tips Intelligence. System Operational.*

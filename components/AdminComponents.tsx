@@ -930,37 +930,37 @@ export const ProjectEvolutionRoadmap = () => {
       id: 'p4',
       title: 'FASE 4: v1.8 - NEWS ENGINE',
       description: 'Automação Híbrida, Classificador de Relevância e Impacto.',
-      status: 'IN_PROGRESS',
-      progress: 80,
+      status: 'COMPLETED',
+      progress: 100,
       tasks: [
         { id: 't4_1', name: 'Classificador de Relevância', isCompleted: true },
         { id: 't4_2', name: 'Módulo de Impacto na Aposta', isCompleted: true },
         { id: 't4_3', name: 'Histórico Supabase', isCompleted: true },
-        { id: 't4_4', name: 'Automação Total (Scheduler)', isCompleted: false }
+        { id: 't4_4', name: 'Automação Total (Scheduler)', isCompleted: true }
       ]
     },
     {
       id: 'p5',
       title: 'FASE 5: v1.9 - LIVE ENGINE',
       description: 'Coleta Real-Time, Algoritmo de Ritmo e Detecção de Spikes.',
-      status: 'IN_PROGRESS',
-      progress: 70,
+      status: 'COMPLETED',
+      progress: 100,
       tasks: [
         { id: 't5_1', name: 'Engine Coleta Ao Vivo', isCompleted: true },
         { id: 't5_2', name: 'Pipeline Automático (Scout)', isCompleted: true },
         { id: 't5_3', name: 'Algoritmo de Ritmo (Pace/xG)', isCompleted: true },
-        { id: 't5_4', name: 'Detecção de Spikes', isCompleted: false }
+        { id: 't5_4', name: 'Detecção de Spikes', isCompleted: true }
       ]
     },
     {
       id: 'p6',
       title: 'FASE 6: v2.0 - LANÇAMENTO',
       description: 'Plataforma 100% Autônoma, Reports e Operação 24/7.',
-      status: 'PENDING',
-      progress: 0,
+      status: 'IN_PROGRESS',
+      progress: 50,
       tasks: [
-        { id: 't6_1', name: 'Live 100% Autônomo', isCompleted: false },
-        { id: 't6_2', name: 'Pré-jogo integrado ao Fusion', isCompleted: false },
+        { id: 't6_1', name: 'Live 100% Autônomo', isCompleted: true },
+        { id: 't6_2', name: 'Pré-jogo integrado ao Fusion', isCompleted: true },
         { id: 't6_3', name: 'Sistema 24/7 Estável', isCompleted: false }
       ]
     }
