@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { ImprovementProposal, ChecklistItem, RoadmapPhase, Tip, TipStatus, CalibrationConfig, ScoutResult, FusionAnalysis, NewsAnalysis, TARGET_TEAMS_BRASILEIRAO, NewsProcessedItem, BotNewsPayload } from '../types';
+import { ImprovementProposal, ChecklistItem, RoadmapPhase, Tip, TipStatus, CalibrationConfig, ScoutResult, FusionAnalysis, NewsAnalysis, TARGET_TEAMS_BRASILEIRAO, NewsProcessedItem, BotNewsPayload, Match } from '../types';
 import { dbService } from '../services/databaseService';
 import { GoogleGenAI } from "@google/genai";
 import { analyzeSportsNews, processBotNews } from '../services/geminiService';
-import { DEFAULT_CALIBRATION } from '../services/scoutEngine';
+import { DEFAULT_CALIBRATION, runScoutAnalysis } from '../services/scoutEngine';
+import { runFusionEngine } from '../services/fusionEngine';
+import { webhookService } from '../services/webhookService';
 
 // --- EXISTING COMPONENTS ---
 
@@ -269,6 +271,129 @@ export const FusionTerminal = ({ analysis }: { analysis: FusionAnalysis }) => {
   );
 };
 
+export const MonkeyLivePanel = ({ matches, tips }: { matches: Match[], tips: Tip[] }) => {
+    const [liveMatches, setLiveMatches] = useState<Match[]>([]);
+    const [lastUpdate, setLastUpdate] = useState(new Date());
+    const [autoFire, setAutoFire] = useState(false);
+    const [webhookUrl, setWebhookUrl] = useState('');
+    const [logs, setLogs] = useState<string[]>([]);
+  
+    useEffect(() => {
+        const savedUrl = localStorage.getItem('monkey_webhook_url');
+        if (savedUrl) setWebhookUrl(savedUrl);
+    }, []);
+  
+    useEffect(() => {
+        // Filter only live matches
+        const live = matches.filter(m => m.status === 'Live');
+        setLiveMatches(live);
+    }, [matches]);
+  
+    useEffect(() => {
+        // SCHEDULER: Updates every 30 seconds
+        const interval = setInterval(() => {
+            setLastUpdate(new Date());
+            processLiveCycle();
+        }, 30000); // 30s cycle
+  
+        return () => clearInterval(interval);
+    }, [liveMatches, autoFire, webhookUrl]);
+  
+    const processLiveCycle = () => {
+        const time = new Date().toLocaleTimeString();
+        // Run Fusion Analysis on Live Matches
+        liveMatches.forEach(async (match) => {
+             const tip = tips.find(t => t.matchId === match.id) || null;
+             const config = DEFAULT_CALIBRATION; // Or load user config
+             const scout = runScoutAnalysis(match, config);
+             const fusion = runFusionEngine(match, scout, tip);
+  
+             if (fusion.verdict === 'GREEN_LIGHT') {
+                 addLog(`[${time}] GREEN LIGHT: ${match.teamA} vs ${match.teamB} (Conf: ${fusion.finalConfidence}%)`);
+                 if (autoFire && webhookUrl) {
+                     const success = await webhookService.triggerAlert(match, fusion, webhookUrl);
+                     if (success) addLog(`[${time}] 🚀 WEBHOOK DISPARADO!`);
+                     else addLog(`[${time}] ❌ ERRO WEBHOOK`);
+                 }
+             }
+        });
+    };
+  
+    const addLog = (msg: string) => {
+        setLogs(prev => [msg, ...prev].slice(0, 50));
+    };
+  
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+            <div className="lg:col-span-2 space-y-4">
+                <div className="flex justify-between items-center bg-surface-900 border border-white/5 p-4">
+                    <div>
+                        <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
+                            <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+                            MONKEY LIVE ENGINE
+                        </h3>
+                        <p className="text-xs font-mono text-gray-500">CYCLE: 30s | REAL-TIME MONITORING</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <div className="text-right">
+                             <p className="text-[10px] text-gray-500 uppercase">Last Update</p>
+                             <p className="text-white font-mono">{lastUpdate.toLocaleTimeString()}</p>
+                        </div>
+                        <button 
+                            onClick={() => setAutoFire(!autoFire)}
+                            className={`px-4 py-2 text-xs font-bold uppercase border ${
+                                autoFire ? 'bg-red-500/20 border-red-500 text-red-500' : 'bg-gray-800 border-gray-600 text-gray-500'
+                            }`}
+                        >
+                            {autoFire ? '🚨 AUTO-FIRE: ON' : 'AUTO-FIRE: OFF'}
+                        </button>
+                    </div>
+                </div>
+  
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {liveMatches.length === 0 ? (
+                        <div className="col-span-full py-20 text-center border border-dashed border-white/10 text-gray-500 font-mono">
+                            NENHUMA PARTIDA AO VIVO DETECTADA NO MOMENTO.
+                        </div>
+                    ) : liveMatches.map(m => {
+                         const scout = runScoutAnalysis(m, DEFAULT_CALIBRATION);
+                         return (
+                            <div key={m.id} className="bg-surface-900 border border-white/5 p-4 relative overflow-hidden">
+                                {scout.isHotGame && <div className="absolute top-0 right-0 p-1 bg-red-500/20 text-[10px] text-red-500 font-bold uppercase">HOT 🔥</div>}
+                                <div className="flex justify-between items-end mb-2">
+                                    <span className="text-white font-bold text-sm">{m.teamA} v {m.teamB}</span>
+                                    <span className="text-brand-500 font-mono text-xs">
+                                        {m.sport === 'Futebol' ? `${(m.stats as any).currentMinute}'` : m.status}
+                                    </span>
+                                </div>
+                                <div className="w-full bg-gray-800 h-1 mb-2">
+                                    <div className="bg-brand-500 h-full transition-all duration-500" style={{ width: `${scout.calculatedProbability}%` }}></div>
+                                </div>
+                                <div className="flex justify-between text-[10px] text-gray-500 font-mono">
+                                    <span>Prob: {scout.calculatedProbability.toFixed(0)}%</span>
+                                    <span>Signal: {scout.signal}</span>
+                                </div>
+                            </div>
+                         );
+                    })}
+                </div>
+            </div>
+  
+            <div className="bg-black border border-white/5 p-4 flex flex-col h-full font-mono text-xs">
+                <h4 className="text-gray-400 uppercase tracking-widest border-b border-white/5 pb-2 mb-2">SYSTEM LOGS</h4>
+                <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar">
+                    {logs.map((log, idx) => (
+                        <p key={idx} className={log.includes('GREEN LIGHT') ? 'text-green-500 font-bold' : log.includes('WEBHOOK') ? 'text-blue-500' : 'text-gray-500'}>
+                            {log}
+                        </p>
+                    ))}
+                    {logs.length === 0 && <p className="text-gray-700 italic">Listening for events...</p>}
+                </div>
+            </div>
+        </div>
+    );
+  };
+
 export const NewsTerminal = () => {
   const [isSimulating, setIsSimulating] = useState(false);
   const [newsQueue, setNewsQueue] = useState<NewsProcessedItem[]>([]);
@@ -398,7 +523,8 @@ export const ActivationPanel = () => {
     gemini: '',
     football: '',
     supabaseUrl: '',
-    supabaseKey: ''
+    supabaseKey: '',
+    webhookUrl: ''
   });
   
   const [status, setStatus] = useState({
@@ -415,12 +541,14 @@ export const ActivationPanel = () => {
     const savedFootball = localStorage.getItem('monkey_football_api_key') || '';
     const savedSupaUrl = localStorage.getItem('supabase_project_url') || '';
     const savedSupaKey = localStorage.getItem('supabase_anon_key') || '';
+    const savedWebhook = localStorage.getItem('monkey_webhook_url') || '';
 
     setKeys({ 
         gemini: savedGemini, 
         football: savedFootball,
         supabaseUrl: savedSupaUrl, 
-        supabaseKey: savedSupaKey 
+        supabaseKey: savedSupaKey,
+        webhookUrl: savedWebhook
     });
 
     if (savedGemini) setStatus(prev => ({ ...prev, gemini: 'success' }));
@@ -436,6 +564,7 @@ export const ActivationPanel = () => {
     if (keyType === 'football') localStorage.setItem('monkey_football_api_key', value);
     if (keyType === 'supabaseUrl') localStorage.setItem('supabase_project_url', value);
     if (keyType === 'supabaseKey') localStorage.setItem('supabase_anon_key', value);
+    if (keyType === 'webhookUrl') localStorage.setItem('monkey_webhook_url', value);
   };
   
   const handleReset = () => {
@@ -529,6 +658,27 @@ export const ActivationPanel = () => {
                     </span>
                 </div>
             </div>
+         </div>
+         
+         {/* Webhook Configuration */}
+         <div className="mt-8 pt-6 border-t border-white/5">
+             <label className="block text-xs font-mono font-bold text-gray-500 mb-2 uppercase flex items-center gap-2">
+                 🔗 Webhook Automático (Discord/Telegram/n8n)
+                 <span className="text-[9px] bg-red-500/20 text-red-500 px-1 rounded">LIVE ACTION</span>
+             </label>
+             <div className="flex gap-2">
+                 <input 
+                     type="text" 
+                     className="flex-1 bg-surface-900 border border-white/10 p-3 text-white focus:border-brand-500 focus:outline-none rounded-none text-sm font-mono" 
+                     placeholder="https://discord.com/api/webhooks/..."
+                     value={keys.webhookUrl}
+                     onChange={(e) => handleSave('webhookUrl', e.target.value)}
+                 />
+                 <button className="bg-surface-800 text-white px-4 py-2 text-xs font-bold uppercase border border-white/10 hover:bg-surface-700">
+                     Testar
+                 </button>
+             </div>
+             <p className="text-[10px] text-gray-600 mt-1">URL para envio de alertas automáticos quando o sistema detectar "GREEN LIGHT".</p>
          </div>
       </div>
       
@@ -883,8 +1033,8 @@ export const NewsImplementationChecklist = () => {
     { id: '4', label: 'Integrar Fusion Engine', checked: false },
     { id: '5', label: 'Criar histórico Supabase', checked: false },
     { id: '6', label: 'Frontend responsivo/animado', checked: true },
-    { id: '7', label: 'Criar modo Monkey Live', checked: false },
-    { id: '8', label: 'Webhook disparo automático', checked: false },
+    { id: '7', label: 'Criar modo Monkey Live', checked: true },
+    { id: '8', label: 'Webhook disparo automático', checked: true },
   ]);
 
   const toggle = (id: string) => {

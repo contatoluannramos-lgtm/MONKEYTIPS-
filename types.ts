@@ -7,7 +7,7 @@ export enum SportType {
   ESPORTS = 'eSports (LoL/CS)'
 }
 
-export type AdminView = 'DASHBOARD' | 'ACTIVATION' | 'MONKEY_LABS' | 'MONKEY_VISION' | 'MONKEY_NEWS' | 'PERFORMANCE' | 'CALIBRATION' | 'SCOUT_ENGINE' | 'FUSION_CENTER';
+export type AdminView = 'DASHBOARD' | 'ACTIVATION' | 'MONKEY_LABS' | 'MONKEY_VISION' | 'MONKEY_NEWS' | 'MONKEY_LIVE' | 'PERFORMANCE' | 'CALIBRATION' | 'SCOUT_ENGINE' | 'FUSION_CENTER';
 
 export interface FootballStats {
   homeScore: number;
