@@ -291,7 +291,7 @@ export const MonkeyLivePanel = ({ matches, tips }: { matches: Match[], tips: Tip
   
     useEffect(() => {
         // SCHEDULER: Updates every 30 seconds
-        const interval = setInterval(() => {
+        const interval: ReturnType<typeof setInterval> = setInterval(() => {
             setLastUpdate(new Date());
             processLiveCycle();
         }, 30000); // 30s cycle
@@ -870,53 +870,73 @@ export const ActivationPanel = () => {
 
 export const ProjectEvolutionRoadmap = () => {
   const [phases, setPhases] = useState<RoadmapPhase[]>([
+    // --- BLOCO 1: BASE SÓLIDA (DONE) ---
     {
-      id: 'p1', title: 'FASE 1: FUNDAÇÃO', description: 'Estrutura base, UI/UX Militar, IA Simples e Roteamento.', status: 'COMPLETED', progress: 100,
-      tasks: [{ id: 't1_1', name: 'Design "Strategic Mind" e UI Tática', isCompleted: true }, { id: 't1_2', name: 'Configuração do Google Gemini 2.5 Flash', isCompleted: true }, { id: 't1_3', name: 'Separação Rígida Admin / Cliente', isCompleted: true }, { id: 't1_4', name: 'Mock Data para MVP', isCompleted: true }, { id: 't1_5', name: 'Deploy Inicial na Vercel', isCompleted: true }]
+      id: 'p1', title: 'FASE 1: INFRA & DADOS (BASE)', description: 'Fundação, Banco de Dados, APIs e Segurança.', status: 'COMPLETED', progress: 100,
+      tasks: [
+          { id: 't1_1', name: 'Arquitetura & UI Tática', isCompleted: true },
+          { id: 't1_2', name: 'Integração API Football & Supabase', isCompleted: true },
+          { id: 't1_3', name: 'Autenticação Admin', isCompleted: true },
+          { id: 't1_4', name: 'News Engine (Crawler)', isCompleted: true }
+      ]
     },
     {
-      id: 'p2', title: 'FASE 2: DADOS & INTEGRAÇÃO', description: 'Conexão com o mundo real (APIs, Banco de Dados).', status: 'COMPLETED', progress: 100,
-      tasks: [{ id: 't2_1', name: 'Integração API SofaScore/FlashScore (Ao Vivo)', isCompleted: true }, { id: 't2_2', name: 'Banco de Dados (Supabase/Firebase)', isCompleted: true }, { id: 't2_3', name: 'Autenticação Real de Admin', isCompleted: true }, { id: 't2_4', name: 'Histórico de Performance das Tips', isCompleted: true }]
+      id: 'p2', title: 'FASE 2: INTELIGÊNCIA & VISÃO 1.0', description: 'Motores de IA, Visão Computacional e Fusão.', status: 'COMPLETED', progress: 100,
+      tasks: [
+          { id: 't2_1', name: 'Scout & Fusion Engines V1', isCompleted: true },
+          { id: 't2_2', name: 'Monkey Vision Real (Screen Share)', isCompleted: true },
+          { id: 't2_3', name: 'Monkey Labs (OCR de Bilhetes)', isCompleted: true },
+          { id: 't2_4', name: 'Integração News -> Fusion', isCompleted: true }
+      ]
+    },
+
+    // --- BLOCO 2: EXECUÇÃO PRIORITÁRIA (IN PROGRESS) ---
+    {
+        id: 'p3', title: 'FASE 3: SCOUT MATEMÁTICO V2', description: 'Refinamento estatístico para precisão máxima.', status: 'IN_PROGRESS', progress: 80,
+        tasks: [
+            { id: 't3_1', name: 'Ajuste Bayesiano (Histórico vs Live)', isCompleted: true },
+            { id: 't3_2', name: 'Detector de Jogos Quentes (Hot)', isCompleted: true },
+            { id: 't3_3', name: 'Confidence Score Nivelado', isCompleted: true },
+            { id: 't3_4', name: 'Calibragem Fina por Esporte', isCompleted: false }
+        ]
     },
     {
-      id: 'p3', title: 'FASE 3: INTELIGÊNCIA TÁTICA', description: 'Refinamento do prompt e análise preditiva complexa.', status: 'COMPLETED', progress: 100,
-      tasks: [{ id: 't3_1', name: 'Ajuste Fino (Fine-tuning) por Liga', isCompleted: true }, { id: 't3_2', name: 'Análise de Lesões e Clima em Tempo Real', isCompleted: true }, { id: 't3_3', name: 'Comparador de Odds Automático', isCompleted: true }, { id: 't3_4', name: 'Sistema de Alertas via Telegram/Email', isCompleted: true }]
+        id: 'p4', title: 'FASE 4: AUDITORIA DE PRODUÇÃO', description: 'Garantia de estabilidade e usabilidade real.', status: 'IN_PROGRESS', progress: 60,
+        tasks: [
+            { id: 't4_1', name: 'Validação de Chaves de API', isCompleted: true },
+            { id: 't4_2', name: 'Reset de Emergência (Pânico)', isCompleted: true },
+            { id: 't4_3', name: 'Tratamento de Erros (Drag/Drop)', isCompleted: true },
+            { id: 't4_4', name: 'Teste de Carga (Simulação)', isCompleted: false }
+        ]
+    },
+
+    // --- BLOCO 3: UX & MOBILE ---
+    {
+        id: 'p5', title: 'FASE 5: MOBILE PRO EXPERIENCE', description: 'Adaptação total para celulares.', status: 'PENDING', progress: 0,
+        tasks: [
+            { id: 't5_1', name: 'Interface Compacta (Mobile First)', isCompleted: false },
+            { id: 't5_2', name: 'Botões de Ação Maiores', isCompleted: false },
+            { id: 't5_3', name: 'Alertas via Vibração/Push', isCompleted: false },
+            { id: 't5_4', name: 'Scanner de QR Code para Vision', isCompleted: false }
+        ]
+    },
+
+    // --- BLOCO 4: FUTURO (EXPANSÃO) ---
+    {
+        id: 'p6', title: 'FASE 6: VISION 2.0 & AUTOMAÇÃO', description: 'Leitura avançada de apostas em tela.', status: 'PENDING', progress: 0,
+        tasks: [
+            { id: 't6_1', name: 'Reconhecimento de Aposta em Montagem', isCompleted: false },
+            { id: 't6_2', name: 'OCR Aprimorado para Mobile', isCompleted: false },
+            { id: 't6_3', name: 'Automação de Clique (Experimental)', isCompleted: false }
+        ]
     },
     {
-      id: 'p4', title: 'FASE 4: ESCALA E MONETIZAÇÃO', description: 'Transformar o sistema em produto SAAS comercial.', status: 'PENDING', progress: 0,
-      tasks: [{ id: 't4_1', name: 'Área de Membros (Pagamento Stripe)', isCompleted: false }, { id: 't4_2', name: 'App Mobile PWA', isCompleted: false }, { id: 't4_3', name: 'Analytics de Usuário (Mixpanel)', isCompleted: false }, { id: 't4_4', name: 'Suporte Multi-idioma', isCompleted: false }]
-    },
-    {
-        id: 'p5', title: 'FASE 5: INTELIGÊNCIA VISUAL', description: 'Monkey Labs & Vision Core.', status: 'COMPLETED', progress: 100,
-        tasks: [{ id: 't5_1', name: 'Upload de Bilhetes (OCR)', isCompleted: true }, { id: 't5_2', name: 'Análise de Valor (EV+) via Imagem', isCompleted: true }, { id: 't5_3', name: 'Integração Multimodal Gemini', isCompleted: true }]
-    },
-    {
-        id: 'p6', title: 'FASE 6: AUDITORIA & PRODUÇÃO', description: 'Polimento final para operação real.', status: 'IN_PROGRESS', progress: 80,
-        tasks: [{ id: 't6_1', name: 'Reset de Configuração (Pânico)', isCompleted: true }, { id: 't6_2', name: 'UX Drag & Drop no Labs', isCompleted: true }, { id: 't6_3', name: 'Validação de Chaves Reais', isCompleted: true }]
-    },
-    {
-        id: 'p7', title: 'FASE 7: MONKEY VISION REAL', description: 'Integração com Google AI Studio para leitura de tela.', status: 'COMPLETED', progress: 100,
-        tasks: [{ id: 't7_1', name: 'Navegador Interno Simulado', isCompleted: true }, { id: 't7_2', name: 'Leitura de Placar e Tempo (OCR)', isCompleted: true }, { id: 't7_3', name: 'Leitura de Odds em Tempo Real', isCompleted: true }, { id: 't7_4', name: 'Pipeline Screen -> Fusion Engine', isCompleted: true }]
-    },
-    {
-        id: 'p8', title: 'FASE 8: NEWS ENGINE', description: 'Inteligência de Notícias e Contexto.', status: 'COMPLETED', progress: 100,
-        tasks: [{ id: 't8_1', name: 'Crawler de URLs e Texto', isCompleted: true }, { id: 't8_2', name: 'Cálculo de Impact Score', isCompleted: true }, { id: 't8_3', name: 'Filtro G10 Brasileirão', isCompleted: true }, { id: 't8_4', name: 'Integração Fusion (Peso de Notícia)', isCompleted: true }]
-    },
-    {
-        id: 'p9', title: 'FASE 9: MONETIZAÇÃO (SAAS)', description: 'Preparação para Venda', status: 'PENDING', progress: 0,
-        tasks: [{ id: 't9_1', name: 'Planos e Limites', isCompleted: false }, { id: 't9_2', name: 'Ranking de Oportunidades', isCompleted: false }, { id: 't9_3', name: 'Comparação de Ligas', isCompleted: false }]
-    },
-    {
-        id: 'p10', title: 'FASE 10: SCOUT MATEMÁTICO PRO', description: 'Scout Engine V2', status: 'IN_PROGRESS', progress: 50,
-        tasks: [{ id: 't10_1', name: 'Ajuste Bayesiano', isCompleted: true }, { id: 't10_2', name: 'Detector de Jogos Quentes', isCompleted: true }, { id: 't10_3', name: 'Confidence Score (Fusion)', isCompleted: true }]
-    },
-    {
-        id: 'p11', title: 'FASE 11: VISION 2.0', description: 'Leitura de Aposta em Tela', status: 'PENDING', progress: 0,
-        tasks: [{ id: 't11_1', name: 'Reconhecimento de Aposta', isCompleted: false }, { id: 't11_2', name: 'OCR Mobile Aprimorado', isCompleted: false }]
-    },
-    {
-        id: 'p12', title: 'FASE 12: MOBILE PRO', description: 'UX Profissional', status: 'PENDING', progress: 0,
-        tasks: [{ id: 't12_1', name: 'Interface Compacta', isCompleted: false }, { id: 't12_2', name: 'Alertas Push/Vibração', isCompleted: false }]
+        id: 'p7', title: 'FASE 7: MONETIZAÇÃO (SAAS)', description: 'Preparação comercial para venda.', status: 'PENDING', progress: 0,
+        tasks: [
+            { id: 't7_1', name: 'Gestão de Planos e Limites', isCompleted: false },
+            { id: 't7_2', name: 'Gateway de Pagamento (Stripe)', isCompleted: false },
+            { id: 't7_3', name: 'Ranking de Melhores Oportunidades', isCompleted: false }
+        ]
     }
   ]);
 
