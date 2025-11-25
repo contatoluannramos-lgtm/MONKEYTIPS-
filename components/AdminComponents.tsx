@@ -406,6 +406,66 @@ export const NewsTerminal = () => {
     );
 };
 
+export const NewsImplementationChecklist = () => {
+    const [tasks, setTasks] = useState([
+        { id: 'n1', label: 'Conectar backend real (Google AI Studio → Vercel → Supabase)', checked: false },
+        { id: 'n2', label: 'Ativar Scheduler Automático do Monitoramento Híbrido', checked: false },
+        { id: 'n3', label: 'Criar o classificador de relevância das notícias', checked: true },
+        { id: 'n4', label: 'Integrar o Fusion Engine para enviar alertas', checked: true },
+        { id: 'n5', label: 'Criar o histórico de notícias no Supabase', checked: false },
+        { id: 'n6', label: 'Deixar o frontend responsivo e animado (painel profissional)', checked: true },
+        { id: 'n7', label: 'Criar o modo Live do Monkey Tips (Monkey Live Engine)', checked: false },
+        { id: 'n8', label: 'Adicionar Webhook de disparo automático', checked: false },
+    ]);
+
+    const toggle = (id: string) => {
+        setTasks(prev => prev.map(t => t.id === id ? { ...t, checked: !t.checked } : t));
+    };
+
+    const progress = Math.round((tasks.filter(t => t.checked).length / tasks.length) * 100);
+
+    return (
+        <div className="bg-[#0B0B0D] border border-[#1C1C1F] h-full flex flex-col p-6 font-sans">
+             <div className="mb-6">
+                <h3 className="text-white font-bold text-sm uppercase tracking-wide mb-2 flex items-center gap-2">
+                    <span className="text-[#00FFB2]">✅</span> Protocolo de Implantação
+                </h3>
+                <p className="text-xs text-gray-500 font-mono mb-4">MONKEY NEWS ENGINE DEPLOYMENT</p>
+                
+                {/* Progress Bar */}
+                <div className="w-full h-1 bg-[#1C1C1F] mb-1">
+                    <div className="h-full bg-[#00FFB2] transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                </div>
+                <div className="text-right text-[10px] text-[#00FFB2] font-mono">{progress}% CONCLUÍDO</div>
+             </div>
+
+             <div className="space-y-3 flex-1 overflow-y-auto custom-scrollbar">
+                {tasks.map(task => (
+                    <div key={task.id} 
+                         onClick={() => toggle(task.id)}
+                         className={`p-3 border transition-all cursor-pointer flex items-start gap-3 group ${
+                             task.checked 
+                             ? 'bg-[#00FFB2]/5 border-[#00FFB2]/30' 
+                             : 'bg-[#121214] border-[#1C1C1F] hover:border-gray-600'
+                         }`}
+                    >
+                        <div className={`mt-0.5 w-4 h-4 rounded-sm border flex items-center justify-center shrink-0 transition-colors ${
+                            task.checked ? 'bg-[#00FFB2] border-[#00FFB2]' : 'border-gray-600 group-hover:border-gray-400'
+                        }`}>
+                            {task.checked && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="4"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                        </div>
+                        <span className={`text-xs leading-snug ${
+                            task.checked ? 'text-[#00FFB2] line-through decoration-[#00FFB2]/50' : 'text-gray-300'
+                        }`}>
+                            {task.label}
+                        </span>
+                    </div>
+                ))}
+             </div>
+        </div>
+    );
+};
+
 export const ActivationPanel = () => {
   const [keys, setKeys] = useState({
     football: '',

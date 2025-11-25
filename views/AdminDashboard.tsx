@@ -7,7 +7,7 @@ import { authService } from '../services/authService';
 import { runScoutAnalysis, DEFAULT_CALIBRATION } from '../services/scoutEngine';
 import { runFusionEngine } from '../services/fusionEngine';
 import { Match, Tip, SportType, AdminView, TipStatus, TicketAnalysis, ScoutResult, FusionAnalysis, ScreenAnalysisData } from '../types';
-import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel, TipsHistoryPanel, CalibrationPanel, ScoutCard, FusionTerminal, NewsTerminal } from '../components/AdminComponents';
+import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel, TipsHistoryPanel, CalibrationPanel, ScoutCard, FusionTerminal, NewsTerminal, NewsImplementationChecklist } from '../components/AdminComponents';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface AdminDashboardProps {
@@ -339,7 +339,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         {currentView === 'CALIBRATION' && (
           <div className="relative z-10 max-w-4xl mx-auto">
              <CalibrationPanel />
-          </div>
+           </div>
         )}
 
         {currentView === 'SCOUT_ENGINE' && (
@@ -379,8 +379,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         )}
 
         {currentView === 'MONKEY_NEWS' && (
-           <div className="relative z-10 max-w-3xl mx-auto h-[600px]">
-             <NewsTerminal />
+           <div className="relative z-10 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+             <div className="lg:col-span-2 h-[600px]">
+                <NewsTerminal />
+             </div>
+             <div>
+                <NewsImplementationChecklist />
+             </div>
            </div>
         )}
 
