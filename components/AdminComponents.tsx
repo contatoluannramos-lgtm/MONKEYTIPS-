@@ -1002,10 +1002,10 @@ export const ProjectEvolutionRoadmap = () => {
       id: 'p7',
       title: 'FASE 7: v2.1 - EXPANSÃO',
       description: 'Monetização, Mobile App Nativo e Escala Global.',
-      status: 'PENDING',
-      progress: 0,
+      status: 'IN_PROGRESS',
+      progress: 33,
       tasks: [
-        { id: 't7_1', name: 'Mobile App PWA (Installable)', isCompleted: false },
+        { id: 't7_1', name: 'Mobile App PWA (Installable)', isCompleted: true },
         { id: 't7_2', name: 'Integração Stripe (SaaS)', isCompleted: false },
         { id: 't7_3', name: 'Suporte Multi-idioma', isCompleted: false }
       ]
