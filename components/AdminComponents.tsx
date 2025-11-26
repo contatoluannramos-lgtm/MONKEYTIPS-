@@ -641,7 +641,7 @@ export const ActivationPanel = () => {
   });
 
   const [liveMode, setLiveMode] = useState(false);
-  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
+  const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
   useEffect(() => {
     // Load saved keys and set status if they exist
@@ -687,11 +687,18 @@ export const ActivationPanel = () => {
           alert("Por favor, insira uma URL de Webhook primeiro.");
           return;
       }
-      setIsTestingWebhook(true);
+      setTestStatus('loading');
       const success = await webhookService.sendTestMessage(keys.webhookUrl);
-      setIsTestingWebhook(false);
-      if (success) alert("✅ Sucesso! Verifique seu canal do Discord/Telegram.");
-      else alert("❌ Falha no envio. Verifique a URL.");
+      
+      if (success) {
+          setTestStatus('success');
+          setTimeout(() => setTestStatus('idle'), 3000);
+          alert("✅ Sucesso! Verifique seu canal do Discord/Telegram.");
+      } else {
+          setTestStatus('error');
+          setTimeout(() => setTestStatus('idle'), 3000);
+          alert("❌ Falha no envio. Verifique a URL.");
+      }
   };
 
   const testConnection = async (type: 'gemini' | 'football' | 'supabase') => {
@@ -796,10 +803,17 @@ export const ActivationPanel = () => {
                  />
                  <button 
                     onClick={handleTestWebhook}
-                    disabled={isTestingWebhook}
-                    className="bg-surface-800 text-white px-4 py-2 text-xs font-bold uppercase border border-white/10 hover:bg-surface-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={testStatus === 'loading'}
+                    className={`px-4 py-2 text-xs font-bold uppercase border transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
+                        testStatus === 'success' ? 'bg-green-500 text-black border-green-500' :
+                        testStatus === 'error' ? 'bg-red-500 text-white border-red-500' :
+                        'bg-surface-800 text-white border-white/10 hover:bg-surface-700'
+                    }`}
                  >
-                     {isTestingWebhook ? "Enviando..." : "Testar"}
+                     {testStatus === 'loading' && <span className="animate-spin">↻</span>}
+                     {testStatus === 'loading' ? "Enviando..." : 
+                      testStatus === 'success' ? "Enviado!" : 
+                      testStatus === 'error' ? "Erro" : "Testar"}
                  </button>
              </div>
              <p className="text-[10px] text-gray-600 mt-1">URL para envio de alertas automáticos quando o sistema detectar "GREEN LIGHT".</p>
