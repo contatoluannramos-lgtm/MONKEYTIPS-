@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { ClientHeader, Footer } from '../components/Layout';
 import { Tip, SportType } from '../types';
@@ -62,7 +63,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
                 <h2 className="text-4xl font-mono font-light text-brand-500">{stats.highConfidence.toString().padStart(2, '0')}</h2>
                </div>
                <div className="h-16 w-16 opacity-80">
-                 <ResponsiveContainer width="100%" height="100%">
+                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                    <PieChart>
                      <Pie data={chartData} innerRadius={18} outerRadius={28} paddingAngle={0} stroke="none" dataKey="value">
                        {chartData.map((entry, index) => (

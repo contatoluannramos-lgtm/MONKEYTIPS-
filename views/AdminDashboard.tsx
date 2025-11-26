@@ -717,7 +717,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                  <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6">
                     <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-6">Eficiência por Esporte</h3>
                     <div className="h-64 w-full">
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <BarChart data={performanceChartData} barSize={40}>
                           <XAxis dataKey="name" stroke="#52525b" tick={{fill: '#71717a'}} />
                           <YAxis stroke="#52525b" tick={{fill: '#71717a'}} />
@@ -811,7 +811,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                 <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6">
                   <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-6">Métricas de Performance do Modelo</h3>
                   <div className="h-64 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                       <BarChart data={performanceChartData} barSize={40}>
                         <XAxis dataKey="name" stroke="#52525b" tick={{fill: '#71717a', fontSize: 12, fontFamily: 'JetBrains Mono'}} axisLine={false} tickLine={false} />
                         <YAxis stroke="#52525b" tick={{fill: '#71717a', fontSize: 12, fontFamily: 'JetBrains Mono'}} axisLine={false} tickLine={false} />
