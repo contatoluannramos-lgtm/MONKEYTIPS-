@@ -641,6 +641,7 @@ export const ActivationPanel = () => {
   });
 
   const [liveMode, setLiveMode] = useState(false);
+  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
 
   useEffect(() => {
     // Load saved keys and set status if they exist
@@ -679,6 +680,18 @@ export const ActivationPanel = () => {
           localStorage.clear();
           window.location.reload();
       }
+  };
+
+  const handleTestWebhook = async () => {
+      if (!keys.webhookUrl) {
+          alert("Por favor, insira uma URL de Webhook primeiro.");
+          return;
+      }
+      setIsTestingWebhook(true);
+      const success = await webhookService.sendTestMessage(keys.webhookUrl);
+      setIsTestingWebhook(false);
+      if (success) alert("✅ Sucesso! Verifique seu canal do Discord/Telegram.");
+      else alert("❌ Falha no envio. Verifique a URL.");
   };
 
   const testConnection = async (type: 'gemini' | 'football' | 'supabase') => {
@@ -781,8 +794,12 @@ export const ActivationPanel = () => {
                      value={keys.webhookUrl}
                      onChange={(e) => handleSave('webhookUrl', e.target.value)}
                  />
-                 <button className="bg-surface-800 text-white px-4 py-2 text-xs font-bold uppercase border border-white/10 hover:bg-surface-700">
-                     Testar
+                 <button 
+                    onClick={handleTestWebhook}
+                    disabled={isTestingWebhook}
+                    className="bg-surface-800 text-white px-4 py-2 text-xs font-bold uppercase border border-white/10 hover:bg-surface-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                 >
+                     {isTestingWebhook ? "Enviando..." : "Testar"}
                  </button>
              </div>
              <p className="text-[10px] text-gray-600 mt-1">URL para envio de alertas automáticos quando o sistema detectar "GREEN LIGHT".</p>

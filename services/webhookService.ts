@@ -6,24 +6,23 @@ export const webhookService = {
     if (!webhookUrl) return;
 
     const payload = {
-      event: "MONKEY_TIPS_ALERT",
-      timestamp: new Date().toISOString(),
-      match: {
-        title: `${match.teamA} x ${match.teamB}`,
-        sport: match.sport,
-        league: match.league,
-        time: match.status === 'Live' ? 
-            (match.sport === 'Futebol' ? `${(match.stats as any).currentMinute}'` : 'AO VIVO') : 
-            match.startTime
-      },
-      analysis: {
-        verdict: analysis.verdict,
-        confidence: analysis.finalConfidence,
-        ev: analysis.ev,
-        scout_prob: analysis.scoutResult.calculatedProbability,
-        is_hot: analysis.scoutResult.isHotGame,
-        recommendation: analysis.verdict === 'GREEN_LIGHT' ? "ENTRADA RECOMENDADA" : "MONITORAR"
-      }
+      username: "Monkey Tips Intelligence",
+      avatar_url: "https://cdn-icons-png.flaticon.com/512/4712/4712009.png",
+      content: `🚨 **MONKEY TIPS ALERT** | ${match.teamA} x ${match.teamB}`,
+      embeds: [{
+        title: "🔥 Oportunidade Detectada",
+        color: analysis.verdict === 'GREEN_LIGHT' ? 5763719 : 16776960, // Green or Yellow
+        fields: [
+          { name: "Partida", value: `${match.teamA} vs ${match.teamB}`, inline: true },
+          { name: "Liga", value: match.league, inline: true },
+          { name: "Confiança", value: `${analysis.finalConfidence}% (${analysis.confidenceLevel})`, inline: true },
+          { name: "EV+", value: `${analysis.ev}%`, inline: true },
+          { name: "Scout Prob", value: `${analysis.scoutResult.calculatedProbability}%`, inline: true },
+          { name: "Status", value: analysis.scoutResult.isHotGame ? "🔥 HOT GAME" : "Normal", inline: true }
+        ],
+        footer: { text: "Monkey Tips v2.0 • AI Sports Intelligence" },
+        timestamp: new Date().toISOString()
+      }]
     };
 
     try {
@@ -41,5 +40,26 @@ export const webhookService = {
       console.error("Webhook Error:", error);
       return false;
     }
+  },
+
+  async sendTestMessage(webhookUrl: string) {
+      if (!webhookUrl) return false;
+
+      const payload = {
+          username: "Monkey Tips System",
+          content: "🦍 **Monkey Tips v2.0**: Teste de Conexão do Webhook realizado com sucesso! \n✅ O sistema está pronto para enviar alertas em tempo real.",
+      };
+
+      try {
+          const response = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+          });
+          return response.ok;
+      } catch (error) {
+          console.error("Webhook Test Error:", error);
+          return false;
+      }
   }
 };
