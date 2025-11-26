@@ -38,5 +38,9 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 1600,
+  },
+  define: {
+    // Force build timestamp to ensure git picks up config changes
+    __BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
   }
 })
