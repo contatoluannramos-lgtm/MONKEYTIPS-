@@ -990,12 +990,24 @@ export const ProjectEvolutionRoadmap = () => {
       id: 'p6',
       title: 'FASE 6: v2.0 - LANÇAMENTO',
       description: 'Plataforma 100% Autônoma, Reports e Operação 24/7.',
-      status: 'IN_PROGRESS',
-      progress: 80,
+      status: 'COMPLETED',
+      progress: 100,
       tasks: [
         { id: 't6_1', name: 'Live 100% Autônomo', isCompleted: true },
         { id: 't6_2', name: 'Pré-jogo integrado ao Fusion', isCompleted: true },
         { id: 't6_3', name: 'Sistema 24/7 Estável', isCompleted: true }
+      ]
+    },
+    {
+      id: 'p7',
+      title: 'FASE 7: v2.1 - EXPANSÃO',
+      description: 'Monetização, Mobile App Nativo e Escala Global.',
+      status: 'PENDING',
+      progress: 0,
+      tasks: [
+        { id: 't7_1', name: 'Mobile App PWA (Installable)', isCompleted: false },
+        { id: 't7_2', name: 'Integração Stripe (SaaS)', isCompleted: false },
+        { id: 't7_3', name: 'Suporte Multi-idioma', isCompleted: false }
       ]
     }
   ]);
