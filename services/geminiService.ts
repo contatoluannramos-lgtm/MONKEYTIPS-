@@ -9,7 +9,7 @@ const tipSchema: Schema = {
   properties: {
     prediction: { type: Type.STRING, description: "A recomendação final curta e direta. Ex: 'Lakers -5.5' ou 'Over 220.5'." },
     confidence: { type: Type.INTEGER, description: "Porcentagem de confiança 0-100" },
-    reasoning: { type: Type.STRING, description: "O texto completo formatado nos 3 blocos (Projeções, Conclusão, Recomendação)." },
+    reasoning: { type: Type.STRING, description: "O texto completo formatado com as 8 regras fixas (Projeções, Variação, DanielScore, etc)." },
     odds: { type: Type.NUMBER, description: "Odds decimais estimadas para este mercado." }
   },
   required: ["prediction", "confidence", "reasoning", "odds"],
@@ -164,19 +164,27 @@ export const generateAnalysis = async (match: Match): Promise<Partial<Tip> | nul
       Se tiver dados históricos acima, use-os como base principal para o viés da análise.
       Se as estatísticas técnicas estiverem zeradas (Scheduled), confie 100% no histórico e conhecimento prévio.
 
-      REGRAS DE FORMATAÇÃO (3 BLOCOS OBRIGATÓRIOS):
+      REGRAS DE FORMATAÇÃO FIXAS (Obrigatório incluir todos os 8 pontos no texto):
+      1. Projeção HT
+      2. Projeção FT
+      3. Projeção por time
+      4. Faixa de variação
+      5. Nível de confiança
+      6. Recomendação objetiva
+      7. Resumo técnico DanielScore
+      8. Integração com Scout Engine + Fusion Engine
+
+      ESTRUTURA DE SAÍDA (JSON 'reasoning'):
+      Use Markdown para formatar a resposta.
       
-      ⸻
-      1) PROJEÇÕES MONKEYTIPS
-      • [Dado estatístico cruzado]
-      • [Tendência projetada baseada nos últimos 5 jogos]
-      • [Probabilidade %]
-      ⸻
-      2) CONCLUSÃO
-      [Resumo curto e tático de 2 linhas. Direto ao ponto. Sem enrolação.]
-      ⸻
-      3) RECOMENDAÇÃO MONKEYTIPS
-      • [APOSTA ÚNICA] (Ex: Lakers -5.5, Over 225.5 Points)
+      Exemplo de Reasoning:
+      "**1. Projeção HT:** 1-0 | **2. Projeção FT:** 2-1
+       **3. Projeção Times:** Mandante (1.8 goals), Visitante (0.9 goals)
+       **4. Variação:** 2-3 gols no total.
+       **5. Confiança:** 78% (High)
+       **6. Recomendação:** Over 2.5 Gols
+       **7. DanielScore:** Jogo de alta intensidade ofensiva, xG superior a 1.5.
+       **8. Fusion:** Alinhado com Scout Engine."
 
       Retorne apenas JSON válido conforme schema.
     `;

@@ -931,7 +931,8 @@ export const ProjectEvolutionRoadmap = () => {
       tasks: [
         { id: 't1_1', name: 'Modo Pré-Jogo (DanielScore)', isCompleted: true },
         { id: 't1_2', name: 'Live Padrão (Gol/Canto/Cartão)', isCompleted: true },
-        { id: 't1_3', name: 'Pré-Tips Projetivas', isCompleted: true }
+        { id: 't1_3', name: 'Pré-Tips Projetivas', isCompleted: true },
+        { id: 't1_4', name: 'Pipeline de Respostas', isCompleted: true }
       ]
     },
     {
@@ -942,8 +943,9 @@ export const ProjectEvolutionRoadmap = () => {
       progress: 100,
       tasks: [
         { id: 't2_1', name: 'API Endpoints (/tips/live, /pre)', isCompleted: true },
-        { id: 't2_2', name: 'Validação Server-side', isCompleted: true },
-        { id: 't2_3', name: 'Compatibilidade Vercel Edge', isCompleted: true }
+        { id: 't2_2', name: 'API Endpoints (/projections)', isCompleted: true },
+        { id: 't2_3', name: 'API Endpoints (/news/ingest)', isCompleted: true },
+        { id: 't2_4', name: 'Validação Server-side', isCompleted: true }
       ]
     },
     {
@@ -988,8 +990,8 @@ export const ProjectEvolutionRoadmap = () => {
       id: 'p6',
       title: 'FASE 6: v2.0 - LANÇAMENTO',
       description: 'Plataforma 100% Autônoma, Reports e Operação 24/7.',
-      status: 'COMPLETED',
-      progress: 100,
+      status: 'IN_PROGRESS',
+      progress: 80,
       tasks: [
         { id: 't6_1', name: 'Live 100% Autônomo', isCompleted: true },
         { id: 't6_2', name: 'Pré-jogo integrado ao Fusion', isCompleted: true },
