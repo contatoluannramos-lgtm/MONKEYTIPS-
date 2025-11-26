@@ -13,15 +13,16 @@ export default async function handler(request: Request) {
 
   const status = {
     system: "MONKEY_TIPS_ENGINE",
-    version: "1.6",
+    version: "2.0.0-RC",
     status: "OPERATIONAL",
     modules: {
       scout_engine: "ACTIVE",
       fusion_engine: "ACTIVE",
-      news_engine: "LISTENING",
-      live_engine: "STANDBY"
+      news_engine: "ACTIVE",
+      live_engine: "ACTIVE"
     },
-    serverTime: new Date().toISOString()
+    serverTime: new Date().toISOString(),
+    environment: "VERCEL_EDGE"
   };
 
   return new Response(JSON.stringify(status), {

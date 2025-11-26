@@ -906,8 +906,8 @@ export const ActivationPanel = () => {
               <div className="flex items-center gap-4">
                   <div className="bg-white/5 p-2 rounded"><span className="text-xl">📦</span></div>
                   <div>
-                      <p className="text-white font-bold text-sm">Monkey Tips v2.1-beta</p>
-                      <p className="text-gray-500 text-xs font-mono">Branch: main | Commit: {Math.random().toString(16).substr(2, 7)}</p>
+                      <p className="text-white font-bold text-sm">Monkey Tips v2.0-Release</p>
+                      <p className="text-gray-500 text-xs font-mono">Branch: main | Build: Stable</p>
                   </div>
               </div>
               <div className="text-right">
@@ -924,7 +924,7 @@ export const ProjectEvolutionRoadmap = () => {
   const [phases, setPhases] = useState<RoadmapPhase[]>([
     {
       id: 'p1',
-      title: 'FASE 1: v1.5 - CORE (RODANDO)',
+      title: 'FASE 1: v1.5 - CORE',
       description: 'Módulos Ativos: Pré-jogo, Live Padrão, Pré-Tips e Pipeline de Respostas.',
       status: 'COMPLETED',
       progress: 100,

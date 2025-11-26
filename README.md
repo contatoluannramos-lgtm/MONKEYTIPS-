@@ -1,3 +1,4 @@
+
 # 🦍 Monkey Tips - Sports Intelligence Platform (v2.0)
 
 **Monkey Tips** is a high-end, dual-interface sports intelligence system designed to operate as a "Strategic Mind" terminal rather than a traditional betting site. It utilizes Advanced Mathematics (Bayesian Inference) and Multimodal AI (Google Gemini 2.5) to generate Value Bets (+EV).
@@ -53,10 +54,11 @@ Access the `/admin` route and navigate to the **Ativação** tab to configure yo
 
 ## 📊 Roadmap Status
 
-*   [x] **Phase 1-3:** Core, UI, Backend (Completed)
+*   [x] **Phases 1-3:** Core, Backend, Interface (Completed)
 *   [x] **Phase 4:** News Engine & Automation (Completed)
 *   [x] **Phase 5:** Live Engine & Scout V2 (Completed)
-*   [ ] **Phase 6:** SaaS & Mobile Pro (In Progress)
+*   [x] **Phase 6:** v2.0 Launch & Autonomous Systems (Completed)
+*   [ ] **Phase 7:** SaaS & Mobile Expansion (In Progress)
 
 ---
 *© 2024 Monkey Tips Intelligence. System Operational.*
