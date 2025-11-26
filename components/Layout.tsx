@@ -1,12 +1,15 @@
+
 import React from 'react';
-import { SportType } from '../types';
+import { SportType, SubscriptionPlan } from '../types';
 
 interface ClientHeaderProps {
   activeSport: SportType | 'All';
   onSportChange: (sport: SportType | 'All') => void;
+  isPremium: boolean;
+  onLogin: () => void;
 }
 
-export const ClientHeader: React.FC<ClientHeaderProps> = ({ activeSport, onSportChange }) => {
+export const ClientHeader: React.FC<ClientHeaderProps> = ({ activeSport, onSportChange, isPremium, onLogin }) => {
   return (
     <nav className="fixed w-full z-50 top-0 border-b border-white/5 bg-surface-950/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -28,8 +31,8 @@ export const ClientHeader: React.FC<ClientHeaderProps> = ({ activeSport, onSport
           </div>
           
           {/* Desktop Nav */}
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-center space-x-1 bg-surface-900/50 p-1 rounded-none border border-white/5">
+          <div className="hidden md:flex items-center gap-6">
+            <div className="flex items-center space-x-1 bg-surface-900/50 p-1 rounded-none border border-white/5">
               {['All', ...Object.values(SportType)].map((sport) => (
                 <button
                   key={sport}
@@ -43,6 +46,22 @@ export const ClientHeader: React.FC<ClientHeaderProps> = ({ activeSport, onSport
                   {sport === 'All' ? 'Visão Geral' : sport}
                 </button>
               ))}
+            </div>
+            
+            {/* User Status */}
+            <div className="flex items-center gap-4 pl-4 border-l border-white/10">
+               {isPremium ? (
+                   <span className="text-[10px] font-bold font-mono text-brand-500 border border-brand-500/30 px-2 py-1 bg-brand-500/10 uppercase flex items-center gap-2">
+                       👑 Premium Member
+                   </span>
+               ) : (
+                   <button 
+                     onClick={onLogin}
+                     className="text-xs font-bold text-white hover:text-brand-500 transition-colors uppercase font-mono"
+                   >
+                       Assinar Premium
+                   </button>
+               )}
             </div>
           </div>
         </div>
@@ -83,3 +102,102 @@ export const Footer = () => (
     </div>
   </footer>
 );
+
+export const PremiumLock = ({ onClick }: { onClick: () => void }) => (
+    <div 
+        onClick={onClick}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-10 cursor-pointer group transition-all hover:bg-black/70"
+    >
+        <div className="p-4 rounded-full bg-surface-900 border border-brand-500/30 mb-3 group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-500">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+        </div>
+        <span className="text-white font-display font-bold uppercase tracking-widest text-sm">Conteúdo Premium</span>
+        <span className="text-brand-500 text-[10px] font-mono mt-1 group-hover:underline">Clique para desbloquear</span>
+    </div>
+);
+
+export const SubscriptionModal = ({ isOpen, onClose, onSubscribe }: { isOpen: boolean; onClose: () => void; onSubscribe: () => void }) => {
+    if (!isOpen) return null;
+
+    const plans: SubscriptionPlan[] = [
+        {
+            id: 'monthly',
+            name: 'PLANO TÁTICO',
+            price: 'R$ 49,90',
+            period: '/mês',
+            features: ['Acesso a Tips de Alta Confiança', 'Dashboard Ao Vivo', 'Sem Anúncios']
+        },
+        {
+            id: 'quarterly',
+            name: 'PLANO ESTRATÉGICO',
+            price: 'R$ 129,90',
+            period: '/trimestre',
+            features: ['Tudo do Plano Tático', 'Acesso ao Monkey Vision', 'Prioridade em Suporte', 'Economize 15%'],
+            recommended: true
+        }
+    ];
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={onClose}></div>
+            <div className="bg-surface-950 border border-white/10 w-full max-w-3xl relative z-10 shadow-2xl rounded-sm overflow-hidden">
+                <div className="p-8 text-center border-b border-white/5 bg-gradient-to-b from-brand-500/5 to-transparent">
+                    <h2 className="text-3xl font-display font-bold text-white mb-2">Desbloqueie o Poder Total</h2>
+                    <p className="text-gray-400 text-sm font-light">Acesse as melhores oportunidades com o Monkey Tips Premium.</p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-8">
+                    {plans.map((plan) => (
+                        <div 
+                            key={plan.id} 
+                            className={`relative bg-surface-900/50 border p-6 flex flex-col transition-all cursor-pointer hover:bg-surface-800 ${
+                                plan.recommended ? 'border-brand-500 shadow-[0_0_15px_rgba(245,158,11,0.15)]' : 'border-white/5 hover:border-white/20'
+                            }`}
+                            onClick={onSubscribe}
+                        >
+                            {plan.recommended && (
+                                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-brand-500 text-black text-[10px] font-bold uppercase px-3 py-1 rounded-full tracking-wider">
+                                    Recomendado
+                                </div>
+                            )}
+                            <h3 className="text-lg font-bold text-white mb-1">{plan.name}</h3>
+                            <div className="flex items-baseline gap-1 mb-6">
+                                <span className="text-3xl font-display font-bold text-white">{plan.price}</span>
+                                <span className="text-xs text-gray-500">{plan.period}</span>
+                            </div>
+                            <ul className="space-y-3 mb-8 flex-1">
+                                {plan.features.map((feat, i) => (
+                                    <li key={i} className="flex items-center gap-3 text-xs text-gray-300">
+                                        <svg className="w-4 h-4 text-brand-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                                        {feat}
+                                    </li>
+                                ))}
+                            </ul>
+                            <button className={`w-full py-3 text-xs font-bold uppercase tracking-widest transition-colors ${
+                                plan.recommended 
+                                ? 'bg-brand-500 text-black hover:bg-brand-400' 
+                                : 'bg-white/5 text-white border border-white/10 hover:bg-white/10'
+                            }`}>
+                                Escolher Plano
+                            </button>
+                        </div>
+                    ))}
+                </div>
+                
+                <div className="p-4 bg-black/20 text-center border-t border-white/5">
+                    <p className="text-[10px] text-gray-600 font-mono flex items-center justify-center gap-2">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                        Pagamento Seguro via Stripe (Simulação)
+                    </p>
+                </div>
+                
+                <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-white">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                </button>
+            </div>
+        </div>
+    );
+};

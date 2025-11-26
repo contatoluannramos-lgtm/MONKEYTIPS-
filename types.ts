@@ -219,6 +219,15 @@ export interface CalibrationConfig {
   onlineGames: { instruction: string; volatilityIndex: number; rtpThreshold: number };
 }
 
+export interface SubscriptionPlan {
+  id: 'monthly' | 'quarterly';
+  name: string;
+  price: string;
+  period: string;
+  features: string[];
+  recommended?: boolean;
+}
+
 export const TARGET_TEAMS_BRASILEIRAO = [
   "Botafogo", "Palmeiras", "Fortaleza", "Flamengo", "Internacional", 
   "São Paulo", "Bahia", "Cruzeiro", "Vasco", "Atlético-MG"

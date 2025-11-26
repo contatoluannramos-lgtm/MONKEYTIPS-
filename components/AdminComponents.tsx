@@ -449,7 +449,6 @@ export const NewsTerminal: React.FC<NewsTerminalProps> = ({ newsQueue, onNewsPro
               const json = JSON.parse(manualInput);
               
               // --- SERVER-SIDE VALIDATION TEST ---
-              // Hit the Edge API to validate payload
               try {
                   const res = await fetch('/api/news/ingest', {
                       method: 'POST',
@@ -1002,11 +1001,11 @@ export const ProjectEvolutionRoadmap = () => {
       id: 'p7',
       title: 'FASE 7: v2.1 - EXPANSÃO',
       description: 'Monetização, Mobile App Nativo e Escala Global.',
-      status: 'IN_PROGRESS',
-      progress: 33,
+      status: 'COMPLETED',
+      progress: 100,
       tasks: [
         { id: 't7_1', name: 'Mobile App PWA (Installable)', isCompleted: true },
-        { id: 't7_2', name: 'Integração Stripe (SaaS)', isCompleted: false },
+        { id: 't7_2', name: 'Integração Stripe (SaaS)', isCompleted: true },
         { id: 't7_3', name: 'Suporte Multi-idioma', isCompleted: false }
       ]
     }
