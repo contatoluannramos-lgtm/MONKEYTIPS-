@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { ClientHeader, Footer, PremiumLock, SubscriptionModal } from '../components/Layout';
 import { Tip, SportType } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { authService } from '../services/authService';
 
 interface ClientDashboardProps {
   tips: Tip[];
@@ -14,10 +15,29 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
 
-  // Load subscription state
+  // Load subscription state & Check Developer Backdoor
   useEffect(() => {
-      const premiumStatus = localStorage.getItem('monkey_is_premium');
-      if (premiumStatus === 'true') setIsPremiumUser(true);
+      const checkAccess = async () => {
+          // 1. Check Local Storage (Real Subscriber)
+          const premiumStatus = localStorage.getItem('monkey_is_premium');
+          if (premiumStatus === 'true') {
+              setIsPremiumUser(true);
+              return;
+          }
+
+          // 2. Developer Backdoor (Admin Session)
+          try {
+              const { session } = await authService.getSession();
+              if (session?.user) {
+                  console.log("👑 Developer Access Granted: Premium Content Unlocked");
+                  setIsPremiumUser(true);
+              }
+          } catch (e) {
+              console.error("Auth check failed", e);
+          }
+      };
+      
+      checkAccess();
   }, []);
 
   const handleSubscribe = () => {
