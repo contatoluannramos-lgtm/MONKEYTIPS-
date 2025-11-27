@@ -18,19 +18,20 @@ const INITIAL_MATCHES: Match[] = [
     teamAId: 127, 
     teamBId: 1062, 
     league: 'Brasileirão Série A',
-    startTime: new Date().toISOString(), 
-    status: 'Scheduled',
+    // Jogo de Terça-feira (Já ocorreu)
+    startTime: '2025-11-25T21:30:00', 
+    status: 'Finished', // Jogo encerrado
     stats: { 
-      homeScore: 0, 
-      awayScore: 0, 
-      currentMinute: 0, 
-      possession: 50, 
-      corners: { home: 0, away: 0, total: 0 }, 
-      shotsOnTarget: { home: 0, away: 0 }, 
-      shotsOffTarget: { home: 0, away: 0 }, 
-      attacks: { dangerous: 0, total: 0 }, 
-      cards: { yellow: 0, red: 0 }, 
-      recentForm: 'N/A' 
+      homeScore: 1, // Flamengo 1
+      awayScore: 1, // Galo 1 (Ambas Marcam Bateu)
+      currentMinute: 90, 
+      possession: 58, 
+      corners: { home: 7, away: 4, total: 11 }, 
+      shotsOnTarget: { home: 8, away: 3 }, 
+      shotsOffTarget: { home: 5, away: 4 }, 
+      attacks: { dangerous: 52, total: 105 }, 
+      cards: { yellow: 4, red: 0 }, 
+      recentForm: 'W W D W L' 
     }
   },
   {
@@ -39,7 +40,7 @@ const INITIAL_MATCHES: Match[] = [
     teamA: 'Lakers',
     teamB: 'Celtics',
     league: 'NBA',
-    startTime: '2024-05-21T00:00:00Z',
+    startTime: '2025-11-27T23:00:00', // Hoje (Quinta)
     status: 'Scheduled',
     stats: { 
       homeScore: 0, 
@@ -70,10 +71,10 @@ const INITIAL_TIPS: Tip[] = [
     prediction: 'Ambas Marcam: Sim',
     confidence: 65,
     odds: 1.85,
-    reasoning: 'Análise baseada no histórico recente ofensivo de ambas as equipes.',
-    createdAt: new Date().toISOString(),
+    reasoning: 'Análise baseada no histórico recente ofensivo de ambas as equipes. Jogo aberto confirmado.',
+    createdAt: '2025-11-24T14:00:00', // Tip criada antes do jogo
     isPremium: false,
-    status: 'Pending'
+    status: 'Won' // GREEN! O palpite bateu.
   },
   {
     id: 't2',
@@ -262,7 +263,7 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<ClientDashboard tips={tips} />} />
+        <Route path="/" element={<ClientDashboard tips={tips} matches={matches} />} />
 
         <Route 
           path="/admin/login" 

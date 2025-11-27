@@ -1,14 +1,16 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { ClientHeader, Footer, PremiumLock, SubscriptionModal } from '../components/Layout';
-import { Tip, SportType } from '../types';
+import { Tip, SportType, Match } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { authService } from '../services/authService';
 
 interface ClientDashboardProps {
   tips: Tip[];
+  matches: Match[];
 }
 
-export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
+export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips, matches }) => {
   const [activeSport, setActiveSport] = useState<SportType | 'All'>('All');
   const [isPremiumUser, setIsPremiumUser] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
@@ -75,6 +77,21 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
     { name: 'Reg', value: stats.total - stats.highConfidence },
   ];
   const COLORS = ['#F59E0B', '#27272A'];
+
+  // Função auxiliar para formatar data do jogo
+  const getMatchDate = (matchId: string) => {
+      const match = matches.find(m => m.id === matchId);
+      if (!match) return null;
+      
+      const date = new Date(match.startTime);
+      const today = new Date();
+      const isToday = date.getDate() === today.getDate() && date.getMonth() === today.getMonth();
+      
+      const timeStr = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const dateStr = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      
+      return isToday ? `HOJE • ${timeStr}` : `${dateStr} • ${timeStr}`;
+  };
 
   return (
     <div className="min-h-screen bg-surface-950 text-gray-100 font-sans flex flex-col">
@@ -166,6 +183,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
             {filteredTips.map((tip) => {
               // Logic for Locking: Locked if isPremium AND user NOT premium
               const isLocked = tip.isPremium && !isPremiumUser;
+              const matchDate = getMatchDate(tip.matchId);
 
               return (
                 <div key={tip.id} className="bg-surface-900/30 backdrop-blur-md border border-white/5 hover:border-brand-500/50 transition-all duration-300 group flex flex-col relative">
@@ -191,6 +209,16 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
                   
                   {/* Card Body */}
                   <div className={`p-6 flex-grow flex flex-col ${isLocked ? 'blur-sm opacity-50' : ''}`}>
+                    
+                    {/* Data e Hora do Jogo */}
+                    {matchDate && (
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="text-[10px] font-mono font-bold text-brand-500 bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20 uppercase tracking-wide">
+                                📅 {matchDate}
+                            </span>
+                        </div>
+                    )}
+
                     <h3 className="text-lg font-display font-medium text-white mb-4 leading-snug">{tip.matchTitle}</h3>
                     
                     <div className="grid grid-cols-2 gap-px bg-white/5 border border-white/5 mb-6">
