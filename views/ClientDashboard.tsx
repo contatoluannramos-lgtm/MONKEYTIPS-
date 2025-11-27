@@ -202,7 +202,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
                         Análise IA
                       </p>
-                      <p className="text-gray-400 text-xs leading-relaxed font-light border-l-2 border-white/10 pl-3 select-none">
+                      <p className="text-gray-400 text-xs leading-relaxed font-light border-l-2 border-white/10 pl-3 select-none whitespace-pre-wrap font-mono">
                         {isLocked ? 'Conteúdo exclusivo para assinantes Premium. Desbloqueie para ver a análise completa e o racional estatístico.' : tip.reasoning}
                       </p>
                     </div>

@@ -118,18 +118,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
   const handleSendVisionToFusion = async () => {
     if (!visionData) return;
 
-    // Tentar extrair a recomendação do texto formatado para usar como título curto
     let prediction = "Análise Vision";
-    const lines = visionData.context.split('\n');
-    const recIndex = lines.findIndex(l => l.includes('RECOMENDAÇÃO MONKEYTIPS'));
+    const context = visionData.context;
     
-    // Tenta pegar a linha logo após o título da recomendação
-    if (recIndex !== -1) {
-        // Procura a próxima linha não vazia
-        for (let i = recIndex + 1; i < lines.length; i++) {
-            if (lines[i].trim().length > 2) {
-                prediction = lines[i].replace(/•/g, '').trim();
-                break;
+    // Tenta extrair a recomendação com Regex para ser mais robusto
+    // Procura por "RECOMENDAÇÃO MONKEYTIPS" seguido opcionalmente de dois pontos e espaço, capturando o restante da linha
+    const regex = /RECOMENDAÇÃO MONKEYTIPS[:\s]*([^\n\r]+)/i;
+    const match = context.match(regex);
+
+    if (match && match[1] && match[1].trim().length > 2) {
+        prediction = match[1].replace(/[•*\[\]]/g, '').trim();
+    } else {
+        // Fallback para o método de linhas
+        const lines = context.split('\n');
+        const recIndex = lines.findIndex(l => l.toUpperCase().includes('RECOMENDAÇÃO MONKEYTIPS'));
+        
+        if (recIndex !== -1) {
+            // Tenta a linha seguinte
+            for (let i = recIndex + 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line.length > 2) {
+                    prediction = line.replace(/[•*\[\]]/g, '').trim();
+                    break;
+                }
             }
         }
     }
@@ -150,7 +161,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         matchId: `screen-${Date.now()}`,
         matchTitle: `${visionData.teamA} x ${visionData.teamB} (AO VIVO)`,
         sport: sport,
-        prediction: prediction,
+        prediction: prediction.substring(0, 40), // Limita tamanho do título
         confidence: 85, // Vision analysis usually implies real-time high confidence trigger
         odds: odds,
         reasoning: visionData.context, // O texto formatado (Projeções/Conclusão) vai aqui
@@ -161,7 +172,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
 
     setTips(prev => [newTip, ...prev]);
     await dbService.saveTip(newTip);
-    alert("✅ Análise Visual enviada para Oportunidades Estratégicas!");
+    alert(`✅ Oportunidade Enviada!\nAlvo: ${prediction}\nOdd: ${odds}`);
   };
 
   // --- VISION & LABS LOGIC ---
