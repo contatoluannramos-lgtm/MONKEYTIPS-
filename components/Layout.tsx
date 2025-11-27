@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { SportType, SubscriptionPlan } from '../types';
 
@@ -35,6 +36,7 @@ export const ClientHeader: React.FC<ClientHeaderProps> = ({ activeSport, onSport
               {['All', ...Object.values(SportType)].map((sport) => (
                 <button
                   key={sport}
+                  type="button"
                   onClick={() => onSportChange(sport as SportType | 'All')}
                   className={`px-4 py-2 text-sm font-medium transition-all duration-300 font-display tracking-wide uppercase ${
                     activeSport === sport
@@ -56,6 +58,7 @@ export const ClientHeader: React.FC<ClientHeaderProps> = ({ activeSport, onSport
                    </span>
                ) : (
                    <button 
+                     type="button"
                      onClick={onLogin}
                      className="bg-brand-500 hover:bg-brand-400 text-black px-6 py-2.5 text-xs font-bold uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(245,158,11,0.3)] hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] transform hover:scale-105"
                    >
@@ -73,6 +76,7 @@ export const ClientHeader: React.FC<ClientHeaderProps> = ({ activeSport, onSport
              {['All', ...Object.values(SportType)].map((sport) => (
                 <button
                   key={sport}
+                  type="button"
                   onClick={() => onSportChange(sport as SportType | 'All')}
                   className={`whitespace-nowrap px-4 py-1.5 text-xs font-mono font-bold uppercase tracking-wider border ${
                     activeSport === sport
@@ -89,6 +93,7 @@ export const ClientHeader: React.FC<ClientHeaderProps> = ({ activeSport, onSport
          {!isPremium && (
             <div className="px-4 pb-4 pt-2">
                 <button 
+                     type="button"
                      onClick={onLogin}
                      className="w-full bg-brand-500 hover:bg-brand-400 text-black px-4 py-3 text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(245,158,11,0.2)]"
                    >
@@ -194,6 +199,7 @@ export const SubscriptionModal = ({ isOpen, onClose, onSubscribe }: { isOpen: bo
                                 ))}
                             </ul>
                             <button 
+                                type="button"
                                 onClick={(e) => {
                                     e.stopPropagation(); // Prevent double trigger
                                     onSubscribe();
@@ -216,7 +222,11 @@ export const SubscriptionModal = ({ isOpen, onClose, onSubscribe }: { isOpen: bo
                     </p>
                 </div>
                 
-                <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors bg-black/20 p-2 rounded-full hover:bg-white/10">
+                <button 
+                    type="button"
+                    onClick={onClose} 
+                    className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors bg-black/20 p-2 rounded-full hover:bg-white/10"
+                >
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
                 </button>
             </div>

@@ -42,13 +42,13 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
 
   const handleSubscribe = () => {
       setProcessingPayment(true);
-      // Mock Payment Delay
+      // Mock Payment Delay (1.5s simulation)
       setTimeout(() => {
           localStorage.setItem('monkey_is_premium', 'true');
           setIsPremiumUser(true);
           setShowSubscriptionModal(false);
           setProcessingPayment(false);
-          alert("Bem-vindo ao Monkey Tips Premium! Acesso liberado.");
+          // Alert removed for smoother UX - user will see locks open instantly
       }, 1500);
   };
 

@@ -67,12 +67,25 @@ const INITIAL_TIPS: Tip[] = [
     matchId: 'm1',
     matchTitle: 'Flamengo x Atlético Mineiro',
     sport: SportType.FOOTBALL,
-    prediction: 'Aguardando Análise...',
-    confidence: 50,
-    odds: 1.00,
-    reasoning: 'Dados de histórico serão processados na próxima execução do protocolo.',
+    prediction: 'Ambas Marcam: Sim',
+    confidence: 65,
+    odds: 1.85,
+    reasoning: 'Análise baseada no histórico recente ofensivo de ambas as equipes.',
     createdAt: new Date().toISOString(),
     isPremium: false,
+    status: 'Pending'
+  },
+  {
+    id: 't2',
+    matchId: 'm2',
+    matchTitle: 'Lakers x Celtics (NBA Classico)',
+    sport: SportType.BASKETBALL,
+    prediction: 'Over 228.5 Points',
+    confidence: 92,
+    odds: 1.90,
+    reasoning: 'ALTA CONFIANÇA: Ritmo projetado (Pace) acima de 105 posses. Defesas desfalcadas. Tendência clara de High Scoring Game.',
+    createdAt: new Date().toISOString(),
+    isPremium: true, // ESTA TIP APARECERÁ BLOQUEADA ATÉ A ASSINATURA
     status: 'Pending'
   }
 ];
@@ -204,6 +217,8 @@ export default function App() {
       const dbTips = await dbService.getTips();
       if (dbTips.length > 0) {
         setTips(dbTips);
+      } else {
+        setTips(INITIAL_TIPS); // Fallback to mock tips (including premium one)
       }
     };
     
