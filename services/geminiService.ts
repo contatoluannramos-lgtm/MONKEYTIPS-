@@ -43,7 +43,7 @@ const screenSchema: Schema = {
         properties: { market: { type: Type.STRING }, value: { type: Type.NUMBER } } 
       } 
     },
-    context: { type: Type.STRING, description: "A ANÁLISE TÉCNICA CURTA (MokenChips Output). Ex: 'Under 60 1Q, prob 81%, confiança 87%'." }
+    context: { type: Type.STRING, description: "A análise formatada estritamente conforme o template solicitado (Projeções, Conclusão, Recomendação)." }
   },
   required: ["sport", "teamA", "teamB", "score", "time", "detectedOdds", "context"]
 };
@@ -414,28 +414,33 @@ export const analyzeScreenCapture = async (base64Image: string): Promise<ScreenA
         {
           text: `
             VOCÊ É O MONKEY TIPS VISION ENGINE.
-            MODO: CONTÍNUO (MokenVideo -> MokenChips).
+            MODO: ANÁLISE VISUAL AO VIVO.
             
-            Sua função é ler a tela continuamente e gerar análise técnica imediata.
-            Trate este frame como streaming em tempo real.
+            Sua função é ler a tela (print ou frame de vídeo) e gerar análise técnica IMEDIATA e OBJETIVA.
 
-            PROTOCOLO DE SAÍDA OBRIGATÓRIO:
-            1. Detecte Placar, Tempo e Odds.
-            2. Gere automaticamente a análise no campo 'context'.
-            3. O campo 'context' DEVE conter:
-               - Projeção HT/FT ou Sets/Quartos.
-               - Ritmo e Tendência.
-               - Insight ÚNICO e DIRETO.
-               - Confiança %.
+            PROTOCOLO DE SAÍDA OBRIGATÓRIO (Preencha o JSON):
+            1. Detecte Placar, Tempo e Odds na imagem.
+            2. Gere o texto do campo 'context' SEGUINDO ESTRITAMENTE O TEMPLATE ABAIXO.
             
-            FORMATO DA RESPOSTA NO CAMPO 'CONTEXT' (Exemplo):
-            "Under 60 1Q, prob 81%, confiança 87%. Ritmo lento, aproveitamento baixo."
+            TEMPLATE PARA O CAMPO 'context' (Copie a estrutura e use Markdown):
 
-            SE FOR FUTEBOL: Aplique blocos GOL + ESCANTEIOS + CARTÕES no texto.
-            SE FOR BASQUETE: Projeção FT e Ritmo.
-            SE FOR VÔLEI: Ritmo de sets.
+            📌 PROJEÇÕES
+            • Projeção do placar FT: [Seu cálculo]
+            • Projeção por time: [Quem cresce e quem cai]
+            • Probabilidade de vitória: [Time] [XX]%
 
-            Não peça confirmação. Apenas entregue a análise técnica jsonificada.
+            📌 CONCLUSÃO
+            [1 frase curta descrevendo quem está mais perto do objetivo]
+
+            📌 RECOMENDAÇÃO MONKEYTIPS
+            [Recomendação simples: ex: 'Vitória do Time X', 'Under/Over', ou 'Sem entrada segura']
+
+            
+            REGRAS:
+            - Não explique o raciocínio.
+            - Seja curto e direto.
+            - Preencha os campos 'sport', 'teamA', 'teamB', 'score', 'time' com o que ver na imagem.
+            - Se não encontrar odds, deixe lista vazia.
           `
         }
       ],

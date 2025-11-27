@@ -114,6 +114,56 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
       return () => clearInterval(interval);
   }, [isStreamingMode, currentView, isScanningScreen]);
 
+  // Handler to convert Vision Data to a real Tip and add to Strategic Opportunities
+  const handleSendVisionToFusion = async () => {
+    if (!visionData) return;
+
+    // Tentar extrair a recomendação do texto formatado para usar como título curto
+    let prediction = "Análise Vision";
+    const lines = visionData.context.split('\n');
+    const recIndex = lines.findIndex(l => l.includes('RECOMENDAÇÃO MONKEYTIPS'));
+    
+    // Tenta pegar a linha logo após o título da recomendação
+    if (recIndex !== -1) {
+        // Procura a próxima linha não vazia
+        for (let i = recIndex + 1; i < lines.length; i++) {
+            if (lines[i].trim().length > 2) {
+                prediction = lines[i].replace(/•/g, '').trim();
+                break;
+            }
+        }
+    }
+
+    // Mapping sport string to Enum
+    let sport: SportType = SportType.FOOTBALL;
+    const s = visionData.sport.toLowerCase();
+    if (s.includes('basq')) sport = SportType.BASKETBALL;
+    if (s.includes('vol')) sport = SportType.VOLLEYBALL;
+    if (s.includes('hóq')) sport = SportType.ICE_HOCKEY;
+    if (s.includes('esp') || s.includes('lol')) sport = SportType.ESPORTS;
+
+    // Use odd detectada ou 0
+    const odds = visionData.detectedOdds.length > 0 ? visionData.detectedOdds[0].value : 0;
+
+    const newTip: Tip = {
+        id: `vision-${Date.now()}`,
+        matchId: `screen-${Date.now()}`,
+        matchTitle: `${visionData.teamA} x ${visionData.teamB} (AO VIVO)`,
+        sport: sport,
+        prediction: prediction,
+        confidence: 85, // Vision analysis usually implies real-time high confidence trigger
+        odds: odds,
+        reasoning: visionData.context, // O texto formatado (Projeções/Conclusão) vai aqui
+        createdAt: new Date().toISOString(),
+        isPremium: true,
+        status: 'Pending'
+    };
+
+    setTips(prev => [newTip, ...prev]);
+    await dbService.saveTip(newTip);
+    alert("✅ Análise Visual enviada para Oportunidades Estratégicas!");
+  };
+
   // --- VISION & LABS LOGIC ---
   const processImageFile = async (file: File, mode: 'TICKET' | 'SCREEN') => {
     if (!file.type.startsWith('image/')) {
@@ -595,14 +645,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                            {/* Contexto & AI - VISION ENGINE OUTPUT */}
                            <div className="bg-brand-900/10 border border-brand-500/20 p-3">
                               <p className="text-[10px] text-brand-500 uppercase font-bold mb-1">MokenChips Output</p>
-                              <p className="text-xs text-white leading-relaxed font-mono border-l-2 border-brand-500 pl-2">
+                              <p className="text-xs text-white leading-relaxed font-mono border-l-2 border-brand-500 pl-2 whitespace-pre-wrap">
                                  {visionData.context}
                               </p>
                            </div>
 
                            <div className="mt-auto">
-                              <button className="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 text-xs font-bold uppercase tracking-widest transition-colors shadow-lg">
-                                 Enviar para Fusion Engine
+                              <button 
+                                onClick={handleSendVisionToFusion}
+                                className="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 text-xs font-bold uppercase tracking-widest transition-colors shadow-lg"
+                              >
+                                 Enviar para Oportunidades
                               </button>
                            </div>
                         </div>
