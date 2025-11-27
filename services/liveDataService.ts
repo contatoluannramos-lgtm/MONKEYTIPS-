@@ -280,3 +280,13 @@ export const fetchPlayerStatsCrawler = async () => {
     await new Promise(resolve => setTimeout(resolve, 1500));
     return crawledData;
 };
+
+// --- STATS PROVIDER TEST ---
+export const testStatsProvider = async (apiKey: string) => {
+    // Simula uma verificação de credencial para o provedor de dados do MonkeyStats
+    // Pode ser uma API da NBA, RapidAPI alternativo ou um Proxy
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    
+    // Simula sucesso se a chave tiver pelo menos 5 caracteres
+    return apiKey.length >= 5;
+};

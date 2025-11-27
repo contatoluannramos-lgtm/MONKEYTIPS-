@@ -7,7 +7,7 @@ import { analyzeSportsNews, processBotNews, processMonkeyStats } from '../servic
 import { DEFAULT_CALIBRATION, runScoutAnalysis } from '../services/scoutEngine';
 import { runFusionEngine } from '../services/fusionEngine';
 import { webhookService } from '../services/webhookService';
-import { fetchRSSFeeds, fetchPlayerStatsCrawler } from '../services/liveDataService';
+import { fetchRSSFeeds, fetchPlayerStatsCrawler, testStatsProvider } from '../services/liveDataService';
 
 // --- EXISTING COMPONENTS ---
 
@@ -881,13 +881,15 @@ export const ActivationPanel = () => {
     football: '',
     supabaseUrl: '',
     supabaseKey: '',
-    webhookUrl: ''
+    webhookUrl: '',
+    statsProvider: ''
   });
   
   const [status, setStatus] = useState({
     gemini: 'idle',
     football: 'idle',
-    supabase: 'idle'
+    supabase: 'idle',
+    stats: 'idle'
   });
 
   // DEFAULT TO TRUE: Live Mode active by default
@@ -901,18 +903,21 @@ export const ActivationPanel = () => {
     const savedSupaUrl = localStorage.getItem('supabase_project_url') || '';
     const savedSupaKey = localStorage.getItem('supabase_anon_key') || '';
     const savedWebhook = localStorage.getItem('monkey_webhook_url') || '';
+    const savedStats = localStorage.getItem('monkey_stats_api_key') || '';
 
     setKeys({ 
         gemini: savedGemini, 
         football: savedFootball,
         supabaseUrl: savedSupaUrl, 
         supabaseKey: savedSupaKey,
-        webhookUrl: savedWebhook
+        webhookUrl: savedWebhook,
+        statsProvider: savedStats
     });
 
     if (savedGemini) setStatus(prev => ({ ...prev, gemini: 'success' }));
     if (savedFootball) setStatus(prev => ({ ...prev, football: 'success' }));
     if (savedSupaUrl && savedSupaKey) setStatus(prev => ({ ...prev, supabase: 'success' }));
+    if (savedStats) setStatus(prev => ({ ...prev, stats: 'success' }));
 
   }, []);
 
@@ -924,6 +929,7 @@ export const ActivationPanel = () => {
     if (keyType === 'supabaseUrl') localStorage.setItem('supabase_project_url', value);
     if (keyType === 'supabaseKey') localStorage.setItem('supabase_anon_key', value);
     if (keyType === 'webhookUrl') localStorage.setItem('monkey_webhook_url', value);
+    if (keyType === 'statsProvider') localStorage.setItem('monkey_stats_api_key', value);
   };
   
   const handleReset = () => {
@@ -952,7 +958,7 @@ export const ActivationPanel = () => {
       }
   };
 
-  const testConnection = async (type: 'gemini' | 'football' | 'supabase') => {
+  const testConnection = async (type: 'gemini' | 'football' | 'supabase' | 'stats') => {
     setStatus(prev => ({ ...prev, [type]: 'loading' }));
     
     try {
@@ -985,6 +991,12 @@ export const ActivationPanel = () => {
              const { error } = await sb.from('tips').select('count', { count: 'exact', head: true });
              if (error) throw error;
              setStatus(prev => ({ ...prev, supabase: 'success' }));
+        }
+        else if (type === 'stats') {
+             // Teste MonkeyStats Data Source
+             const success = await testStatsProvider(keys.statsProvider);
+             if (success) setStatus(prev => ({ ...prev, stats: 'success' }));
+             else throw new Error("Stats Provider Failed");
         }
     } catch (e) {
         console.error(e);
@@ -1139,6 +1151,38 @@ export const ActivationPanel = () => {
               </button>
           </div>
 
+          {/* MONKEY STATS CORE CARD */}
+          <div className="bg-surface-900/50 border border-white/5 p-6 relative overflow-hidden group hover:border-brand-500/30 transition-all">
+              <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                      <span className="text-xl">📊</span>
+                      <h4 className="font-bold text-white">MonkeyStats Data Core</h4>
+                      <span className={`text-[10px] px-2 py-0.5 rounded border ${status.stats === 'success' ? 'border-green-500 text-green-500 bg-green-500/10' : status.stats === 'error' ? 'border-red-500 text-red-500' : 'border-gray-600 text-gray-600'}`}>
+                          {status.stats === 'success' ? 'CONECTADO' : status.stats === 'error' ? 'ERRO' : 'PENDENTE'}
+                      </span>
+                  </div>
+              </div>
+              <div className="space-y-4">
+                  <div>
+                      <label className="block text-[10px] font-mono font-bold text-gray-500 mb-1 uppercase">Stats Provider Key (NBA/Player Props)</label>
+                      <input 
+                          type="password" 
+                          className="w-full bg-black/50 border border-white/10 p-3 text-white text-sm font-mono tracking-wider focus:border-brand-500 focus:outline-none"
+                          placeholder="Paste Advanced Stats Key..."
+                          value={keys.statsProvider}
+                          onChange={(e) => handleSave('statsProvider', e.target.value)}
+                      />
+                      <p className="text-[10px] text-gray-600 mt-1">Habilita o crawler de estatísticas profundas (Player Props & Advanced Metrics).</p>
+                  </div>
+                  <button 
+                      onClick={() => testConnection('stats')}
+                      className="w-full bg-white text-black hover:bg-brand-400 font-bold py-3 text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                  >
+                      {status.stats === 'loading' ? 'Verificando...' : '⚡ Testar Crawler'}
+                  </button>
+              </div>
+          </div>
+
           {/* SUPABASE CARD */}
           <div className="bg-surface-900/50 border border-white/5 p-6 relative overflow-hidden group hover:border-brand-500/30 transition-all">
               <div className="flex items-center justify-between mb-4">
@@ -1201,31 +1245,45 @@ export const ActivationPanel = () => {
   );
 };
 
-export const ImprovementsPanel = () => {
-  const improvements: ImprovementProposal[] = [
-    { id: '1', title: 'Better Mobile UI', description: 'Enhance responsiveness for small screens', votes: 10, status: 'Pending' },
-    { id: '2', title: 'Dark Mode Toggle', description: 'Allow users to switch themes', votes: 5, status: 'Approved' },
-  ];
-
-  return (
-    <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6">
-      <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-4">Propostas de Melhoria</h3>
-      <div className="space-y-3">
-        {improvements.map(imp => (
-            <div key={imp.id} className="bg-black/20 p-3 border border-white/5 flex justify-between items-center">
-                <div>
-                    <p className="text-white text-sm font-bold">{imp.title}</p>
-                    <p className="text-gray-500 text-xs">{imp.description}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-brand-500 text-xs font-bold">{imp.votes} Votes</span>
-                    <span className={`text-[10px] px-2 py-0.5 border ${imp.status === 'Approved' ? 'border-green-500 text-green-500' : 'border-gray-500 text-gray-500'}`}>{imp.status}</span>
-                </div>
+export const TipsHistoryPanel = ({ tips, onUpdateStatus }: { tips: Tip[], onUpdateStatus: (id: string, status: TipStatus) => void }) => {
+    return (
+        <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6 h-[500px] overflow-y-auto custom-scrollbar">
+            <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-6">Histórico de Palpites</h3>
+            <div className="space-y-4">
+                {tips.map(tip => (
+                    <div key={tip.id} className="bg-black/30 p-4 border border-white/5 flex flex-col gap-3">
+                         <div className="flex justify-between items-start">
+                             <div>
+                                 <div className="flex items-center gap-2 mb-1">
+                                     <span className="text-[10px] font-mono uppercase bg-white/10 px-2 rounded text-gray-300">{tip.sport}</span>
+                                     <span className="text-xs text-gray-500">{new Date(tip.createdAt).toLocaleDateString()}</span>
+                                 </div>
+                                 <h4 className="text-white font-bold text-sm">{tip.matchTitle}</h4>
+                                 <p className="text-brand-500 text-xs font-mono mt-1">Target: {tip.prediction} @ {tip.odds}</p>
+                             </div>
+                             <div className="flex flex-col gap-2 items-end">
+                                 <span className={`text-[10px] font-bold uppercase px-2 py-0.5 border ${
+                                     tip.status === 'Won' ? 'bg-green-500/20 border-green-500 text-green-500' :
+                                     tip.status === 'Lost' ? 'bg-red-500/20 border-red-500 text-red-500' :
+                                     'bg-gray-500/20 border-gray-500 text-gray-400'
+                                 }`}>
+                                     {tip.status}
+                                 </span>
+                                 <div className="flex gap-1">
+                                    {tip.status === 'Pending' && (
+                                        <>
+                                            <button onClick={() => onUpdateStatus(tip.id, 'Won')} className="text-[10px] bg-green-900 hover:bg-green-800 text-green-200 px-2 py-1 border border-green-700">WIN</button>
+                                            <button onClick={() => onUpdateStatus(tip.id, 'Lost')} className="text-[10px] bg-red-900 hover:bg-red-800 text-red-200 px-2 py-1 border border-red-700">LOSS</button>
+                                        </>
+                                    )}
+                                 </div>
+                             </div>
+                         </div>
+                    </div>
+                ))}
             </div>
-        ))}
-      </div>
-    </div>
-  );
+        </div>
+    );
 };
 
 export const OperationalChecklist = () => {
@@ -1278,45 +1336,31 @@ export const ProjectEvolutionRoadmap = () => {
     );
 };
 
-export const TipsHistoryPanel = ({ tips, onUpdateStatus }: { tips: Tip[], onUpdateStatus: (id: string, status: TipStatus) => void }) => {
-    return (
-        <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6 h-[500px] overflow-y-auto custom-scrollbar">
-            <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-6">Histórico de Palpites</h3>
-            <div className="space-y-4">
-                {tips.map(tip => (
-                    <div key={tip.id} className="bg-black/30 p-4 border border-white/5 flex flex-col gap-3">
-                         <div className="flex justify-between items-start">
-                             <div>
-                                 <div className="flex items-center gap-2 mb-1">
-                                     <span className="text-[10px] font-mono uppercase bg-white/10 px-2 rounded text-gray-300">{tip.sport}</span>
-                                     <span className="text-xs text-gray-500">{new Date(tip.createdAt).toLocaleDateString()}</span>
-                                 </div>
-                                 <h4 className="text-white font-bold text-sm">{tip.matchTitle}</h4>
-                                 <p className="text-brand-500 text-xs font-mono mt-1">Target: {tip.prediction} @ {tip.odds}</p>
-                             </div>
-                             <div className="flex flex-col gap-2 items-end">
-                                 <span className={`text-[10px] font-bold uppercase px-2 py-0.5 border ${
-                                     tip.status === 'Won' ? 'bg-green-500/20 border-green-500 text-green-500' :
-                                     tip.status === 'Lost' ? 'bg-red-500/20 border-red-500 text-red-500' :
-                                     'bg-gray-500/20 border-gray-500 text-gray-400'
-                                 }`}>
-                                     {tip.status}
-                                 </span>
-                                 <div className="flex gap-1">
-                                    {tip.status === 'Pending' && (
-                                        <>
-                                            <button onClick={() => onUpdateStatus(tip.id, 'Won')} className="text-[10px] bg-green-900 hover:bg-green-800 text-green-200 px-2 py-1 border border-green-700">WIN</button>
-                                            <button onClick={() => onUpdateStatus(tip.id, 'Lost')} className="text-[10px] bg-red-900 hover:bg-red-800 text-red-200 px-2 py-1 border border-red-700">LOSS</button>
-                                        </>
-                                    )}
-                                 </div>
-                             </div>
-                         </div>
-                    </div>
-                ))}
+export const ImprovementsPanel = () => {
+  const improvements: ImprovementProposal[] = [
+    { id: '1', title: 'Better Mobile UI', description: 'Enhance responsiveness for small screens', votes: 10, status: 'Pending' },
+    { id: '2', title: 'Dark Mode Toggle', description: 'Allow users to switch themes', votes: 5, status: 'Approved' },
+  ];
+
+  return (
+    <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6">
+      <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-4">Propostas de Melhoria</h3>
+      <div className="space-y-3">
+        {improvements.map(imp => (
+            <div key={imp.id} className="bg-black/20 p-3 border border-white/5 flex justify-between items-center">
+                <div>
+                    <p className="text-white text-sm font-bold">{imp.title}</p>
+                    <p className="text-gray-500 text-xs">{imp.description}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-brand-500 text-xs font-bold">{imp.votes} Votes</span>
+                    <span className={`text-[10px] px-2 py-0.5 border ${imp.status === 'Approved' ? 'border-green-500 text-green-500' : 'border-gray-500 text-gray-500'}`}>{imp.status}</span>
+                </div>
             </div>
-        </div>
-    );
+        ))}
+      </div>
+    </div>
+  );
 };
 
 export const NewsImplementationChecklist = () => {
