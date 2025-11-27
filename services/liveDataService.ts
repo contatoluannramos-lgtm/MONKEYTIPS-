@@ -215,3 +215,68 @@ export const fetchMatchStatistics = async (fixtureId: number, apiKey: string): P
         return null;
     }
 }
+
+// --- NEWS FEED CRAWLER (RSS BRIDGE) ---
+export const fetchRSSFeeds = async (source: 'GLOBO' | 'ESPN') => {
+    // Usamos RSS2JSON para contornar limitações de CORS em ambiente frontend puro
+    const url = source === 'GLOBO' 
+        ? 'https://ge.globo.com/futebol/rss/' 
+        : 'https://www.espn.com.br/espn/rss/news';
+    
+    try {
+        const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`);
+        const data = await response.json();
+        
+        if (data.status === 'ok') {
+            return data.items.map((item: any) => ({
+                title: item.title,
+                link: item.link,
+                description: item.description,
+                pubDate: item.pubDate,
+                source: source
+            }));
+        }
+        return [];
+    } catch (e) {
+        console.error("RSS Fetch Error", e);
+        return [];
+    }
+};
+
+// --- MONKEY STATS CRAWLER (SIMULATION) ---
+// Simula a coleta de estatísticas profundas de sites como SofaScore/FlashScore
+// Em produção, isso seria um proxy backend chamando esses sites.
+export const fetchPlayerStatsCrawler = async () => {
+    // Mock de resposta do Crawler
+    const crawledData = [
+        {
+            entity: "G. Cano (Fluminense)",
+            stat: "6 Finalizações no último jogo, 4 no alvo. xG acumulado de 1.2 sem marcar.",
+            source: "SofaScore"
+        },
+        {
+            entity: "Hulk (Atlético-MG)",
+            stat: "Média de 3.5 faltas sofridas por jogo. Árbitro do próximo jogo tem média de 28 faltas/jogo.",
+            source: "FlashScore"
+        },
+        {
+            entity: "Palmeiras (Team)",
+            stat: "14 Escanteios no último jogo. Média de 8.2 cantos a favor jogando em casa.",
+            source: "API-Football"
+        },
+        {
+            entity: "LeBron James (Lakers)",
+            stat: "Últimos 3 jogos: 28, 32, 30 pontos. Usage Rate aumentou 5% sem Anthony Davis.",
+            source: "NBA.com"
+        },
+        {
+            entity: "Raphael Veiga (Palmeiras)",
+            stat: "Cobrou 4 de 5 pênaltis nesta temporada. Média de 2 passes decisivos por jogo.",
+            source: "FootStats"
+        }
+    ];
+
+    // Simula delay de rede
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return crawledData;
+};

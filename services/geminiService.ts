@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Match, Tip, SportType, TicketAnalysis, CalibrationConfig, ScreenAnalysisData, NewsAnalysis, BotNewsPayload, NewsProcessedItem, TARGET_TEAMS_BRASILEIRAO } from "../types";
+import { Match, Tip, SportType, TicketAnalysis, CalibrationConfig, ScreenAnalysisData, NewsAnalysis, BotNewsPayload, NewsProcessedItem, TARGET_TEAMS_BRASILEIRAO, StatProcessedItem } from "../types";
 import { DEFAULT_CALIBRATION } from "./scoutEngine";
 
 // --- SCHEMAS ---
@@ -75,6 +75,17 @@ const botNewsSchema: Schema = {
     action: { type: Type.STRING, description: "Ação recomendada (Ex: Monitorar Odd, Suspender Tip)." }
   },
   required: ["relevance", "impact_level", "impact_score", "context", "fusion_output", "action"]
+};
+
+const statSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    category: { type: Type.STRING, enum: ["PLAYER_PROP", "TEAM_ADVANCED", "REFEREE"] },
+    marketFocus: { type: Type.STRING, description: "O mercado de aposta sugerido. Ex: 'Over 1.5 Chutes no Alvo', 'Over Cartões', 'Haaland Score Any Time'." },
+    probability: { type: Type.INTEGER, description: "Probabilidade estimada 0-100%" },
+    aiAnalysis: { type: Type.STRING, description: "Explicação curta e técnica do porquê essa estatística é valiosa." }
+  },
+  required: ["category", "marketFocus", "probability", "aiAnalysis"]
 };
 
 const getAIClient = () => {
@@ -282,6 +293,63 @@ export const analyzeSportsNews = async (input: string, mode: 'TEXT' | 'URL'): Pr
     return JSON.parse(text) as NewsAnalysis;
   } catch (error) {
     console.error("News Engine Error:", error);
+    return null;
+  }
+};
+
+// --- MONKEY STATS PROCESSOR ---
+export const processMonkeyStats = async (entity: string, rawStat: string): Promise<StatProcessedItem | null> => {
+  const ai = getAIClient();
+  if (!ai) return null;
+
+  try {
+    const prompt = `
+      ROLE: MonkeyStats Intelligence (Player & Team Data Specialist).
+      
+      INPUT:
+      Entity: "${entity}"
+      Raw Data: "${rawStat}"
+
+      TASK:
+      Analyze this raw statistic and determine if it indicates a specific betting market opportunity (Player Props or Team Advanced).
+
+      PROTOCOL:
+      1. Identify the Category (Player Prop, Team Advanced, Referee).
+      2. Suggest a specific Market Focus (e.g., "Over 0.5 Shots on Target").
+      3. Estimate the Probability based on the trend described in raw data.
+      4. Provide a short technical analysis explaining why this trend matters.
+
+      OUTPUT: Strict JSON.
+    `;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: statSchema
+      }
+    });
+
+    const text = response.text;
+    if (!text) return null;
+    
+    const aiData = JSON.parse(text);
+
+    return {
+      id: `stat-${Date.now()}`,
+      entityName: entity,
+      category: aiData.category,
+      rawData: rawStat,
+      marketFocus: aiData.marketFocus,
+      probability: aiData.probability,
+      aiAnalysis: aiData.aiAnalysis,
+      status: 'PENDING',
+      processedAt: new Date().toISOString()
+    };
+
+  } catch (error) {
+    console.error("MonkeyStats Error:", error);
     return null;
   }
 };

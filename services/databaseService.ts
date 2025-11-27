@@ -1,6 +1,6 @@
 
 import { supabase, isSupabaseConfigured } from './supabaseClient';
-import { Match, Tip, SportType, TipStatus, NewsProcessedItem } from '../types';
+import { Match, Tip, SportType, TipStatus, NewsProcessedItem, StatProcessedItem } from '../types';
 
 // Mappers para converter snake_case (banco) para camelCase (app)
 const mapMatchFromDB = (data: any): Match => ({
@@ -37,6 +37,18 @@ const mapNewsFromDB = (data: any): NewsProcessedItem => ({
   context: data.context,
   fusionSummary: data.fusion_summary,
   recommendedAction: data.recommended_action,
+  status: data.status,
+  processedAt: data.processed_at
+});
+
+const mapStatFromDB = (data: any): StatProcessedItem => ({
+  id: data.id,
+  entityName: data.entity_name,
+  category: data.category,
+  rawData: data.raw_data,
+  marketFocus: data.market_focus,
+  probability: data.probability,
+  aiAnalysis: data.ai_analysis,
   status: data.status,
   processedAt: data.processed_at
 });
@@ -175,5 +187,42 @@ export const dbService = {
       .eq('id', id);
 
     if (error) console.error('Erro ao arquivar notícia:', error.message || error);
+  },
+
+  // --- MONKEY STATS ---
+  async getStats(): Promise<StatProcessedItem[]> {
+    if (!isSupabaseConfigured()) return [];
+
+    const { data, error } = await supabase
+      .from('monkey_stats')
+      .select('*')
+      .order('processed_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error('Erro ao buscar stats:', error.message || error);
+      return [];
+    }
+    return data ? data.map(mapStatFromDB) : [];
+  },
+
+  async saveStat(item: StatProcessedItem): Promise<void> {
+    if (!isSupabaseConfigured()) return;
+
+    const { error } = await supabase
+      .from('monkey_stats')
+      .upsert({
+        id: item.id,
+        entity_name: item.entityName,
+        category: item.category,
+        raw_data: item.rawData,
+        market_focus: item.marketFocus,
+        probability: item.probability,
+        ai_analysis: item.aiAnalysis,
+        status: item.status,
+        processed_at: item.processedAt
+      });
+
+    if (error) console.error('Erro ao salvar stat:', error.message || error);
   }
 };

@@ -7,7 +7,7 @@ export enum SportType {
   ESPORTS = 'eSports (LoL/CS)'
 }
 
-export type AdminView = 'DASHBOARD' | 'ACTIVATION' | 'MONKEY_LABS' | 'MONKEY_VISION' | 'MONKEY_NEWS' | 'MONKEY_LIVE' | 'PERFORMANCE' | 'CALIBRATION' | 'SCOUT_ENGINE' | 'FUSION_CENTER';
+export type AdminView = 'DASHBOARD' | 'ACTIVATION' | 'MONKEY_LABS' | 'MONKEY_VISION' | 'MONKEY_NEWS' | 'MONKEY_STATS' | 'MONKEY_LIVE' | 'PERFORMANCE' | 'CALIBRATION' | 'SCOUT_ENGINE' | 'FUSION_CENTER';
 
 export interface FootballStats {
   homeScore: number;
@@ -117,6 +117,20 @@ export interface ScreenAnalysisData {
   time: string;
   detectedOdds: { market: string; value: number }[];
   context: string;
+}
+
+// --- MONKEY STATS TYPES ---
+
+export interface StatProcessedItem {
+  id: string;
+  entityName: string; // Nome do Jogador ou Time
+  category: 'PLAYER_PROP' | 'TEAM_ADVANCED' | 'REFEREE';
+  rawData: string; // "5 Chutes, 3 no alvo, xG 0.8"
+  marketFocus: string; // "Over 0.5 Chutes no Alvo"
+  probability: number; // 0-100
+  aiAnalysis: string;
+  status: 'PENDING' | 'APPROVED' | 'ARCHIVED';
+  processedAt: string;
 }
 
 // --- NEWS ENGINE TYPES ---

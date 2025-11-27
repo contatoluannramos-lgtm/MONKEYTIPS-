@@ -6,8 +6,8 @@ import { dbService } from '../services/databaseService';
 import { authService } from '../services/authService';
 import { runScoutAnalysis, DEFAULT_CALIBRATION } from '../services/scoutEngine';
 import { runFusionEngine } from '../services/fusionEngine';
-import { Match, Tip, SportType, AdminView, TipStatus, TicketAnalysis, ScoutResult, FusionAnalysis, ScreenAnalysisData, NewsProcessedItem } from '../types';
-import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel, TipsHistoryPanel, CalibrationPanel, ScoutCard, FusionTerminal, NewsTerminal, NewsImplementationChecklist, MonkeyLivePanel } from '../components/AdminComponents';
+import { Match, Tip, SportType, AdminView, TipStatus, TicketAnalysis, ScoutResult, FusionAnalysis, ScreenAnalysisData, NewsProcessedItem, StatProcessedItem } from '../types';
+import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel, TipsHistoryPanel, CalibrationPanel, ScoutCard, FusionTerminal, NewsTerminal, NewsImplementationChecklist, MonkeyLivePanel, MonkeyStatsTerminal } from '../components/AdminComponents';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface AdminDashboardProps {
@@ -25,6 +25,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
   
   // News Engine State (Lifted Up for Fusion Integration)
   const [newsQueue, setNewsQueue] = useState<NewsProcessedItem[]>([]);
+  // Monkey Stats State (Lifted Up for Persistence)
+  const [statsQueue, setStatsQueue] = useState<StatProcessedItem[]>([]);
 
   // Monkey Labs State
   const [ticketAnalysis, setTicketAnalysis] = useState<TicketAnalysis | null>(null);
@@ -40,22 +42,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
   const [browserImage, setBrowserImage] = useState<string | null>(null); // To store the "pasted" screen
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Carregar notícias salvas ao montar
+  // Carregar dados salvos ao montar (News e Stats)
   useEffect(() => {
-    const loadNews = async () => {
+    const loadData = async () => {
         const savedNews = await dbService.getNews();
-        if (savedNews.length > 0) {
-            setNewsQueue(savedNews);
-        }
+        if (savedNews.length > 0) setNewsQueue(savedNews);
+
+        const savedStats = await dbService.getStats();
+        if (savedStats.length > 0) setStatsQueue(savedStats);
     };
-    loadNews();
+    loadData();
   }, []);
 
   const handleNewsProcessed = async (item: NewsProcessedItem) => {
-    // Atualiza estado local
     setNewsQueue(prev => [item, ...prev]);
-    // Salva no Supabase (Histórico)
     await dbService.saveNews(item);
+  };
+
+  const handleStatProcessed = async (item: StatProcessedItem) => {
+    // Optimistic Update
+    setStatsQueue(prev => [item, ...prev]);
+    // Atomic Persistence Wait
+    await dbService.saveStat(item);
   };
 
   const handleArchiveNews = async (id: string) => {
@@ -122,7 +130,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     const context = visionData.context;
     
     // Tenta extrair a recomendação com Regex para ser mais robusto
-    // Procura por "RECOMENDAÇÃO MONKEYTIPS" seguido opcionalmente de dois pontos e espaço, capturando o restante da linha
     const regex = /RECOMENDAÇÃO MONKEYTIPS[:\s]*([^\n\r]+)/i;
     const match = context.match(regex);
 
@@ -421,6 +428,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
             { name: 'Monkey Fusion', icon: '☢️', id: 'FUSION_CENTER' },
             { name: 'Monkey Live', icon: '🚨', id: 'MONKEY_LIVE' },
             { name: 'Scout Engine', icon: '📐', id: 'SCOUT_ENGINE' },
+            { name: 'Monkey Stats', icon: '📊', id: 'MONKEY_STATS' },
             { name: 'News Engine', icon: '📰', id: 'MONKEY_NEWS' },
             { name: 'Laboratório IA', icon: '🧪', id: 'MONKEY_LABS' },
             { name: 'Calibragem', icon: '🎛️', id: 'CALIBRATION' },
@@ -472,6 +480,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
               {currentView === 'CALIBRATION' && 'Calibragem Estratégica'}
               {currentView === 'SCOUT_ENGINE' && 'Scout Engine: Matemática Pura'}
               {currentView === 'FUSION_CENTER' && 'Monkey Fusion: Decision Core'}
+              {currentView === 'MONKEY_STATS' && 'Monkey Stats: Player Props & Advanced Data'}
             </h2>
             <p className="text-gray-500 text-sm mt-1 font-mono">SERVER_TIME: {new Date().toLocaleTimeString('pt-BR')}</p>
           </div>
@@ -537,6 +546,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
              <div>
                 <NewsImplementationChecklist />
              </div>
+           </div>
+        )}
+
+        {currentView === 'MONKEY_STATS' && (
+           <div className="relative z-10 max-w-6xl mx-auto h-[700px]">
+               <MonkeyStatsTerminal 
+                  statsQueue={statsQueue}
+                  onStatProcessed={handleStatProcessed}
+               />
            </div>
         )}
         
@@ -783,9 +801,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                     <div className="h-64 w-full">
                       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <BarChart data={performanceChartData} barSize={40}>
-                          <XAxis dataKey="name" stroke="#52525b" tick={{fill: '#71717a'}} />
-                          <YAxis stroke="#52525b" tick={{fill: '#71717a'}} />
-                          <Tooltip contentStyle={{ backgroundColor: '#18181B', borderColor: '#27272A' }} />
+                          <XAxis dataKey="name" stroke="#52525b" tick={{fill: '#71717a', fontSize: 12, fontFamily: 'JetBrains Mono'}} axisLine={false} tickLine={false} />
+                          <YAxis stroke="#52525b" tick={{fill: '#71717a', fontSize: 12, fontFamily: 'JetBrains Mono'}} axisLine={false} tickLine={false} />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#18181B', borderColor: '#27272A', color: '#fff', fontFamily: 'JetBrains Mono', fontSize: '12px' }}
+                            cursor={{ fill: '#ffffff', opacity: 0.05 }}
+                        />
                           <Bar dataKey="tips" name="Gerados" fill="#3f3f46" radius={[2, 2, 0, 0]} />
                           <Bar dataKey="wins" name="Sucesso" fill="#D97706" radius={[2, 2, 0, 0]} />
                         </BarChart>
