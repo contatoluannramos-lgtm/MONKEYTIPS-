@@ -15,10 +15,10 @@ const INITIAL_MATCHES: Match[] = [
     sport: SportType.FOOTBALL,
     teamA: 'Flamengo',
     teamB: 'Atlético Mineiro',
-    teamAId: 127, // ID Real Flamengo
-    teamBId: 1062, // ID Real Atlético Mineiro
+    teamAId: 127, 
+    teamBId: 1062, 
     league: 'Brasileirão Série A',
-    startTime: new Date().toISOString(), // Hoje
+    startTime: new Date().toISOString(), 
     status: 'Scheduled',
     stats: { 
       homeScore: 0, 
@@ -189,17 +189,16 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Load Data from Supabase on Boot
+  // LOAD DATA & REALTIME SYNC
   useEffect(() => {
-    const loadData = async () => {
-      console.log('Iniciando conexão com Supabase...');
+    const fetchLatestData = async () => {
+      console.log('🔄 Syncing Data...');
       
       const dbMatches = await dbService.getMatches();
       if (dbMatches.length > 0) {
         setMatches(dbMatches);
       } else {
-        // Se não tiver no banco, mantém os iniciais (com Flamengo x CAM) para teste
-        setMatches(INITIAL_MATCHES);
+        setMatches(INITIAL_MATCHES); // Fallback if DB empty
       }
 
       const dbTips = await dbService.getTips();
@@ -208,7 +207,33 @@ export default function App() {
       }
     };
     
-    loadData();
+    // Initial Fetch
+    fetchLatestData();
+
+    // Setup Realtime Subscriptions
+    const channel = supabase
+      .channel('db_changes_channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tips' },
+        (payload) => {
+          console.log('🔔 Realtime: Tips Update Detected:', payload.eventType);
+          fetchLatestData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'matches' },
+        (payload) => {
+           console.log('🔔 Realtime: Matches Update Detected:', payload.eventType);
+           fetchLatestData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   if (loadingSession) {
