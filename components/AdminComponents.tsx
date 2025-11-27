@@ -282,7 +282,8 @@ export const FusionTerminal = ({ analysis }: { analysis: FusionAnalysis }) => {
 export const MonkeyLivePanel = ({ matches, tips }: { matches: Match[], tips: Tip[] }) => {
     const [liveMatches, setLiveMatches] = useState<Match[]>([]);
     const [lastUpdate, setLastUpdate] = useState(new Date());
-    const [autoFire, setAutoFire] = useState(false);
+    // DEFAULT TO TRUE: Always active independently
+    const [autoFire, setAutoFire] = useState(true);
     const [webhookUrl, setWebhookUrl] = useState('');
     const [logs, setLogs] = useState<string[]>([]);
     const [heartbeat, setHeartbeat] = useState(false);
@@ -290,12 +291,9 @@ export const MonkeyLivePanel = ({ matches, tips }: { matches: Match[], tips: Tip
     useEffect(() => {
         const savedUrl = localStorage.getItem('monkey_webhook_url');
         if (savedUrl) setWebhookUrl(savedUrl);
-        
-        // PERSISTENCE 24/7: Restore auto-fire state on reload
-        const savedAutoFire = localStorage.getItem('monkey_autofire_state');
-        if (savedAutoFire === 'true') setAutoFire(true);
     }, []);
   
+    // Removed dependency on localStorage for initial state of autoFire to ensure it defaults to TRUE
     useEffect(() => {
         // Persist auto-fire state whenever it changes
         localStorage.setItem('monkey_autofire_state', autoFire.toString());
@@ -372,10 +370,10 @@ export const MonkeyLivePanel = ({ matches, tips }: { matches: Match[], tips: Tip
                         <button 
                             onClick={() => setAutoFire(!autoFire)}
                             className={`px-4 py-2 text-xs font-bold uppercase border transition-all ${
-                                autoFire ? 'bg-red-500/20 border-red-500 text-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]' : 'bg-gray-800 border-gray-600 text-gray-500'
+                                autoFire ? 'bg-green-500/20 border-green-500 text-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 'bg-gray-800 border-gray-600 text-gray-500'
                             }`}
                         >
-                            {autoFire ? '🚨 AUTO-FIRE: ON' : 'AUTO-FIRE: OFF'}
+                            {autoFire ? '🚨 AUTO-FIRE: ON' : 'AUTO-FIRE: PAUSED'}
                         </button>
                     </div>
                 </div>
@@ -640,7 +638,8 @@ export const ActivationPanel = () => {
     supabase: 'idle'
   });
 
-  const [liveMode, setLiveMode] = useState(false);
+  // DEFAULT TO TRUE: Live Mode active by default
+  const [liveMode, setLiveMode] = useState(true);
   const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
   useEffect(() => {
