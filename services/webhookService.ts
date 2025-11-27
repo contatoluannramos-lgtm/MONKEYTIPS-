@@ -1,9 +1,11 @@
 
 import { FusionAnalysis, Match } from "../types";
 
+const PROXY_ENDPOINT = '/api/webhook-proxy';
+
 export const webhookService = {
   async triggerAlert(match: Match, analysis: FusionAnalysis, webhookUrl: string) {
-    if (!webhookUrl) return;
+    if (!webhookUrl) return false;
 
     const payload = {
       username: "Monkey Tips Intelligence",
@@ -25,40 +27,50 @@ export const webhookService = {
       }]
     };
 
-    try {
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-      });
-      
-      console.log(`Webhook Triggered: ${response.status}`);
-      return response.ok;
-    } catch (error) {
-      console.error("Webhook Error:", error);
-      return false;
-    }
+    return this.sendViaProxy(webhookUrl, payload);
   },
 
   async sendTestMessage(webhookUrl: string) {
       if (!webhookUrl) return false;
 
       const payload = {
-          username: "Monkey Tips System",
-          content: "🦍 **Monkey Tips v2.0**: Teste de Conexão do Webhook realizado com sucesso! \n✅ O sistema está pronto para enviar alertas em tempo real.",
+          username: "Monkey Collector",
+          avatar_url: "https://cdn-icons-png.flaticon.com/512/4712/4712009.png",
+          content: "",
+          embeds: [{
+              title: "📡 Collector Link Established",
+              description: "A conexão com o Monkey Tips foi estabelecida com sucesso.",
+              color: 5763719, // Brand Green
+              fields: [
+                  { name: "Status", value: "✅ OPERATIONAL", inline: true },
+                  { name: "Pipeline", value: "Secure Proxy (Edge)", inline: true },
+                  { name: "Module", value: "Webhook Collector v2.0", inline: true }
+              ],
+              footer: { text: "Monkey Tips • System Notification" },
+              timestamp: new Date().toISOString()
+          }]
       };
 
+      return this.sendViaProxy(webhookUrl, payload);
+  },
+
+  async sendViaProxy(url: string, payload: any) {
       try {
-          const response = await fetch(webhookUrl, {
+          const response = await fetch(PROXY_ENDPOINT, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload)
+              body: JSON.stringify({ url, payload })
           });
-          return response.ok;
+          
+          if (!response.ok) {
+              const err = await response.json();
+              console.error("Proxy Error:", err);
+              return false;
+          }
+          
+          return true;
       } catch (error) {
-          console.error("Webhook Test Error:", error);
+          console.error("Webhook Service Error:", error);
           return false;
       }
   }
