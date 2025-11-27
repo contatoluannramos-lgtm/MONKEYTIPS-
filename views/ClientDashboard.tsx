@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { ClientHeader, Footer, PremiumLock, SubscriptionModal } from '../components/Layout';
 import { Tip, SportType } from '../types';
@@ -43,21 +42,20 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
   const handleSubscribe = () => {
       setProcessingPayment(true);
       
-      // Simulação de Pagamento
+      // Simulação de Pagamento (Gateway)
       setTimeout(() => {
-          // 1. Persistência
+          // 1. Persistência Permanente
           localStorage.setItem('monkey_is_premium', 'true');
           
-          // 2. Atualização de Estado Imediata
+          // 2. Atualização de Estado REATIVA (Isso remove os cadeados agora)
           setIsPremiumUser(true);
           
-          // 3. Limpeza UI
+          // 3. Feedback Visual e Fechamento
           setShowSubscriptionModal(false);
           setProcessingPayment(false);
           
-          // Debug Log
-          console.log("✅ Assinatura Ativada com Sucesso");
-      }, 1000);
+          console.log("✅ Assinatura Ativada: Interface Desbloqueada.");
+      }, 1500);
   };
 
   const filteredTips = useMemo(() => {
@@ -97,11 +95,11 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips }) => {
       />
 
       {processingPayment && (
-          <div className="fixed inset-0 z-[110] bg-black/80 flex items-center justify-center">
-              <div className="text-center">
+          <div className="fixed inset-0 z-[110] bg-black/80 flex items-center justify-center backdrop-blur-sm">
+              <div className="text-center animate-fade-in">
                   <div className="w-16 h-16 border-4 border-brand-500/30 border-t-brand-500 rounded-full animate-spin mb-4 mx-auto"></div>
-                  <p className="text-white font-mono animate-pulse">PROCESSANDO PAGAMENTO...</p>
-                  <p className="text-gray-500 text-xs mt-2">Liberando Acesso Premium...</p>
+                  <p className="text-white font-mono animate-pulse tracking-widest">PROCESSANDO...</p>
+                  <p className="text-brand-500 text-xs mt-2 font-mono">Validando Transação Segura</p>
               </div>
           </div>
       )}

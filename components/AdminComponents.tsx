@@ -282,7 +282,7 @@ export const FusionTerminal = ({ analysis }: { analysis: FusionAnalysis }) => {
 export const MonkeyLivePanel = ({ matches, tips }: { matches: Match[], tips: Tip[] }) => {
     const [liveMatches, setLiveMatches] = useState<Match[]>([]);
     const [lastUpdate, setLastUpdate] = useState(new Date());
-    // DEFAULT TO TRUE: Always active independently
+    // DEFAULT TO TRUE: Always active independently, no need to click to start
     const [autoFire, setAutoFire] = useState(true);
     const [webhookUrl, setWebhookUrl] = useState('');
     const [logs, setLogs] = useState<string[]>([]);
@@ -293,9 +293,9 @@ export const MonkeyLivePanel = ({ matches, tips }: { matches: Match[], tips: Tip
         if (savedUrl) setWebhookUrl(savedUrl);
     }, []);
   
-    // Removed dependency on localStorage for initial state of autoFire to ensure it defaults to TRUE
     useEffect(() => {
-        // Persist auto-fire state whenever it changes
+        // We do NOT check localStorage for 'false'. We force it ON by default in state initialization.
+        // But we save it for reference.
         localStorage.setItem('monkey_autofire_state', autoFire.toString());
     }, [autoFire]);
 
@@ -949,288 +949,176 @@ export const ActivationPanel = () => {
   );
 };
 
-export const ProjectEvolutionRoadmap = () => {
-  const [phases, setPhases] = useState<RoadmapPhase[]>([
-    {
-      id: 'p1',
-      title: 'FASE 1: v1.5 - CORE',
-      description: 'Módulos Ativos: Pré-jogo, Live Padrão, Pré-Tips e Pipeline de Respostas.',
-      status: 'COMPLETED',
-      progress: 100,
-      tasks: [
-        { id: 't1_1', name: 'Modo Pré-Jogo (DanielScore)', isCompleted: true },
-        { id: 't1_2', name: 'Live Padrão (Gol/Canto/Cartão)', isCompleted: true },
-        { id: 't1_3', name: 'Pré-Tips Projetivas', isCompleted: true },
-        { id: 't1_4', name: 'Pipeline de Respostas', isCompleted: true }
-      ]
-    },
-    {
-      id: 'p2',
-      title: 'FASE 2: v1.6 - BACKEND API',
-      description: 'Estrutura de APIs Server-side e validação de dados.',
-      status: 'COMPLETED',
-      progress: 100,
-      tasks: [
-        { id: 't2_1', name: 'API Endpoints (/tips/live, /pre)', isCompleted: true },
-        { id: 't2_2', name: 'API Endpoints (/projections)', isCompleted: true },
-        { id: 't2_3', name: 'API Endpoints (/news/ingest)', isCompleted: true },
-        { id: 't2_4', name: 'Validação Server-side', isCompleted: true }
-      ]
-    },
-    {
-      id: 'p3',
-      title: 'FASE 3: v1.7 - INTERFACE',
-      description: 'Painéis Oficiais, Dashboard Dark Mode e Layout Responsivo.',
-      status: 'COMPLETED',
-      progress: 100,
-      tasks: [
-        { id: 't3_1', name: 'Interface Monkey Dark', isCompleted: true },
-        { id: 't3_2', name: 'Painéis Admin & Analista', isCompleted: true },
-        { id: 't3_3', name: 'Dashboard Estatístico', isCompleted: true }
-      ]
-    },
-    {
-      id: 'p4',
-      title: 'FASE 4: v1.8 - NEWS ENGINE',
-      description: 'Automação Híbrida, Classificador de Relevância e Impacto.',
-      status: 'COMPLETED',
-      progress: 100,
-      tasks: [
-        { id: 't4_1', name: 'Classificador de Relevância', isCompleted: true },
-        { id: 't4_2', name: 'Módulo de Impacto na Aposta', isCompleted: true },
-        { id: 't4_3', name: 'Histórico Supabase', isCompleted: true },
-        { id: 't4_4', name: 'Automação Total (Scheduler)', isCompleted: true }
-      ]
-    },
-    {
-      id: 'p5',
-      title: 'FASE 5: v1.9 - LIVE ENGINE',
-      description: 'Coleta Real-Time, Algoritmo de Ritmo e Detecção de Spikes.',
-      status: 'COMPLETED',
-      progress: 100,
-      tasks: [
-        { id: 't5_1', name: 'Engine Coleta Ao Vivo', isCompleted: true },
-        { id: 't5_2', name: 'Pipeline Automático (Scout)', isCompleted: true },
-        { id: 't5_3', name: 'Algoritmo de Ritmo (Pace/xG)', isCompleted: true },
-        { id: 't5_4', name: 'Detecção de Spikes', isCompleted: true }
-      ]
-    },
-    {
-      id: 'p6',
-      title: 'FASE 6: v2.0 - LANÇAMENTO',
-      description: 'Plataforma 100% Autônoma, Reports e Operação 24/7.',
-      status: 'COMPLETED',
-      progress: 100,
-      tasks: [
-        { id: 't6_1', name: 'Live 100% Autônomo', isCompleted: true },
-        { id: 't6_2', name: 'Pré-jogo integrado ao Fusion', isCompleted: true },
-        { id: 't6_3', name: 'Sistema 24/7 Estável', isCompleted: true }
-      ]
-    },
-    {
-      id: 'p7',
-      title: 'FASE 7: v2.1 - EXPANSÃO',
-      description: 'Monetização, Mobile App Nativo e Escala Global.',
-      status: 'COMPLETED',
-      progress: 100,
-      tasks: [
-        { id: 't7_1', name: 'Mobile App PWA (Installable)', isCompleted: true },
-        { id: 't7_2', name: 'Integração Stripe (SaaS)', isCompleted: true },
-        { id: 't7_3', name: 'Suporte Multi-idioma', isCompleted: false }
-      ]
-    }
-  ]);
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-       {phases.map(phase => (
-          <div key={phase.id} className="bg-surface-900 border border-white/5 relative overflow-hidden group hover:border-brand-500/30 transition-all">
-             {/* Progress Bar Top */}
-             <div className="absolute top-0 left-0 w-full h-1 bg-surface-800">
-                <div className={`h-full ${phase.status === 'COMPLETED' ? 'bg-green-500' : phase.status === 'IN_PROGRESS' ? 'bg-brand-500' : 'bg-gray-700'}`} style={{ width: `${phase.progress}%` }}></div>
-             </div>
-
-             <div className="p-5">
-                <div className="flex justify-between items-start mb-3">
-                   <h4 className="text-xs font-bold text-white uppercase">{phase.title}</h4>
-                   <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
-                      phase.status === 'COMPLETED' ? 'text-green-500 border-green-500/30 bg-green-500/10' :
-                      phase.status === 'IN_PROGRESS' ? 'text-brand-500 border-brand-500/30 bg-brand-500/10' :
-                      'text-gray-500 border-gray-600'
-                   }`}>{phase.progress}%</span>
-                </div>
-                <p className="text-[10px] text-gray-500 mb-4 leading-relaxed min-h-[2.5em]">{phase.description}</p>
-                
-                <div className="space-y-2">
-                   {phase.tasks.map(task => (
-                      <div key={task.id} className="flex items-center gap-2">
-                         <div className={`w-3 h-3 flex items-center justify-center border ${task.isCompleted ? 'bg-brand-500 border-brand-500' : 'border-gray-600'}`}>
-                            {task.isCompleted && <svg className="w-2 h-2 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"></polyline></svg>}
-                         </div>
-                         <span className={`text-xs font-mono ${task.isCompleted ? 'text-gray-300 line-through decoration-brand-500/50' : 'text-gray-500'}`}>
-                            {task.name}
-                         </span>
-                      </div>
-                   ))}
-                </div>
-             </div>
-          </div>
-       ))}
-    </div>
-  );
-};
-
-export const ImprovementsPanel = () => {
-  const [proposals, setProposals] = useState<ImprovementProposal[]>([
-    { id: '1', title: 'Adicionar eSports (LoL)', description: 'Incluir rastreamento de dragões e ouro.', votes: 42, status: 'Pending' },
-    { id: '2', title: 'Melhorar filtro de odds', description: 'Permitir filtrar por range de odds (ex: 1.5 - 2.0)', votes: 28, status: 'Implemented' },
-    { id: '3', title: 'Integração Telegram Bot', description: 'Envio automático de sinais via bot.', votes: 12, status: 'Approved' },
-  ]);
-
-  return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-bold text-white flex items-center gap-2 font-display">
-        💡 Melhorias do Sistema
-      </h3>
-      <div className="space-y-4">
-        {proposals.map((prop) => (
-          <div key={prop.id} className="bg-surface-900 border border-white/5 p-4 flex justify-between items-center hover:border-white/20 transition-colors">
-            <div>
-              <h4 className="font-bold text-gray-200 text-sm">{prop.title}</h4>
-              <p className="text-gray-500 text-xs mt-1">{prop.description}</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className={`text-[10px] uppercase font-bold px-2 py-1 border ${
-                prop.status === 'Implemented' ? 'border-green-500 text-green-500' : 
-                prop.status === 'Approved' ? 'border-brand-500 text-brand-500' : 'border-gray-600 text-gray-500'
-              }`}>
-                {prop.status}
-              </span>
-              <span className="text-gray-400 text-xs font-mono">{prop.votes} votos</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-export const OperationalChecklist = () => {
-  const [items, setItems] = useState<ChecklistItem[]>([
-    { id: '1', label: 'Verificar Conexão API Football', checked: false },
-    { id: '2', label: 'Validar Saldo Banca (Mock)', checked: false },
-    { id: '3', label: 'Revisar Parâmetros de Risco', checked: true },
-    { id: '4', label: 'Limpar Cache de Sessão', checked: false },
-  ]);
-
-  // Load checklist state from local storage on mount
-  useEffect(() => {
-      const saved = localStorage.getItem('monkey_ops_checklist');
-      if (saved) {
-          setItems(JSON.parse(saved));
-      }
-  }, []);
-
-  const toggleItem = (id: string) => {
-    const newItems = items.map(i => i.id === id ? { ...i, checked: !i.checked } : i);
-    setItems(newItems);
-    localStorage.setItem('monkey_ops_checklist', JSON.stringify(newItems));
-  };
-
-  return (
-    <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6 rounded-none">
-      <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-        📄 Checklist Operacional
-      </h3>
-      <div className="space-y-3">
-        {items.map(item => (
-          <div 
-            key={item.id} 
-            onClick={() => toggleItem(item.id)}
-            className={`flex items-center gap-3 p-3 border cursor-pointer transition-all ${
-              item.checked ? 'bg-green-900/10 border-green-500/30' : 'bg-black/20 border-white/5 hover:border-white/20'
-            }`}
-          >
-            <div className={`w-4 h-4 border flex items-center justify-center transition-colors ${
-              item.checked ? 'bg-green-500 border-green-500' : 'border-gray-600'
-            }`}>
-              {item.checked && <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
-            </div>
-            <span className={`text-xs font-mono ${item.checked ? 'text-green-500 line-through' : 'text-gray-400'}`}>
-              {item.label}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+// --- NEW COMPONENTS FOR ADMIN DASHBOARD ---
 
 export const TipsHistoryPanel = ({ tips, onUpdateStatus }: { tips: Tip[], onUpdateStatus: (id: string, status: TipStatus) => void }) => {
-  const pendingTips = tips.filter(t => t.status === 'Pending');
-  
   return (
-    <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6 rounded-none">
-        <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-4">Histórico de Sinais (Validação)</h3>
-        <div className="space-y-2 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
-            {pendingTips.length === 0 && <p className="text-xs text-gray-500 italic">Nenhum sinal pendente.</p>}
-            
-            {pendingTips.map(tip => (
-                <div key={tip.id} className="flex justify-between items-center bg-black/30 p-3 border border-white/5">
-                    <div>
-                        <p className="text-white text-xs font-bold">{tip.matchTitle}</p>
-                        <p className="text-brand-500 text-[10px] font-mono">{tip.prediction} @ {tip.odds.toFixed(2)}</p>
-                    </div>
-                    <div className="flex gap-2">
-                        <button 
-                            onClick={() => onUpdateStatus(tip.id, 'Won')}
-                            className="px-2 py-1 bg-green-900/20 border border-green-500/50 text-green-500 text-[10px] uppercase hover:bg-green-500 hover:text-black transition-colors"
-                        >
-                            Green
-                        </button>
-                        <button 
-                            onClick={() => onUpdateStatus(tip.id, 'Lost')}
-                            className="px-2 py-1 bg-red-900/20 border border-red-500/50 text-red-500 text-[10px] uppercase hover:bg-red-500 hover:text-black transition-colors"
-                        >
-                            Red
-                        </button>
-                    </div>
+    <div className="bg-surface-900/50 backdrop-blur border border-white/5 rounded-none p-6">
+       <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-6">Histórico de Operações</h3>
+       <div className="overflow-x-auto">
+         <table className="w-full text-left border-collapse">
+           <thead>
+             <tr className="border-b border-white/10 text-xs text-gray-500 font-mono uppercase">
+               <th className="p-3">Data</th>
+               <th className="p-3">Jogo</th>
+               <th className="p-3">Tip</th>
+               <th className="p-3">Odd</th>
+               <th className="p-3">Conf</th>
+               <th className="p-3">Status</th>
+               <th className="p-3">Ação</th>
+             </tr>
+           </thead>
+           <tbody>
+             {tips.map(tip => (
+               <tr key={tip.id} className="border-b border-white/5 hover:bg-white/5 transition-colors text-sm">
+                 <td className="p-3 font-mono text-xs text-gray-400">{new Date(tip.createdAt).toLocaleDateString()}</td>
+                 <td className="p-3 text-white">{tip.matchTitle}</td>
+                 <td className="p-3 text-brand-500">{tip.prediction}</td>
+                 <td className="p-3 font-mono">{tip.odds.toFixed(2)}</td>
+                 <td className="p-3">
+                    <span className={`text-xs px-2 py-1 rounded ${
+                        tip.confidence >= 80 ? 'bg-green-500/20 text-green-500' : 'bg-yellow-500/20 text-yellow-500'
+                    }`}>{tip.confidence}%</span>
+                 </td>
+                 <td className="p-3">
+                    <span className={`text-xs px-2 py-1 rounded border uppercase font-bold ${
+                        tip.status === 'Won' ? 'bg-green-500/10 text-green-500 border-green-500/30' :
+                        tip.status === 'Lost' ? 'bg-red-500/10 text-red-500 border-red-500/30' :
+                        'bg-gray-500/10 text-gray-500 border-gray-500/30'
+                    }`}>{tip.status}</span>
+                 </td>
+                 <td className="p-3 flex gap-2">
+                    <button onClick={() => onUpdateStatus(tip.id, 'Won')} className="text-green-500 hover:text-green-400 text-xs uppercase border border-green-500/30 px-2 py-1">Green</button>
+                    <button onClick={() => onUpdateStatus(tip.id, 'Lost')} className="text-red-500 hover:text-red-400 text-xs uppercase border border-red-500/30 px-2 py-1">Red</button>
+                 </td>
+               </tr>
+             ))}
+           </tbody>
+         </table>
+       </div>
+    </div>
+  );
+};
+
+export const ProjectEvolutionRoadmap = () => {
+    const phases: RoadmapPhase[] = [
+        {
+            id: 'p1', title: 'Phase 1: Foundation', description: 'Setup inicial e Coleta de Dados', status: 'COMPLETED', progress: 100,
+            tasks: [{ id: 't1', name: 'Database Schema', isCompleted: true }]
+        },
+        {
+            id: 'p2', title: 'Phase 2: Intelligence', description: 'Scout Engine & Integração Gemini', status: 'COMPLETED', progress: 100,
+            tasks: [{ id: 't2', name: 'Gemini 2.5 Integration', isCompleted: true }]
+        },
+        {
+            id: 'p3', title: 'Phase 3: Real-Time', description: 'Monkey Live & Fusion Engine', status: 'IN_PROGRESS', progress: 65,
+            tasks: [{ id: 't3', name: 'Webhook Alerts', isCompleted: true }, { id: 't4', name: 'Vision API', isCompleted: false }]
+        }
+    ];
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {phases.map(phase => (
+                <div key={phase.id} className={`p-4 border ${phase.status === 'COMPLETED' ? 'border-green-500/30 bg-green-500/5' : phase.status === 'IN_PROGRESS' ? 'border-brand-500/30 bg-brand-500/5' : 'border-white/5 bg-surface-900'} relative overflow-hidden`}>
+                     {phase.status === 'IN_PROGRESS' && <div className="absolute top-0 right-0 p-1 bg-brand-500 text-black text-[10px] font-bold uppercase">Current</div>}
+                     <h4 className="text-white font-bold text-sm mb-1">{phase.title}</h4>
+                     <p className="text-gray-500 text-xs mb-3">{phase.description}</p>
+                     <div className="w-full bg-black h-1.5 rounded-full overflow-hidden">
+                         <div className={`h-full ${phase.status === 'COMPLETED' ? 'bg-green-500' : 'bg-brand-500'}`} style={{ width: `${phase.progress}%` }}></div>
+                     </div>
                 </div>
             ))}
         </div>
-    </div>
-  );
+    );
+};
+
+export const OperationalChecklist = () => {
+    const [tasks, setTasks] = useState<ChecklistItem[]>([
+        { id: '1', label: 'Verificar conexão API Football', checked: true },
+        { id: '2', label: 'Validar tokens Supabase', checked: true },
+        { id: '3', label: 'Calibrar Scout Engine (Weekend)', checked: false },
+        { id: '4', label: 'Verificar saldo API Gemini', checked: false }
+    ]);
+
+    const toggle = (id: string) => {
+        setTasks(prev => prev.map(t => t.id === id ? { ...t, checked: !t.checked } : t));
+    };
+
+    return (
+        <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6">
+            <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-4">Checklist Operacional</h3>
+            <div className="space-y-3">
+                {tasks.map(task => (
+                    <div key={task.id} className="flex items-center gap-3 cursor-pointer" onClick={() => toggle(task.id)}>
+                        <div className={`w-5 h-5 border flex items-center justify-center ${task.checked ? 'bg-green-500 border-green-500 text-black' : 'border-gray-600 bg-transparent'}`}>
+                            {task.checked && <span className="font-bold">✓</span>}
+                        </div>
+                        <span className={`text-sm ${task.checked ? 'text-gray-500 line-through' : 'text-gray-300'}`}>{task.label}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+export const ImprovementsPanel = () => {
+    return (
+        <div className="bg-surface-900/50 backdrop-blur border border-white/5 p-6">
+            <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider mb-4">Roadmap de Melhorias</h3>
+             <ul className="space-y-4">
+                 <li className="flex gap-3">
+                     <span className="text-xs font-bold bg-blue-500/20 text-blue-500 px-2 py-1 h-fit">NEW</span>
+                     <div>
+                         <p className="text-white text-sm font-bold">Módulo de Arbitragem</p>
+                         <p className="text-gray-500 text-xs">Analisar rigor do juiz para mercado de cartões.</p>
+                     </div>
+                 </li>
+                 <li className="flex gap-3">
+                     <span className="text-xs font-bold bg-yellow-500/20 text-yellow-500 px-2 py-1 h-fit">WIP</span>
+                     <div>
+                         <p className="text-white text-sm font-bold">Integração Telegram Bot</p>
+                         <p className="text-gray-500 text-xs">Envio direto de tips para canal VIP.</p>
+                     </div>
+                 </li>
+             </ul>
+        </div>
+    );
 };
 
 export const NewsImplementationChecklist = () => {
-  const [items, setItems] = useState<ChecklistItem[]>([
-    { id: '1', label: 'Conectar backend real', checked: true },
-    { id: '2', label: 'Ativar Scheduler Automático', checked: true },
-    { id: '3', label: 'Criar classificador relevância', checked: true },
-    { id: '4', label: 'Integrar Fusion Engine', checked: true },
-    { id: '5', label: 'Criar histórico Supabase', checked: true },
-    { id: '6', label: 'Frontend responsivo/animado', checked: true },
-    { id: '7', label: 'Criar modo Monkey Live', checked: true },
-    { id: '8', label: 'Webhook disparo automático', checked: true },
-  ]);
-
-  const toggle = (id: string) => {
-     setItems(items.map(i => i.id === id ? { ...i, checked: !i.checked } : i));
-  };
-
-  return (
-     <div className="bg-[#121214] border border-[#1C1C1F] p-6">
-        <h3 className="text-white font-bold text-sm mb-4 border-b border-[#1C1C1F] pb-2">IMPLANTAÇÃO NEWS ENGINE</h3>
-        <div className="space-y-2">
-           {items.map(item => (
-              <div key={item.id} onClick={() => toggle(item.id)} className="flex items-center gap-3 cursor-pointer hover:bg-[#1C1C1F] p-2 rounded">
-                 <div className={`w-4 h-4 border rounded-sm flex items-center justify-center ${item.checked ? 'bg-brand-500 border-brand-500' : 'border-gray-600'}`}>
-                    {item.checked && <svg className="w-3 h-3 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>}
-                 </div>
-                 <span className={`text-xs font-mono ${item.checked ? 'text-gray-500 line-through' : 'text-gray-300'}`}>{item.label}</span>
+   return (
+      <div className="bg-[#121214] border border-[#1C1C1F] p-6 h-full">
+          <h3 className="text-white font-bold text-sm mb-4">INTEGRAÇÃO NEWS ENGINE</h3>
+          <div className="space-y-4">
+              <div className="flex items-start gap-3 opacity-50">
+                  <div className="w-4 h-4 border border-green-500 bg-green-500/20 mt-0.5 flex items-center justify-center text-[10px] text-green-500">✓</div>
+                  <div>
+                      <p className="text-gray-300 text-xs font-bold">Definição do Schema</p>
+                      <p className="text-gray-600 text-[10px]">Estrutura JSON para notícias e impacto.</p>
+                  </div>
               </div>
-           ))}
-        </div>
-     </div>
-  );
+              <div className="flex items-start gap-3 opacity-50">
+                  <div className="w-4 h-4 border border-green-500 bg-green-500/20 mt-0.5 flex items-center justify-center text-[10px] text-green-500">✓</div>
+                  <div>
+                      <p className="text-gray-300 text-xs font-bold">Prompt Gemini Analysis</p>
+                      <p className="text-gray-600 text-[10px]">Engenharia de prompt para extração de contexto.</p>
+                  </div>
+              </div>
+              <div className="flex items-start gap-3">
+                  <div className="w-4 h-4 border border-brand-500 bg-brand-500/20 mt-0.5 flex items-center justify-center text-[10px] text-brand-500">●</div>
+                  <div>
+                      <p className="text-white text-xs font-bold">Web Crawler / RSS Feed</p>
+                      <p className="text-gray-400 text-[10px]">Conectar API do G1/GloboEsporte/ESPN.</p>
+                  </div>
+              </div>
+              <div className="flex items-start gap-3">
+                  <div className="w-4 h-4 border border-gray-600 mt-0.5"></div>
+                  <div>
+                      <p className="text-gray-400 text-xs font-bold">Fusion Engine Weighting</p>
+                      <p className="text-gray-600 text-[10px]">Calibrar impacto numérico na probabilidade final.</p>
+                  </div>
+              </div>
+          </div>
+      </div>
+   );
 };
