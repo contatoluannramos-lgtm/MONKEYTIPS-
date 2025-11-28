@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { Match, Tip, SportType, TicketAnalysis, CalibrationConfig, ScreenAnalysisData, NewsAnalysis, BotNewsPayload, NewsProcessedItem, TARGET_TEAMS_BRASILEIRAO, StatProcessedItem } from "../types";
 import { DEFAULT_CALIBRATION } from "./scoutEngine";
@@ -89,10 +88,11 @@ const statSchema: Schema = {
 };
 
 const getAIClient = () => {
-  if (typeof window === 'undefined') return null;
-  const apiKey = localStorage.getItem('monkey_gemini_api_key');
-  if (!apiKey) return null;
-  return new GoogleGenAI({ apiKey });
+  if (!process.env.API_KEY) {
+    console.error("Gemini API Key is missing from process.env.API_KEY");
+    return null;
+  }
+  return new GoogleGenAI({ apiKey: process.env.API_KEY });
 }
 
 // Helper to get strategic instruction

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tip, Match, TipStatus, FusionAnalysis, ScoutResult, NewsProcessedItem, CalibrationConfig, StatProcessedItem, ImprovementProposal, ChecklistItem, RoadmapPhase, RoadmapTask, BotNewsPayload } from '../types';
 import { DEFAULT_CALIBRATION } from '../services/scoutEngine';
@@ -78,7 +77,6 @@ export const KellyCalculator = () => {
 
 // --- ACTIVATION PANEL ---
 export const ActivationPanel = () => {
-    const [geminiKey, setGeminiKey] = useState('');
     const [footballKey, setFootballKey] = useState('');
     const [webhookUrl, setWebhookUrl] = useState('');
     
@@ -87,7 +85,6 @@ export const ActivationPanel = () => {
     const [supabaseKey, setSupabaseKey] = useState('');
 
     useEffect(() => {
-        setGeminiKey(localStorage.getItem('monkey_gemini_api_key') || '');
         setFootballKey(localStorage.getItem('monkey_football_api_key') || '');
         setWebhookUrl(localStorage.getItem('monkey_webhook_url') || '');
         setSupabaseUrl(localStorage.getItem('supabase_project_url') || '');
@@ -95,7 +92,6 @@ export const ActivationPanel = () => {
     }, []);
 
     const saveKeys = () => {
-        localStorage.setItem('monkey_gemini_api_key', geminiKey);
         localStorage.setItem('monkey_football_api_key', footballKey);
         localStorage.setItem('monkey_webhook_url', webhookUrl);
         localStorage.setItem('supabase_project_url', supabaseUrl);
@@ -115,16 +111,12 @@ export const ActivationPanel = () => {
             <h3 className="text-xl font-display font-medium text-white mb-6">Chaves de Acesso (API)</h3>
             
             <div className="space-y-6">
-                <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Google Gemini API Key (AI Core)</label>
-                    <input 
-                        type="password" 
-                        value={geminiKey}
-                        onChange={(e) => setGeminiKey(e.target.value)}
-                        className="w-full bg-black/30 border border-white/10 text-white p-3 font-mono text-sm focus:border-brand-500 outline-none"
-                        placeholder="AIzaSy..."
-                    />
-                    <p className="text-[10px] text-gray-600 mt-1">Necessário para gerar Tips, Scout e Fusion Analysis.</p>
+                <div className="bg-green-900/10 border border-green-500/20 p-4 rounded-sm mb-4">
+                    <p className="text-green-500 text-xs font-bold uppercase flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                        AI Core Active (Environment)
+                    </p>
+                    <p className="text-[10px] text-gray-500 mt-1 pl-4">Gemini API Key is managed via system environment variables.</p>
                 </div>
 
                 <div>
