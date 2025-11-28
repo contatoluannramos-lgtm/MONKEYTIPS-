@@ -125,24 +125,24 @@ const Login = () => {
            <div className="inline-block p-3 border border-brand-500/30 rounded-full mb-4 bg-brand-500/5">
              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-brand-500"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
            </div>
-           <h2 className="text-xl font-display font-medium text-white tracking-wide">ACESSO SEGURO</h2>
-           <p className="text-gray-500 text-xs mt-2 uppercase tracking-widest">Supabase Authentication</p>
+           <h2 className="text-xl font-display font-medium text-white tracking-wide">RESTRICTED AREA</h2>
+           <p className="text-gray-500 text-xs mt-2 uppercase tracking-widest">System Auth v2.0</p>
          </div>
          
          <form onSubmit={handleSubmit} className="space-y-6">
            <div className="space-y-1">
-             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest">Email Registrado</label>
+             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest">Operator ID</label>
              <input 
                type="email" 
                value={email}
                onChange={e => setEmail(e.target.value)}
                className="w-full bg-black/50 border border-white/10 text-white px-4 py-3 text-sm focus:border-brand-500 focus:outline-none transition-colors rounded-none placeholder-gray-700"
-               placeholder="admin@monkeytips.com"
+               placeholder="operator@system.internal"
                required
              />
            </div>
            <div className="space-y-1">
-             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest">Chave de Acesso</label>
+             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest">Secure Key</label>
              <input 
                type="password" 
                value={password}
@@ -165,13 +165,12 @@ const Login = () => {
              disabled={loading}
              className="w-full bg-white text-black hover:bg-brand-400 font-bold py-3 text-xs uppercase tracking-widest transition-colors mt-2 rounded-none disabled:opacity-50 disabled:cursor-not-allowed"
            >
-             {loading ? 'Verificando Credenciais...' : 'Autenticar'}
+             {loading ? 'Authenticating...' : 'Access Terminal'}
            </button>
          </form>
          
          <div className="mt-8 text-center pt-6 border-t border-white/5 space-y-2">
-            <p className="text-[10px] text-gray-500">Nota: Crie o usuário no painel do Supabase &gt; Authentication &gt; Users</p>
-            <a href="#/" className="block text-xs text-gray-600 hover:text-brand-500 transition-colors">Retornar à Visão Pública</a>
+            <a href="#/" className="block text-xs text-gray-600 hover:text-brand-500 transition-colors">« Disconnect</a>
          </div>
        </div>
     </div>
@@ -182,7 +181,7 @@ const Login = () => {
 const LoadingScreen = () => (
   <div className="min-h-screen bg-[#09090B] flex flex-col items-center justify-center">
     <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-500 mb-4"></div>
-    <div className="text-brand-500 text-xs font-mono animate-pulse tracking-widest">CARREGANDO SISTEMA</div>
+    <div className="text-brand-500 text-xs font-mono animate-pulse tracking-widest">SYSTEM BOOT SEQUENCE</div>
   </div>
 );
 
@@ -211,7 +210,7 @@ export default function App() {
 
   useEffect(() => {
     const fetchLatestData = async () => {
-      console.log('🔄 Syncing Data...');
+      // console.log('🔄 Syncing Data...');
       
       const dbMatches = await dbService.getMatches();
       if (dbMatches.length > 0) {
@@ -249,19 +248,28 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/" element={<ClientDashboard tips={tips} matches={matches} />} />
-        <Route path="/admin/login" element={session ? <Navigate to="/admin" /> : <Login />} />
+        
+        {/* SECURE ROUTES: Changed from /admin to obscure paths */}
+        <Route path="/system/access" element={session ? <Navigate to="/system/terminal" /> : <Login />} />
         <Route 
-          path="/admin" 
+          path="/system/terminal" 
           element={
             session ? (
               <Suspense fallback={<LoadingScreen />}>
                 <AdminDashboard tips={tips} setTips={setTips} matches={matches} setMatches={setMatches} />
               </Suspense>
             ) : (
-              <Navigate to="/admin/login" />
+              <Navigate to="/system/access" />
             )
           } 
         />
+
+        {/* HONEYPOT: Redirect standard admin paths to home to confuse scanners */}
+        <Route path="/admin" element={<Navigate to="/" replace />} />
+        <Route path="/admin/*" element={<Navigate to="/" replace />} />
+        <Route path="/login" element={<Navigate to="/" replace />} />
+        <Route path="/dashboard" element={<Navigate to="/" replace />} />
+
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
