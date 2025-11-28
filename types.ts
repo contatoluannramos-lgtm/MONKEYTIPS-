@@ -136,7 +136,7 @@ export interface StatProcessedItem {
 // --- NEWS ENGINE TYPES ---
 
 export interface BotNewsPayload {
-  source: 'globoesporte' | 'nba' | 'other';
+  source: 'globoesporte' | 'nba' | 'espn' | 'other';
   league: 'futebol' | 'basquete';
   urgency: 1 | 2 | 3 | 4 | 5;
   title: string;

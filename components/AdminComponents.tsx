@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { Tip, Match, TipStatus, FusionAnalysis, ScoutResult, NewsProcessedItem, CalibrationConfig, StatProcessedItem, ImprovementProposal, ChecklistItem, RoadmapPhase, RoadmapTask } from '../types';
+import { Tip, Match, TipStatus, FusionAnalysis, ScoutResult, NewsProcessedItem, CalibrationConfig, StatProcessedItem, ImprovementProposal, ChecklistItem, RoadmapPhase, RoadmapTask, BotNewsPayload } from '../types';
 import { DEFAULT_CALIBRATION } from '../services/scoutEngine';
 import { processMonkeyStats, analyzeSportsNews, processBotNews } from '../services/geminiService';
-import { fetchPlayerStatsCrawler, testStatsProvider } from '../services/liveDataService';
+import { fetchPlayerStatsCrawler, testStatsProvider, fetchRSSFeeds, fetchRealTeamStats, fetchSportsDataIOProps } from '../services/liveDataService';
 import { webhookService } from '../services/webhookService';
 
 // --- SHARED COMPONENTS ---
@@ -414,46 +414,61 @@ export const NewsTerminal = ({ newsQueue, onNewsProcessed, onArchiveNews }: {
     const [input, setInput] = useState('');
     const [mode, setMode] = useState<'TEXT' | 'URL'>('TEXT');
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isFetchingRSS, setIsFetchingRSS] = useState(false);
+    const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'FUTEBOL' | 'BASQUETE'>('ALL');
 
-    const handleProcess = async () => {
-        if (!input) return;
-        setIsProcessing(true);
+    const handleRSSIngest = async (source: 'GLOBO' | 'ESPN') => {
+        setIsFetchingRSS(true);
         try {
-            // Adaptar para usar a função existente ou nova
-            const analysis = await analyzeSportsNews(input, mode);
-            if (analysis) {
-                 // Convert NewsAnalysis (Legacy) to NewsProcessedItem structure if needed
-                 // Or create a new item based on it.
-                 // For simplicity, we are creating a dummy processed item here since analyzeSportsNews returns legacy type
-                 // Ideally we should unify types.
-                 const newItem: NewsProcessedItem = {
-                     id: `news-${Date.now()}`,
-                     originalData: {
-                         source: 'other',
-                         league: 'futebol',
-                         urgency: 3,
-                         title: analysis.headline,
-                         summary: analysis.summary,
-                         published_at: new Date().toISOString(),
-                         url: mode === 'URL' ? input : ''
-                     },
-                     relevanceScore: Math.abs(analysis.impactScore) * 3, // mock logic
-                     impactLevel: Math.abs(analysis.impactScore) > 20 ? 'ALTO' : 'MÉDIO',
-                     impactScore: analysis.impactScore,
-                     context: analysis.projectionChange,
-                     fusionSummary: analysis.summary,
-                     recommendedAction: 'Monitorar',
-                     status: 'PENDING',
-                     processedAt: new Date().toISOString()
-                 };
-                 await onNewsProcessed(newItem);
-                 setInput('');
+            const items = await fetchRSSFeeds(source);
+            // Processa apenas as 3 mais recentes para evitar sobrecarga
+            for (const item of items.slice(0, 3)) {
+                const payload: BotNewsPayload = {
+                    source: source === 'GLOBO' ? 'globoesporte' : 'espn',
+                    league: 'futebol', // Default, AI ajustará
+                    urgency: 3,
+                    title: item.title,
+                    summary: item.description,
+                    published_at: item.pubDate,
+                    url: item.link
+                };
+                
+                const processed = await processBotNews(payload);
+                if(processed) onNewsProcessed(processed);
             }
+            alert(`✅ Feed ${source} processado com sucesso!`);
         } catch (e) {
-            console.error(e);
+            alert("Erro ao buscar RSS: " + e);
+        }
+        setIsFetchingRSS(false);
+    };
+    
+    const handleManualIngest = async () => {
+        if (!input.trim()) return;
+        setIsProcessing(true);
+        
+        let payload: BotNewsPayload = {
+            source: 'other',
+            league: 'futebol', 
+            urgency: 3,
+            title: mode === 'URL' ? 'Análise de URL Externa' : 'Inserção Manual de Texto',
+            summary: input,
+            published_at: new Date().toISOString(),
+            url: mode === 'URL' ? input : ''
+        };
+
+        const processed = await processBotNews(payload);
+        if (processed) {
+            onNewsProcessed(processed);
+            setInput('');
         }
         setIsProcessing(false);
     };
+
+    const activeNews = newsQueue.filter(n => n.status !== 'ARCHIVED');
+    const filteredQueue = activeNews.filter(item => 
+        selectedFilter === 'ALL' || item.originalData.league.toUpperCase() === selectedFilter
+    );
 
     return (
         <div className="bg-[#0B0B0D] border border-[#1C1C1F] h-full flex flex-col p-6">
@@ -461,7 +476,25 @@ export const NewsTerminal = ({ newsQueue, onNewsProcessed, onArchiveNews }: {
                 <span className="text-blue-500">⚡</span> Monkey News Wire
             </h3>
             
-            <div className="flex gap-2 mb-4">
+            {/* RSS Controls */}
+            <div className="mb-6 flex gap-2">
+                <button 
+                  onClick={() => handleRSSIngest('GLOBO')}
+                  disabled={isFetchingRSS}
+                  className="bg-green-900/20 hover:bg-green-900/40 border border-green-500/30 text-green-500 px-4 py-2 text-xs font-bold uppercase flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isFetchingRSS ? 'Scanning...' : '📡 G1 GLOBO'}
+                </button>
+                <button 
+                  onClick={() => handleRSSIngest('ESPN')}
+                  disabled={isFetchingRSS}
+                  className="bg-red-900/20 hover:bg-red-900/40 border border-red-500/30 text-red-500 px-4 py-2 text-xs font-bold uppercase flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isFetchingRSS ? 'Scanning...' : '📡 ESPN BRASIL'}
+                </button>
+            </div>
+
+            <div className="flex gap-2 mb-2">
                 <button 
                     onClick={() => setMode('TEXT')}
                     className={`px-4 py-2 text-xs font-bold uppercase border ${mode === 'TEXT' ? 'bg-white text-black border-white' : 'border-white/10 text-gray-500'}`}
@@ -484,35 +517,67 @@ export const NewsTerminal = ({ newsQueue, onNewsProcessed, onArchiveNews }: {
                     onChange={e => setInput(e.target.value)}
                 />
                 <button 
-                    onClick={handleProcess}
+                    onClick={handleManualIngest}
                     disabled={isProcessing}
                     className="bg-brand-600 text-white px-6 font-bold uppercase text-xs hover:bg-brand-500 disabled:opacity-50"
                 >
                     {isProcessing ? 'Lendo...' : 'Processar'}
                 </button>
             </div>
+            
+            {/* Filters */}
+            <div className="p-2 border-b border-[#1C1C1F] flex gap-2 bg-[#0B0B0D] mb-4">
+                {['ALL', 'FUTEBOL', 'BASQUETE'].map(filter => (
+                    <button
+                        key={filter}
+                        onClick={() => setSelectedFilter(filter as any)}
+                        className={`px-3 py-1 text-[10px] font-bold uppercase border ${
+                        selectedFilter === filter 
+                        ? 'bg-[#1C1C1F] text-white border-white/20' 
+                        : 'bg-transparent text-[#A3A3A8] border-transparent hover:text-white'
+                        }`}
+                    >
+                        {filter}
+                    </button>
+                ))}
+            </div>
 
             <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
-                {newsQueue.map(item => (
-                    <div key={item.id} className={`p-4 border border-white/10 bg-[#121214] relative ${item.status === 'ARCHIVED' ? 'opacity-50 grayscale' : ''}`}>
-                         {item.status !== 'ARCHIVED' && (
-                             <button onClick={() => onArchiveNews(item.id)} className="absolute top-2 right-2 text-gray-500 hover:text-red-500">×</button>
-                         )}
-                         <div className="flex justify-between items-start mb-2">
-                             <h4 className="text-white font-bold text-sm line-clamp-1">{item.originalData.title}</h4>
-                             <span className={`text-[10px] px-2 py-0.5 font-bold uppercase ${
-                                 item.impactScore > 0 ? 'text-green-500 bg-green-500/10' : 'text-red-500 bg-red-500/10'
-                             }`}>
-                                 Impact: {item.impactScore}
-                             </span>
-                         </div>
-                         <p className="text-gray-400 text-xs mb-2 line-clamp-2">{item.fusionSummary}</p>
-                         <div className="flex justify-between items-center mt-2 border-t border-white/5 pt-2">
-                             <span className="text-[10px] text-gray-600">{new Date(item.processedAt).toLocaleTimeString()}</span>
-                             <span className="text-[10px] text-brand-500 uppercase font-bold">{item.recommendedAction}</span>
-                         </div>
-                    </div>
-                ))}
+                {filteredQueue.map(item => {
+                    const isRSS = ['globoesporte', 'espn'].includes(item.originalData.source);
+                    return (
+                        <div key={item.id} className={`p-4 border border-white/10 bg-[#121214] relative ${item.status === 'ARCHIVED' ? 'opacity-50 grayscale' : ''}`}>
+                             {item.status !== 'ARCHIVED' && (
+                                 <button onClick={() => onArchiveNews(item.id)} className="absolute top-2 right-2 text-gray-500 hover:text-red-500">×</button>
+                             )}
+                             <div className="flex justify-between items-start mb-2">
+                                 <div className="flex items-center gap-2">
+                                     {isRSS && (
+                                         <span className="text-[9px] bg-red-500 text-white font-bold px-1.5 py-0.5 animate-pulse rounded-sm">LIVE RSS 📡</span>
+                                     )}
+                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase ${
+                                        item.originalData.source === 'espn' ? 'bg-red-900/30 text-red-500' :
+                                        item.originalData.source === 'globoesporte' ? 'bg-green-900/30 text-green-500' :
+                                        'bg-gray-800 text-gray-400'
+                                     }`}>
+                                        {item.originalData.source}
+                                     </span>
+                                 </div>
+                                 <span className={`text-[10px] px-2 py-0.5 font-bold uppercase ${
+                                     item.impactScore > 0 ? 'text-green-500 bg-green-500/10' : 'text-red-500 bg-red-500/10'
+                                 }`}>
+                                     Impact: {item.impactScore}
+                                 </span>
+                             </div>
+                             <h4 className="text-white font-bold text-sm line-clamp-2 mb-1">{item.originalData.title}</h4>
+                             <p className="text-gray-400 text-xs mb-2 line-clamp-2">{item.fusionSummary}</p>
+                             <div className="flex justify-between items-center mt-2 border-t border-white/5 pt-2">
+                                 <span className="text-[10px] text-gray-600">{new Date(item.processedAt).toLocaleTimeString()}</span>
+                                 <span className="text-[10px] text-brand-500 uppercase font-bold">{item.recommendedAction}</span>
+                             </div>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
@@ -720,7 +785,19 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
     const handleCrawler = async () => {
         setIsCrawling(true);
         try {
-            const crawlerData = await fetchPlayerStatsCrawler();
+            // Tenta usar a API Real se a chave estiver configurada
+            let crawlerData = [];
+            if (configKey && configKey.length > 5) {
+                console.log("Using Real SportsDataIO API...");
+                crawlerData = await fetchSportsDataIOProps(configKey);
+                if (crawlerData.length === 0) {
+                    alert("Aviso: Nenhum dado retornado da SportsDataIO. Usando fallback de simulação.");
+                    crawlerData = await fetchPlayerStatsCrawler();
+                }
+            } else {
+                crawlerData = await fetchPlayerStatsCrawler();
+            }
+
             for (const item of crawlerData) {
                 const result = await processMonkeyStats(item.entity, item.stat);
                 if (result) await onStatProcessed(result);
@@ -729,6 +806,27 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
             console.error(e);
         }
         setIsCrawling(false);
+    };
+
+    // --- NEW FUNCTION: REAL TEAM DATA FETCH ---
+    const handleFetchTeamRealData = async () => {
+        if (!entity) return alert("Digite o ID ou Nome do time no campo Entidade.");
+        // Check if entity is numeric (Team ID)
+        if (!/^\d+$/.test(entity)) return alert("Para buscar dados reais, use o ID do time (Ex: 127 para Flamengo) no campo Entidade.");
+
+        setIsProcessing(true);
+        try {
+            const result = await fetchRealTeamStats(entity);
+            if (result) {
+                setEntity(result.name);
+                setRawStat(result.stat);
+            } else {
+                alert("Não foi possível encontrar dados recentes para este time ou API Key inválida.");
+            }
+        } catch(e) {
+            console.error(e);
+        }
+        setIsProcessing(false);
     };
 
     return (
@@ -757,14 +855,20 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
                     </button>
                 </div>
                 {activeTab === 'TERMINAL' && (
-                    <div className="p-4 flex items-center">
+                    <div className="p-4 flex items-center gap-2">
+                        <button 
+                            onClick={handleFetchTeamRealData}
+                            className="bg-surface-800 border border-white/10 text-white px-4 py-2 text-xs font-bold uppercase hover:bg-surface-700"
+                        >
+                            📡 Fetch Real Team Data
+                        </button>
                         <button 
                             onClick={handleCrawler}
                             disabled={isCrawling}
                             className="bg-blue-900/20 border border-blue-500/30 text-blue-500 px-4 py-2 text-xs font-bold uppercase hover:bg-blue-900/40 disabled:opacity-50 flex items-center gap-2"
                         >
                             {isCrawling ? <span className="animate-spin">◐</span> : '🕷️'}
-                            {isCrawling ? 'Crawling...' : 'Run Crawler'}
+                            {isCrawling ? 'Crawling...' : 'RUN LIVE SCAN'}
                         </button>
                     </div>
                 )}
@@ -779,7 +883,7 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
                                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Entidade (Jogador/Time)</label>
                                 <input 
                                     className="w-full bg-[#1C1C1F] text-white text-xs border border-white/10 px-3 py-3 outline-none focus:border-brand-500"
-                                    placeholder="Ex: Erling Haaland"
+                                    placeholder="Ex: Erling Haaland ou ID 127"
                                     value={entity}
                                     onChange={(e) => setEntity(e.target.value)}
                                 />
@@ -816,29 +920,37 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
                                 <p className="font-mono text-xs">AGUARDANDO DADOS...</p>
                             </div>
                         ) : (
-                            statsQueue.map(item => (
-                                <div key={item.id} className="bg-[#121214] border border-[#1C1C1F] p-4 flex gap-4 hover:border-blue-500/30 transition-all group relative">
-                                    <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <span className="text-[9px] text-gray-600 font-mono">{new Date(item.processedAt).toLocaleTimeString()}</span>
-                                    </div>
-                                    <div className="flex flex-col items-center justify-center border-r border-[#1C1C1F] pr-4 w-24">
-                                        <span className={`text-2xl font-bold ${item.probability > 70 ? 'text-green-500' : 'text-white'}`}>{item.probability}%</span>
-                                        <span className="text-[9px] text-gray-500 uppercase">Probabilidade</span>
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex justify-between mb-1">
-                                            <h4 className="text-brand-500 font-bold text-sm">{item.entityName}</h4>
-                                            <span className="text-[9px] text-gray-500 uppercase bg-[#1C1C1F] px-2 py-0.5 rounded border border-white/5">{item.category}</span>
+                            statsQueue.map(item => {
+                                // Verifica se é um dado de demonstração
+                                const isDemo = item.entityName.includes('[DEMO]') || item.rawData.includes('[DEMO]');
+                                
+                                return (
+                                    <div key={item.id} className={`bg-[#121214] border border-[#1C1C1F] p-4 flex gap-4 hover:border-blue-500/30 transition-all group relative ${isDemo ? 'opacity-90' : ''}`}>
+                                        <div className="absolute top-0 right-0 p-2 flex items-center gap-2">
+                                            {isDemo && (
+                                                <span className="text-[9px] bg-yellow-500 text-black font-bold px-2 py-0.5 uppercase rounded-sm animate-pulse">⚠️ SIMULATION</span>
+                                            )}
+                                            <span className="text-[9px] text-gray-600 font-mono opacity-0 group-hover:opacity-100 transition-opacity">{new Date(item.processedAt).toLocaleTimeString()}</span>
                                         </div>
-                                        <p className="text-gray-400 text-xs mb-3 font-mono border-l-2 border-white/10 pl-2">"{item.rawData}"</p>
-                                        <div className="bg-[#0B0B0D] p-3 border border-[#1C1C1F] border-l-2 border-l-blue-500">
-                                            <p className="text-[9px] text-blue-500 uppercase font-bold mb-1 tracking-wider">Market Opportunity</p>
-                                            <p className="text-sm font-bold text-white mb-1">{item.marketFocus}</p>
-                                            <p className="text-[10px] text-gray-500 italic">{item.aiAnalysis}</p>
+                                        <div className="flex flex-col items-center justify-center border-r border-[#1C1C1F] pr-4 w-24">
+                                            <span className={`text-2xl font-bold ${item.probability > 70 ? 'text-green-500' : 'text-white'}`}>{item.probability}%</span>
+                                            <span className="text-[9px] text-gray-500 uppercase">Probabilidade</span>
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between mb-1">
+                                                <h4 className="text-brand-500 font-bold text-sm">{item.entityName}</h4>
+                                                <span className="text-[9px] text-gray-500 uppercase bg-[#1C1C1F] px-2 py-0.5 rounded border border-white/5">{item.category}</span>
+                                            </div>
+                                            <p className="text-gray-400 text-xs mb-3 font-mono border-l-2 border-white/10 pl-2">"{item.rawData}"</p>
+                                            <div className="bg-[#0B0B0D] p-3 border border-[#1C1C1F] border-l-2 border-l-blue-500">
+                                                <p className="text-[9px] text-blue-500 uppercase font-bold mb-1 tracking-wider">Market Opportunity</p>
+                                                <p className="text-sm font-bold text-white mb-1">{item.marketFocus}</p>
+                                                <p className="text-[10px] text-gray-500 italic">{item.aiAnalysis}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
                 </div>

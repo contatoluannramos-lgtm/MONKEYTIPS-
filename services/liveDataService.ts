@@ -216,9 +216,104 @@ export const fetchMatchStatistics = async (fixtureId: number, apiKey: string): P
     }
 }
 
+// --- REAL TEAM STATS FETCH ---
+export const fetchRealTeamStats = async (teamId: string): Promise<{name: string, stat: string} | null> => {
+    if (typeof window === 'undefined') return null;
+    const apiKey = localStorage.getItem('monkey_football_api_key');
+    if (!apiKey) return null;
+
+    try {
+        const myHeaders = new Headers();
+        myHeaders.append("x-rapidapi-key", apiKey);
+        myHeaders.append("x-rapidapi-host", API_HOST);
+
+        // 1. Get Last Match ID
+        const fixturesRes = await fetch(`${API_URL}/fixtures?team=${teamId}&last=1&status=FT`, { headers: myHeaders });
+        const fixturesData = await fixturesRes.json();
+        
+        if (!fixturesData.response?.[0]) return null;
+        
+        const fixture = fixturesData.response[0];
+        const fixtureId = fixture.fixture.id;
+        const teamName = fixture.teams.home.id.toString() === teamId ? fixture.teams.home.name : fixture.teams.away.name;
+
+        // 2. Get Stats for that Match
+        const statsRes = await fetch(`${API_URL}/fixtures/statistics?fixture=${fixtureId}`, { headers: myHeaders });
+        const statsData = await statsRes.json();
+
+        if (!statsData.response) return null;
+
+        const teamStatsObj = statsData.response.find((t: any) => t.team.id.toString() === teamId);
+        
+        if (!teamStatsObj) return null;
+
+        const stats = teamStatsObj.statistics;
+        const getVal = (type: string) => stats.find((s: any) => s.type === type)?.value || 0;
+
+        const rawStatString = `
+            REAL DATA (${fixture.fixture.date.split('T')[0]} vs ${fixture.teams.home.id.toString() === teamId ? fixture.teams.away.name : fixture.teams.home.name}):
+            Total Shots: ${getVal("Total Shots")}, 
+            On Target: ${getVal("Shots on Goal")}, 
+            Corners: ${getVal("Corner Kicks")}, 
+            Possession: ${getVal("Ball Possession")}, 
+            Yellow Cards: ${getVal("Yellow Cards")}
+        `.trim();
+
+        return { name: teamName, stat: rawStatString };
+
+    } catch (e) {
+        console.error(e);
+        return null;
+    }
+};
+
+// --- SPORTSDATAIO INTEGRATION (REAL PLAYER PROPS) ---
+export const fetchSportsDataIOProps = async (apiKey: string) => {
+    if (!apiKey) return [];
+
+    // Formato de data para SportsDataIO (YYYY-MMM-DD) ex: 2025-NOV-27
+    // Nota: A API geralmente aceita YYYY-MM-DD também em versões v3
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Endpoint: NBA Player Game Projections by Date
+    // Docs: https://sportsdata.io/developers/api-documentation/nba
+    const url = `https://api.sportsdata.io/v3/nba/projections/json/PlayerGameProjectionStatsByDate/${today}?key=${apiKey}`;
+
+    console.log(`🕷️ SPORTSDATA.IO SCAN: ${url.replace(apiKey, 'HIDDEN')}`);
+
+    try {
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            console.error("SportsDataIO Error:", response.status, response.statusText);
+            throw new Error("Falha na autenticação ou cota excedida.");
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data)) return [];
+
+        // Filtra apenas jogadores com projeção de minutos relevante (>25) para pegar estrelas
+        // E limita a 5 resultados aleatórios para não estourar o limite do Gemini de uma vez
+        const relevantPlayers = data
+            .filter((p: any) => p.Minutes > 25 && p.Points > 15)
+            .sort((a, b) => b.Points - a.Points) // Pega os maiores pontuadores
+            .slice(0, 5); 
+
+        return relevantPlayers.map((p: any) => ({
+            entity: `${p.Name} (${p.Team})`,
+            stat: `PROJEÇÃO OFICIAL HOJE: ${p.Points} Pontos, ${p.Rebounds} Rebotes, ${p.Assists} Assistências. Usage esperado: Alto. Oponente: ${p.Opponent}.`,
+            source: "SportsDataIO"
+        }));
+
+    } catch (e) {
+        console.error("SportsDataIO Fetch Error", e);
+        return [];
+    }
+};
+
 // --- NEWS FEED CRAWLER (RSS BRIDGE) ---
 export const fetchRSSFeeds = async (source: 'GLOBO' | 'ESPN') => {
-    // Usamos RSS2JSON para contornar limitações de CORS em ambiente frontend puro
     const url = source === 'GLOBO' 
         ? 'https://ge.globo.com/futebol/rss/' 
         : 'https://www.espn.com.br/espn/rss/news';
@@ -243,50 +338,32 @@ export const fetchRSSFeeds = async (source: 'GLOBO' | 'ESPN') => {
     }
 };
 
-// --- MONKEY STATS CRAWLER (SIMULATION) ---
-// Simula a coleta de estatísticas profundas de sites como SofaScore/FlashScore
-// Em produção, isso seria um proxy backend chamando esses sites.
+// --- MONKEY STATS CRAWLER (FALLBACK SIMULATION) ---
 export const fetchPlayerStatsCrawler = async () => {
-    // Mock de resposta do Crawler
+    // Mantido como fallback caso a API key falhe
     const crawledData = [
         {
-            entity: "G. Cano (Fluminense)",
+            entity: "G. Cano (Fluminense) [DEMO]",
             stat: "6 Finalizações no último jogo, 4 no alvo. xG acumulado de 1.2 sem marcar.",
             source: "SofaScore"
         },
         {
-            entity: "Hulk (Atlético-MG)",
-            stat: "Média de 3.5 faltas sofridas por jogo. Árbitro do próximo jogo tem média de 28 faltas/jogo.",
-            source: "FlashScore"
-        },
-        {
-            entity: "Palmeiras (Team)",
-            stat: "14 Escanteios no último jogo. Média de 8.2 cantos a favor jogando em casa.",
-            source: "API-Football"
-        },
-        {
-            entity: "LeBron James (Lakers)",
+            entity: "LeBron James (Lakers) [DEMO]",
             stat: "Últimos 3 jogos: 28, 32, 30 pontos. Usage Rate aumentou 5% sem Anthony Davis.",
             source: "NBA.com"
-        },
-        {
-            entity: "Raphael Veiga (Palmeiras)",
-            stat: "Cobrou 4 de 5 pênaltis nesta temporada. Média de 2 passes decisivos por jogo.",
-            source: "FootStats"
         }
     ];
-
-    // Simula delay de rede
     await new Promise(resolve => setTimeout(resolve, 1500));
     return crawledData;
 };
 
 // --- STATS PROVIDER TEST ---
 export const testStatsProvider = async (apiKey: string) => {
-    // Simula uma verificação de credencial para o provedor de dados do MonkeyStats
-    // Pode ser uma API da NBA, RapidAPI alternativo ou um Proxy
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    
-    // Simula sucesso se a chave tiver pelo menos 5 caracteres
-    return apiKey.length >= 5;
+    // Teste real batendo no endpoint de times da NBA (leve)
+    try {
+        const response = await fetch(`https://api.sportsdata.io/v3/nba/scores/json/teams?key=${apiKey}`);
+        return response.ok;
+    } catch {
+        return false;
+    }
 };

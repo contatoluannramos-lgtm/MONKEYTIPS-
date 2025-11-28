@@ -39,6 +39,16 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 1600,
+    rollupOptions: {
+        output: {
+            // Força a separação de bibliotecas pesadas para otimizar o carregamento do cliente
+            manualChunks: {
+                'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+                'vendor-charts': ['recharts'],
+                'vendor-ai': ['@google/genai']
+            }
+        }
+    }
   },
   define: {
     // Force build timestamp to ensure git picks up config changes

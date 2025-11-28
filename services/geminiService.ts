@@ -89,6 +89,7 @@ const statSchema: Schema = {
 };
 
 const getAIClient = () => {
+  if (typeof window === 'undefined') return null;
   const apiKey = localStorage.getItem('monkey_gemini_api_key');
   if (!apiKey) return null;
   return new GoogleGenAI({ apiKey });
@@ -96,6 +97,7 @@ const getAIClient = () => {
 
 // Helper to get strategic instruction
 const getStrategyForSport = (sport: SportType): string => {
+  if (typeof window === 'undefined') return "";
   const savedConfig = localStorage.getItem('monkey_calibration_config');
   const config: CalibrationConfig = savedConfig ? JSON.parse(savedConfig) : DEFAULT_CALIBRATION;
 

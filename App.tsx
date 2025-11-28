@@ -1,12 +1,15 @@
-
-import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, Suspense } from 'react';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ClientDashboard } from './views/ClientDashboard';
-import { AdminDashboard } from './views/AdminDashboard';
 import { Match, Tip, SportType } from './types';
 import { dbService } from './services/databaseService';
 import { authService } from './services/authService';
 import { supabase } from './services/supabaseClient';
+
+// --- LAZY LOADED MODULES (SECURITY SEGREGATION) ---
+const AdminDashboard = React.lazy(() => 
+  import('./views/AdminDashboard').then(module => ({ default: module.AdminDashboard }))
+);
 
 // --- MOCK DATA (Fallback) ---
 const INITIAL_MATCHES: Match[] = [
@@ -18,12 +21,11 @@ const INITIAL_MATCHES: Match[] = [
     teamAId: 127, 
     teamBId: 1062, 
     league: 'Brasileirão Série A',
-    // Jogo de Terça-feira (Já ocorreu)
     startTime: '2025-11-25T21:30:00', 
-    status: 'Finished', // Jogo encerrado
+    status: 'Finished', 
     stats: { 
-      homeScore: 1, // Flamengo 1
-      awayScore: 1, // Galo 1 (Ambas Marcam Bateu)
+      homeScore: 1, 
+      awayScore: 1, 
       currentMinute: 90, 
       possession: 58, 
       corners: { home: 7, away: 4, total: 11 }, 
@@ -40,7 +42,7 @@ const INITIAL_MATCHES: Match[] = [
     teamA: 'Lakers',
     teamB: 'Celtics',
     league: 'NBA',
-    startTime: '2025-11-27T23:00:00', // Hoje (Quinta)
+    startTime: '2025-11-27T23:00:00', 
     status: 'Scheduled',
     stats: { 
       homeScore: 0, 
@@ -72,9 +74,9 @@ const INITIAL_TIPS: Tip[] = [
     confidence: 65,
     odds: 1.85,
     reasoning: 'Análise baseada no histórico recente ofensivo de ambas as equipes. Jogo aberto confirmado.',
-    createdAt: '2025-11-24T14:00:00', // Tip criada antes do jogo
+    createdAt: '2025-11-24T14:00:00',
     isPremium: false,
-    status: 'Won' // GREEN! O palpite bateu.
+    status: 'Won'
   },
   {
     id: 't2',
@@ -86,7 +88,7 @@ const INITIAL_TIPS: Tip[] = [
     odds: 1.90,
     reasoning: 'ALTA CONFIANÇA: Ritmo projetado (Pace) acima de 105 posses. Defesas desfalcadas. Tendência clara de High Scoring Game.',
     createdAt: new Date().toISOString(),
-    isPremium: true, // ESTA TIP APARECERÁ BLOQUEADA ATÉ A ASSINATURA
+    isPremium: true,
     status: 'Pending'
   }
 ];
@@ -103,15 +105,13 @@ const Login = () => {
     setLoading(true);
     setError('');
 
-    const { data, error } = await authService.signIn(email, password);
+    const { error } = await authService.signIn(email, password);
 
     if (error) {
       setError(error.message === 'Invalid login credentials' 
         ? 'ACESSO NEGADO: Email ou senha incorretos.' 
         : `ERRO: ${error.message}`);
       setLoading(false);
-    } else {
-      // Auth state listener in App will handle redirect
     }
   };
 
@@ -178,6 +178,14 @@ const Login = () => {
   );
 };
 
+// --- LOADING SCREEN ---
+const LoadingScreen = () => (
+  <div className="min-h-screen bg-[#09090B] flex flex-col items-center justify-center">
+    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-500 mb-4"></div>
+    <div className="text-brand-500 text-xs font-mono animate-pulse tracking-widest">CARREGANDO SISTEMA</div>
+  </div>
+);
+
 // --- MAIN APP COMPONENT ---
 export default function App() {
   const [tips, setTips] = useState<Tip[]>(INITIAL_TIPS);
@@ -186,13 +194,11 @@ export default function App() {
   const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
 
   useEffect(() => {
-    // 1. Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoadingSession(false);
     });
 
-    // 2. Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -203,7 +209,6 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // LOAD DATA & REALTIME SYNC
   useEffect(() => {
     const fetchLatestData = async () => {
       console.log('🔄 Syncing Data...');
@@ -212,39 +217,23 @@ export default function App() {
       if (dbMatches.length > 0) {
         setMatches(dbMatches);
       } else {
-        setMatches(INITIAL_MATCHES); // Fallback if DB empty
+        setMatches(INITIAL_MATCHES); 
       }
 
       const dbTips = await dbService.getTips();
       if (dbTips.length > 0) {
         setTips(dbTips);
       } else {
-        setTips(INITIAL_TIPS); // Fallback to mock tips (including premium one)
+        setTips(INITIAL_TIPS);
       }
     };
     
-    // Initial Fetch
     fetchLatestData();
 
-    // Setup Realtime Subscriptions
     const channel = supabase
       .channel('db_changes_channel')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'tips' },
-        (payload) => {
-          console.log('🔔 Realtime: Tips Update Detected:', payload.eventType);
-          fetchLatestData();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'matches' },
-        (payload) => {
-           console.log('🔔 Realtime: Matches Update Detected:', payload.eventType);
-           fetchLatestData();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tips' }, () => fetchLatestData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => fetchLatestData())
       .subscribe();
 
     return () => {
@@ -253,28 +242,26 @@ export default function App() {
   }, []);
 
   if (loadingSession) {
-    return (
-      <div className="min-h-screen bg-[#09090B] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500"></div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (
     <Router>
       <Routes>
         <Route path="/" element={<ClientDashboard tips={tips} matches={matches} />} />
-
-        <Route 
-          path="/admin/login" 
-          element={session ? <Navigate to="/admin" /> : <Login />} 
-        />
-        
+        <Route path="/admin/login" element={session ? <Navigate to="/admin" /> : <Login />} />
         <Route 
           path="/admin" 
-          element={session ? <AdminDashboard tips={tips} setTips={setTips} matches={matches} setMatches={setMatches} /> : <Navigate to="/admin/login" />} 
+          element={
+            session ? (
+              <Suspense fallback={<LoadingScreen />}>
+                <AdminDashboard tips={tips} setTips={setTips} matches={matches} setMatches={setMatches} />
+              </Suspense>
+            ) : (
+              <Navigate to="/admin/login" />
+            )
+          } 
         />
-
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
