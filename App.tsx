@@ -185,6 +185,53 @@ const LoadingScreen = () => (
   </div>
 );
 
+// --- ERROR BOUNDARY ---
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  state: ErrorBoundaryState = {
+    hasError: false,
+    error: null
+  };
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("Uncaught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-black text-white flex items-center justify-center p-8">
+           <div className="max-w-md border border-red-500/50 bg-red-900/10 p-6">
+              <h1 className="text-xl font-bold text-red-500 mb-2">CRITICAL SYSTEM FAILURE</h1>
+              <p className="text-xs font-mono text-gray-300 mb-4">The kernel panicked. Please check console logs.</p>
+              <pre className="text-[10px] bg-black p-4 text-red-400 overflow-auto">{this.state.error?.message}</pre>
+              <button 
+                onClick={() => window.location.href = '/'}
+                className="mt-4 bg-red-500 text-black px-4 py-2 text-xs font-bold uppercase"
+              >
+                Force Reboot
+              </button>
+           </div>
+        </div>
+      );
+    }
+
+    return this.props.children; 
+  }
+}
+
 // --- MAIN APP COMPONENT ---
 export default function App() {
   const [tips, setTips] = useState<Tip[]>(INITIAL_TIPS);
@@ -246,32 +293,34 @@ export default function App() {
 
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<ClientDashboard tips={tips} matches={matches} />} />
-        
-        {/* SECURE ROUTES: Changed from /admin to obscure paths */}
-        <Route path="/system/access" element={session ? <Navigate to="/system/terminal" /> : <Login />} />
-        <Route 
-          path="/system/terminal" 
-          element={
-            session ? (
-              <Suspense fallback={<LoadingScreen />}>
-                <AdminDashboard tips={tips} setTips={setTips} matches={matches} setMatches={setMatches} />
-              </Suspense>
-            ) : (
-              <Navigate to="/system/access" />
-            )
-          } 
-        />
+      <ErrorBoundary>
+        <Routes>
+          <Route path="/" element={<ClientDashboard tips={tips} matches={matches} />} />
+          
+          {/* SECURE ROUTES: Changed from /admin to obscure paths */}
+          <Route path="/system/access" element={session ? <Navigate to="/system/terminal" /> : <Login />} />
+          <Route 
+            path="/system/terminal" 
+            element={
+              session ? (
+                <Suspense fallback={<LoadingScreen />}>
+                  <AdminDashboard tips={tips} setTips={setTips} matches={matches} setMatches={setMatches} />
+                </Suspense>
+              ) : (
+                <Navigate to="/system/access" />
+              )
+            } 
+          />
 
-        {/* HONEYPOT: Redirect standard admin paths to home to confuse scanners */}
-        <Route path="/admin" element={<Navigate to="/" replace />} />
-        <Route path="/admin/*" element={<Navigate to="/" replace />} />
-        <Route path="/login" element={<Navigate to="/" replace />} />
-        <Route path="/dashboard" element={<Navigate to="/" replace />} />
+          {/* HONEYPOT: Redirect standard admin paths to home to confuse scanners */}
+          <Route path="/admin" element={<Navigate to="/" replace />} />
+          <Route path="/admin/*" element={<Navigate to="/" replace />} />
+          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </ErrorBoundary>
     </Router>
   );
 }
