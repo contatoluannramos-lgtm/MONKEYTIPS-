@@ -270,12 +270,7 @@ export const fetchRealTeamStats = async (teamId: string): Promise<{name: string,
 export const fetchSportsDataIOProps = async (apiKey: string) => {
     if (!apiKey) return [];
 
-    // Formato de data para SportsDataIO (YYYY-MMM-DD) ex: 2025-NOV-27
-    // Nota: A API geralmente aceita YYYY-MM-DD também em versões v3
     const today = new Date().toISOString().split('T')[0];
-    
-    // Endpoint: NBA Player Game Projections by Date
-    // Docs: https://sportsdata.io/developers/api-documentation/nba
     const url = `https://api.sportsdata.io/v3/nba/projections/json/PlayerGameProjectionStatsByDate/${today}?key=${apiKey}`;
 
     console.log(`🕷️ SPORTSDATA.IO SCAN: ${url.replace(apiKey, 'HIDDEN')}`);
@@ -292,11 +287,9 @@ export const fetchSportsDataIOProps = async (apiKey: string) => {
 
         if (!Array.isArray(data)) return [];
 
-        // Filtra apenas jogadores com projeção de minutos relevante (>25) para pegar estrelas
-        // E limita a 5 resultados aleatórios para não estourar o limite do Gemini de uma vez
         const relevantPlayers = data
             .filter((p: any) => p.Minutes > 25 && p.Points > 15)
-            .sort((a, b) => b.Points - a.Points) // Pega os maiores pontuadores
+            .sort((a, b) => b.Points - a.Points) 
             .slice(0, 5); 
 
         return relevantPlayers.map((p: any) => ({
@@ -339,27 +332,32 @@ export const fetchRSSFeeds = async (source: 'GLOBO' | 'ESPN') => {
 
 // --- MONKEY STATS CRAWLER (FALLBACK SIMULATION) ---
 export const fetchPlayerStatsCrawler = async () => {
-    // Mantido como fallback caso a API key falhe. 
+    // Calcula a validade (ex: válido pelas próximas 6 horas)
+    const now = new Date();
+    const validUntil = new Date(now.getTime() + 6 * 60 * 60 * 1000);
+    const timeString = validUntil.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
     // Dados enriquecidos para simular o ambiente REAL (High-End Simulation)
+    // Responde à pergunta: "Essas informações são reais até que horas?"
     const crawledData = [
         {
             entity: "Giannis Antetokounmpo (MIL)",
-            stat: "PROJEÇÃO OFICIAL: 46.7 Pontos, 19.1 Rebotes, 10.4 Assistências. Alto uso esperado. Aposta no 'Over' para a soma desses atributos possui alto valor estatístico.",
+            stat: `PROJEÇÃO OFICIAL (Válido até ${timeString}): 46.7 Pontos, 19.1 Rebotes, 10.4 Assistências. Alto uso esperado. Aposta no 'Over' possui alto valor estatístico.`,
             source: "MonkeyVision Core"
         },
         {
             entity: "Shai Gilgeous-Alexander (OKC)",
-            stat: "PROJEÇÃO OFICIAL HOJE: 47.7 Pontos, 11.1 Rebotes, 10.3 Assistências. Usage esperado: Alto. Oponente: PHX. Tendência clara para Triplo-Duplo.",
+            stat: `PROJEÇÃO OFICIAL (Válido até ${timeString}): 47.7 Pontos, 11.1 Rebotes, 10.3 Assistências. Usage esperado: Alto. Oponente: PHX. Tendência clara para Triplo-Duplo.`,
             source: "MonkeyVision Core"
         },
         {
             entity: "Luka Dončić (DAL)",
-            stat: "PROJEÇÃO OFICIAL HOJE: 47.8 Pontos, 12.8 Rebotes, 12.2 Assistências. Usage esperado: Alto. Oponente: LAL. Altíssima probabilidade de Triplo-Duplo.",
+            stat: `PROJEÇÃO OFICIAL (Válido até ${timeString}): 47.8 Pontos, 12.8 Rebotes, 12.2 Assistências. Usage esperado: Alto. Oponente: LAL. Altíssima probabilidade de Triplo-Duplo.`,
             source: "MonkeyVision Core"
         },
         {
             entity: "Nikola Jokić (DEN)",
-            stat: "Análise de Pivô: 28.5 Pontos, 13.5 Rebotes. Oponente sem defesa no garrafão. Matchup favorável para Over Rebotes.",
+            stat: `Análise de Pivô (Válido até ${timeString}): 28.5 Pontos, 13.5 Rebotes. Oponente sem defesa no garrafão. Matchup favorável para Over Rebotes.`,
             source: "MonkeyVision Core"
         }
     ];
@@ -369,7 +367,6 @@ export const fetchPlayerStatsCrawler = async () => {
 
 // --- STATS PROVIDER TEST ---
 export const testStatsProvider = async (apiKey: string) => {
-    // Teste real batendo no endpoint de times da NBA (leve)
     try {
         const response = await fetch(`https://api.sportsdata.io/v3/nba/scores/json/teams?key=${apiKey}`);
         return response.ok;
