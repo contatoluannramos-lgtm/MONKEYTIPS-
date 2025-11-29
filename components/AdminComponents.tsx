@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Tip, Match, TipStatus, FusionAnalysis, ScoutResult, NewsProcessedItem, CalibrationConfig, StatProcessedItem, ImprovementProposal, ChecklistItem, RoadmapPhase, RoadmapTask, BotNewsPayload } from '../types';
-import { DEFAULT_CALIBRATION } from '../services/scoutEngine';
-import { processMonkeyStats, analyzeSportsNews, processBotNews } from '../services/geminiService';
+// FIX: Updated imports to point to the new engine files instead of deprecated services.
+import { DEFAULT_CALIBRATION } from '../engines/scoutEngine';
+import { geminiEngine } from '../engines/geminiEngine';
 import { fetchPlayerStatsCrawler, testStatsProvider, fetchRSSFeeds, fetchRealTeamStats, fetchSportsDataIOProps } from '../services/liveDataService';
 import { webhookService } from '../services/webhookService';
 
@@ -425,8 +426,18 @@ export const NewsTerminal = ({ newsQueue, onNewsProcessed, onArchiveNews }: {
                     url: item.link
                 };
                 
-                const processed = await processBotNews(payload);
-                if(processed) onNewsProcessed(processed);
+                // FIX: Updated to use geminiEngine
+                const processedResult = await geminiEngine.processBotNews(payload);
+                if(processedResult) {
+                    const fullItem: NewsProcessedItem = {
+                        ...processedResult,
+                        id: `news-${Date.now()}-${Math.random()}`,
+                        originalData: payload,
+                        status: 'PENDING',
+                        processedAt: new Date().toISOString()
+                    };
+                    onNewsProcessed(fullItem);
+                }
             }
             alert(`✅ Feed ${source} processado com sucesso!`);
         } catch (e) {
@@ -449,9 +460,17 @@ export const NewsTerminal = ({ newsQueue, onNewsProcessed, onArchiveNews }: {
             url: mode === 'URL' ? input : ''
         };
 
-        const processed = await processBotNews(payload);
-        if (processed) {
-            onNewsProcessed(processed);
+        // FIX: Updated to use geminiEngine
+        const processedResult = await geminiEngine.processBotNews(payload);
+        if (processedResult) {
+             const fullItem: NewsProcessedItem = {
+                ...processedResult,
+                id: `news-${Date.now()}-${Math.random()}`,
+                originalData: payload,
+                status: 'PENDING',
+                processedAt: new Date().toISOString()
+            };
+            onNewsProcessed(fullItem);
             setInput('');
         }
         setIsProcessing(false);
@@ -757,11 +776,20 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
         setIsProcessing(true);
         
         try {
-            const result = await processMonkeyStats(entity, rawStat);
+            // FIX: Updated to use geminiEngine
+            const result = await geminiEngine.processRawStat(entity, rawStat);
             if (result) {
                 setIsProcessing(false);
                 setIsSaving(true);
-                await onStatProcessed(result);
+                const fullItem: StatProcessedItem = {
+                    ...result,
+                    id: `stat-${Date.now()}-${Math.random()}`,
+                    entityName: entity,
+                    rawData: rawStat,
+                    status: 'PENDING',
+                    processedAt: new Date().toISOString()
+                };
+                await onStatProcessed(fullItem);
                 setEntity('');
                 setRawStat('');
             }
@@ -791,8 +819,19 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
             }
 
             for (const item of crawlerData) {
-                const result = await processMonkeyStats(item.entity, item.stat);
-                if (result) await onStatProcessed(result);
+                // FIX: Updated to use geminiEngine
+                const result = await geminiEngine.processRawStat(item.entity, item.stat);
+                if (result) {
+                     const fullItem: StatProcessedItem = {
+                        ...result,
+                        id: `stat-${Date.now()}-${Math.random()}`,
+                        entityName: item.entity,
+                        rawData: item.stat,
+                        status: 'PENDING',
+                        processedAt: new Date().toISOString()
+                    };
+                    await onStatProcessed(fullItem);
+                }
             }
         } catch (e) {
             console.error(e);

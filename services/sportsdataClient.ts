@@ -1,120 +1,94 @@
+
+// services/sportsdataClient.ts
+// Cliente robusto para SportsDataIO v3
 import { SportType } from "../types";
+import { logger } from "../utils/logger";
 
-// Configurações do Cliente
 const BASE_URL = "https://api.sportsdata.io/v3";
-const DEFAULT_KEY = "a16dcb80ea4e4b549fd90ffea502f49a";
+const DEFAULT_KEY = (typeof process !== "undefined" && process.env.SPORTSDATA_KEY) ? process.env.SPORTSDATA_KEY : "";
+const RETRY_COUNT = 2;
+const RETRY_DELAY_MS = 700;
 
-export interface NBAProjection {
-  PlayerID: number;
-  Name: string;
-  Team: string;
-  Opponent: string;
-  Position: string;
-  Points: number;
-  Rebounds: number;
-  Assists: number;
-  Steals: number;
-  BlockedShots: number;
-  ThreePointersMade: number;
-  FantasyPoints: number;
-  Minutes: number;
-  IsGameOver: boolean;
+async function sleep(ms: number) {
+  return new Promise((res) => setTimeout(res, ms));
 }
 
-export interface NBAGame {
-  GameID: number;
-  Status: string; // Scheduled, Final, InProgress
-  DateTime: string;
-  AwayTeam: string;
-  HomeTeam: string;
-  AwayTeamScore: number | null;
-  HomeTeamScore: number | null;
-  PointSpread: number;
-  OverUnder: number;
-}
+async function safeFetch(url: string, init: RequestInit = {}) {
+  let lastErr: any = null;
+  for (let attempt = 0; attempt <= RETRY_COUNT; attempt++) {
+    try {
+      const res = await fetch(url, init);
+      const text = await res.text().catch(() => "");
+      let json = null;
+      try { json = text ? JSON.parse(text) : null; } catch(e){ /* not json */ }
 
-/**
- * Obtém a chave de API (Override > Ambiente > Default)
- */
-const getKey = (overrideKey?: string): string => {
-  if (overrideKey && overrideKey.length > 5) return overrideKey;
-  if (typeof process !== 'undefined' && process.env.SPORTSDATA_KEY) {
-    return process.env.SPORTSDATA_KEY;
-  }
-  return DEFAULT_KEY;
-};
-
-/**
- * Wrapper genérico para Fetch com tratamento de erro
- */
-const get = async <T>(endpoint: string, league: 'nba' | 'soccer' = 'nba', apiKey?: string): Promise<T | null> => {
-  const key = getKey(apiKey);
-  
-  // Constrói URLs baseadas no endpoint solicitado
-  // Se for uma URL completa, apenas anexa a chave. Se for parcial, constrói o caminho.
-  let finalUrl = '';
-  
-  if (endpoint.startsWith('http')) {
-     finalUrl = `${endpoint}${endpoint.includes('?') ? '&' : '?'}key=${key}`;
-  } else if (endpoint.includes('Projection')) {
-     // Projections endpoint structure varies slightly
-     finalUrl = `${BASE_URL}/${league}/projections/json/${endpoint}?key=${key}`;
-  } else {
-     // Standard scores endpoint
-     finalUrl = `${BASE_URL}/${league}/scores/json/${endpoint}?key=${key}`;
-  }
-
-  console.log(`📡 [SportsDataIO] Fetching: ${endpoint.split('?')[0]}...`);
-
-  try {
-    const response = await fetch(finalUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'MonkeyTips-Worker/2.0'
+      if (!res.ok) {
+        const msg = `HTTP ${res.status} ${res.statusText} — ${text || "<no body>"}`;
+        lastErr = new Error(msg);
+        if (res.status >= 500 && attempt < RETRY_COUNT) {
+          logger.warn('API', `SportsData request failed (attempt ${attempt + 1}), retrying...`, { status: res.status });
+          await sleep(RETRY_DELAY_MS);
+          continue;
+        }
+        throw lastErr;
       }
-    });
-
-    if (!response.ok) {
-      console.error(`❌ [SportsDataIO] Error ${response.status}: ${response.statusText}`);
-      if (response.status === 401 || response.status === 403) {
-         console.error("⚠️ Verifique sua API KEY. Cota excedida ou chave inválida.");
-      }
-      return null;
+      return json;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < RETRY_COUNT) await sleep(RETRY_DELAY_MS);
     }
-
-    const data = await response.json();
-    return data as T;
-
-  } catch (error) {
-    console.error(`❌ [SportsDataIO] Network Error:`, error);
-    return null;
   }
-};
+  throw lastErr;
+}
 
-/**
- * Cliente Oficial Monkey Tips para SportsDataIO
- * Focado em operações de Backend/Worker
- */
+function buildFinalUrl(league: string, endpointPath: string, key?: string) {
+  const k = key || DEFAULT_KEY || "";
+  if (!k) {
+    logger.error('API', 'SPORTSDATA_KEY não configurada.');
+    throw new Error("SPORTSDATA_KEY not provided.");
+  }
+  const ep = endpointPath.replace(/^\/+/, "").replace(/\s+/g, "");
+  return `${BASE_URL}/${league}/scores/json/${ep}${ep.includes('?') ? '&' : '?'}key=${k}`.replace('?&','?');
+}
+
+export interface NBAGame { GameID: number; Season?: number; DateTime?: string; Status?: string; HomeTeam?: string; AwayTeam?: string; }
+export interface NBAProjection { PlayerID: number; Name: string; Team: string; Opponent: string; Position: string; Points?: number; Rebounds?: number; Assists?: number; Steals?: number; Blocks?: number; Minutes?: number; }
+
+async function get<T = any>(endpoint: string, league: string = 'nba', apiKey?: string): Promise<T> {
+  const finalUrl = buildFinalUrl(league, endpoint, apiKey);
+  logger.info('API', `[sportsdata] fetching: ${finalUrl.replace(apiKey || DEFAULT_KEY, '***')}`);
+  const headers = { 'Accept': 'application/json', 'User-Agent': 'MonkeyTips-Worker/3.0' };
+  const data = await safeFetch(finalUrl, { method: 'GET', headers });
+  return data as T;
+}
+
 export const sportsdataClient = {
-  getKey,
-  get,
-  
-  // --- MÉTODOS ESPECÍFICOS NBA ---
-
-  /**
-   * Busca jogos agendados para uma data (YYYY-MM-DD)
-   */
   async getNBAGamesByDate(date: string, apiKey?: string): Promise<NBAGame[]> {
-    const data = await get<NBAGame[]>(`GamesByDate/${date}`, 'nba', apiKey);
-    return data || [];
+    try {
+      const res = await get<NBAGame[]>(`GamesByDate/${date}`, 'nba', apiKey);
+      return Array.isArray(res) ? res : [];
+    } catch (err) {
+      logger.error('API', "[sportsdata] getNBAGamesByDate error", err);
+      return [];
+    }
   },
 
-  /**
-   * Busca projeções de jogadores para hoje
-   */
   async getNBAProjections(date: string, apiKey?: string): Promise<NBAProjection[]> {
-    // Endpoint específico de projeções
-    return get<NBAProjection[]>(`PlayerGameProjectionStatsByDate/${date}`, 'nba', apiKey) || [];
+    try {
+      const res = await get<NBAProjection[]>(`PlayerGameProjectionStatsByDate/${date}`, 'nba', apiKey);
+      return Array.isArray(res) ? res : [];
+    } catch (err) {
+      logger.error('API', "[sportsdata] getNBAProjections error", err);
+      return [];
+    }
+  },
+
+  async raw(endpointPath: string, league = 'nba', apiKey?: string) {
+    try {
+      return await get(endpointPath, league, apiKey);
+    } catch (err) {
+      logger.error('API', "[sportsdata] raw request error", err);
+      throw err;
+    }
   }
 };

@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { generateBulkInsights, analyzeTicketImage, analyzeScreenCapture } from '../services/geminiService';
+// FIX: Updated imports to point to new engine files.
+import { geminiEngine } from '../engines/geminiEngine';
 import { fetchLiveFixtures, fetchTeamHistory } from '../services/liveDataService';
 import { dbService } from '../services/databaseService';
 import { authService } from '../services/authService';
-import { runScoutAnalysis, DEFAULT_CALIBRATION } from '../services/scoutEngine';
-import { runFusionEngine } from '../services/fusionEngine';
+import { runScoutAnalysis, DEFAULT_CALIBRATION } from '../engines/scoutEngine';
+import { runFusionEngine } from '../engines/fusionEngine';
 import { Match, Tip, SportType, AdminView, TipStatus, TicketAnalysis, ScoutResult, FusionAnalysis, ScreenAnalysisData, NewsProcessedItem, StatProcessedItem } from '../types';
 import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel, TipsHistoryPanel, CalibrationPanel, ScoutCard, FusionTerminal, NewsTerminal, NewsImplementationChecklist, MonkeyLivePanel, MonkeyStatsTerminal } from '../components/AdminComponents';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -103,7 +104,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     setBrowserImage(base64); // Show screenshot in "browser" div
 
     // Send to Gemini Vision
-    const data = await analyzeScreenCapture(base64);
+    // FIX: Updated to use geminiEngine
+    const data = await geminiEngine.analyzeScreenCapture(base64);
     setVisionData(data);
     setIsScanningScreen(false);
   };
@@ -195,14 +197,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
       if (mode === 'TICKET') {
         setIsAnalyzingTicket(true);
         setTicketAnalysis(null);
-        const analysis = await analyzeTicketImage(base64String);
+        // FIX: Updated to use geminiEngine
+        const analysis = await geminiEngine.analyzeTicketImage(base64String);
         setTicketAnalysis(analysis);
         setIsAnalyzingTicket(false);
       } else {
         // If uploading manually to vision (fallback)
         setIsScanningScreen(true);
         setBrowserImage(base64String); 
-        const data = await analyzeScreenCapture(base64String);
+        // FIX: Updated to use geminiEngine
+        const data = await geminiEngine.analyzeScreenCapture(base64String);
         setVisionData(data);
         setIsScanningScreen(false);
       }
@@ -335,8 +339,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
         return m;
     }));
 
+    // FIX: Re-implemented generateBulkInsights by looping over the new geminiEngine method.
     // 2. Gerar Tips Base (AI - Gemini)
-    const aiTips = await generateBulkInsights(enrichedMatches);
+    const aiTipsPromises = enrichedMatches.map(async (match) => {
+        try {
+            const partialTip = await geminiEngine.generateMatchAnalysis(match);
+            return {
+                id: `ai-${match.id}-${Date.now()}`,
+                matchId: match.id,
+                matchTitle: `${match.teamA} x ${match.teamB}`,
+                sport: match.sport,
+                prediction: partialTip.prediction || 'N/A',
+                confidence: partialTip.confidence || 50,
+                odds: partialTip.odds || 1.80,
+                reasoning: partialTip.reasoning || 'Análise não disponível.',
+                createdAt: new Date().toISOString(),
+                isPremium: (partialTip.confidence || 50) > 75,
+                status: 'Pending' as TipStatus,
+            } as Tip;
+        } catch (e) {
+            console.error(`Error generating analysis for match ${match.id}:`, e);
+            return null;
+        }
+    });
+    const aiTipsResults = await Promise.all(aiTipsPromises);
+    const aiTips = aiTipsResults.filter((tip): tip is Tip => tip !== null);
+
 
     // 3. INTEGRAR AO FUSION ENGINE (Pre-Game Full Cycle)
     const finalTips = aiTips.map(tip => {

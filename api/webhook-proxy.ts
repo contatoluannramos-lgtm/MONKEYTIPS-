@@ -10,7 +10,6 @@ const corsHeaders = {
 };
 
 export default async function handler(request: Request) {
-  // Handle CORS Preflight
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
@@ -45,13 +44,15 @@ export default async function handler(request: Request) {
       });
     } else {
       const errorText = await externalResponse.text();
-      return new Response(JSON.stringify({ success: false, error: errorText }), {
+      console.error(`Webhook proxy failed for ${url}: ${errorText}`);
+      return new Response(JSON.stringify({ success: false, error: errorText, status: externalResponse.status }), {
         status: externalResponse.status,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
       });
     }
 
   } catch (error: any) {
+    console.error("Webhook proxy internal error:", error);
     return new Response(JSON.stringify({ error: 'Internal Server Error', details: error.message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json', ...corsHeaders },

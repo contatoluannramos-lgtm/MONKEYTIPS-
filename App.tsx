@@ -1,14 +1,14 @@
 
-import React, { useState, useEffect, Suspense, ReactNode, ErrorInfo, Component } from 'react';
+
+import React, { useState, useEffect, Suspense, ReactNode, ErrorInfo } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ClientDashboard } from './views/ClientDashboard';
 import { Match, Tip, SportType } from './types';
 import { dbService } from './services/databaseService';
 import { authService } from './services/authService';
-import { supabase } from './services/supabaseClient';
+import { supabase, isSupabaseConfigured } from './services/supabaseClient';
 
 // --- LAZY LOADED MODULES (SECURITY SEGREGATION) ---
-// Carregamento preguiçoso para proteger o código do Admin de ser baixado por usuários comuns
 const AdminDashboard = React.lazy(() => 
   import('./views/AdminDashboard')
 );
@@ -110,9 +110,13 @@ const Login = () => {
     const { error } = await authService.signIn(email, password);
 
     if (error) {
-      setError(error.message === 'Invalid login credentials' 
-        ? 'ACESSO NEGADO: Email ou senha incorretos.' 
-        : `ERRO: ${error.message}`);
+      let errorMessage = `ERRO: ${error.message}`;
+      if (error.name === 'ConfigError') {
+        errorMessage = 'ERRO DE SISTEMA: Banco de dados não configurado. Ative as chaves no painel.';
+      } else if (error.message === 'Invalid login credentials') {
+        errorMessage = 'ACESSO NEGADO: Email ou senha incorretos.';
+      }
+      setError(errorMessage);
       setLoading(false);
     }
   };
@@ -191,26 +195,23 @@ const LoadingScreen = () => (
 interface ErrorBoundaryProps {
   children?: ReactNode;
 }
-
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
 }
-
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  public state: ErrorBoundaryState = {
+  // FIX: Resolved errors with `this.state` and `this.props` not being recognized by switching to class field syntax for state initialization. This is a robust alternative to using a constructor and can bypass certain build tool misconfigurations.
+  state: ErrorBoundaryState = {
     hasError: false,
-    error: null
+    error: null,
   };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
-
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
   }
-
   render() {
     if (this.state.hasError) {
       return (
@@ -229,7 +230,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         </div>
       );
     }
-
     return this.props.children || null; 
   }
 }
@@ -242,46 +242,45 @@ export default function App() {
   const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoadingSession(false);
-    });
+    if (isSupabaseConfigured()) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setSession(session);
+        setLoadingSession(false);
+      });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setLoadingSession(false);
-    });
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setSession(session);
+      });
 
-    return () => subscription.unsubscribe();
+      return () => subscription.unsubscribe();
+    } else {
+      console.warn("Supabase not configured. Skipping session check.");
+      setLoadingSession(false);
+    }
   }, []);
 
   useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      console.warn("Supabase not configured. Using initial mock data.");
+      return; 
+    }
+
     const fetchLatestData = async () => {
-      // console.log('🔄 Syncing Data...');
-      
       const dbMatches = await dbService.getMatches();
-      if (dbMatches.length > 0) {
-        setMatches(dbMatches);
-      } else {
-        setMatches(INITIAL_MATCHES); 
-      }
+      if (dbMatches.length > 0) setMatches(dbMatches);
+      else setMatches(INITIAL_MATCHES); 
 
       const dbTips = await dbService.getTips();
-      if (dbTips.length > 0) {
-        setTips(dbTips);
-      } else {
-        setTips(INITIAL_TIPS);
-      }
+      if (dbTips.length > 0) setTips(dbTips);
+      else setTips(INITIAL_TIPS);
     };
     
     fetchLatestData();
 
     const channel = supabase
       .channel('db_changes_channel')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tips' }, () => fetchLatestData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => fetchLatestData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tips' }, fetchLatestData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, fetchLatestData)
       .subscribe();
 
     return () => {
@@ -299,7 +298,6 @@ export default function App() {
         <Routes>
           <Route path="/" element={<ClientDashboard tips={tips} matches={matches} />} />
           
-          {/* SECURE ROUTES: Changed from /admin to obscure paths */}
           <Route path="/system/access" element={session ? <Navigate to="/system/terminal" /> : <Login />} />
           <Route 
             path="/system/terminal" 
@@ -314,7 +312,7 @@ export default function App() {
             } 
           />
 
-          {/* HONEYPOT: Redirect standard admin paths to home to confuse scanners */}
+          {/* HONEYPOT ROUTES */}
           <Route path="/admin" element={<Navigate to="/" replace />} />
           <Route path="/admin/*" element={<Navigate to="/" replace />} />
           <Route path="/login" element={<Navigate to="/" replace />} />

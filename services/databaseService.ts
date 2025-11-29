@@ -1,6 +1,7 @@
 
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { Match, Tip, SportType, TipStatus, NewsProcessedItem, StatProcessedItem } from '../types';
+import { logger } from '../utils/logger';
 
 // Mappers para converter snake_case (banco) para camelCase (app)
 const mapMatchFromDB = (data: any): Match => ({
@@ -54,175 +55,67 @@ const mapStatFromDB = (data: any): StatProcessedItem => ({
 });
 
 export const dbService = {
-  // --- PARTIDAS ---
   async getMatches(): Promise<Match[]> {
     if (!isSupabaseConfigured()) return [];
-
-    const { data, error } = await supabase
-      .from('matches')
-      .select('*')
-      .order('start_time', { ascending: true });
-
-    if (error) {
-      console.error('Erro ao buscar partidas:', error.message || error);
-      return [];
-    }
+    const { data, error } = await supabase.from('matches').select('*').order('start_time', { ascending: true });
+    if (error) { logger.error('DB', 'Erro ao buscar partidas', error); return []; }
     return data ? data.map(mapMatchFromDB) : [];
   },
 
   async saveMatch(match: Match): Promise<void> {
     if (!isSupabaseConfigured()) return;
-
-    const { error } = await supabase
-      .from('matches')
-      .upsert({
-        id: match.id,
-        sport: match.sport,
-        team_a: match.teamA,
-        team_b: match.teamB,
-        league: match.league,
-        start_time: match.startTime,
-        status: match.status,
-        stats: match.stats
-      });
-
-    if (error) console.error('Erro ao salvar partida:', error.message || error);
+    const { error } = await supabase.from('matches').upsert({ id: match.id, sport: match.sport, team_a: match.teamA, team_b: match.teamB, league: match.league, start_time: match.startTime, status: match.status, stats: match.stats });
+    if (error) logger.error('DB', 'Erro ao salvar partida', error);
   },
 
-  // --- TIPS ---
   async getTips(): Promise<Tip[]> {
     if (!isSupabaseConfigured()) return [];
-
-    const { data, error } = await supabase
-      .from('tips')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Erro ao buscar tips:', error.message || error);
-      return [];
-    }
+    const { data, error } = await supabase.from('tips').select('*').order('created_at', { ascending: false });
+    if (error) { logger.error('DB', 'Erro ao buscar tips', error); return []; }
     return data ? data.map(mapTipFromDB) : [];
   },
 
   async saveTip(tip: Tip): Promise<void> {
     if (!isSupabaseConfigured()) return;
-
-    const { error } = await supabase
-      .from('tips')
-      .insert({
-        id: tip.id,
-        match_id: tip.matchId,
-        match_title: tip.matchTitle,
-        sport: tip.sport,
-        prediction: tip.prediction,
-        confidence: tip.confidence,
-        odds: tip.odds,
-        reasoning: tip.reasoning,
-        created_at: tip.createdAt,
-        is_premium: tip.isPremium,
-        status: tip.status
-      });
-
-    if (error) console.error('Erro ao salvar tip:', error.message || error);
+    const { error } = await supabase.from('tips').insert({ id: tip.id, match_id: tip.matchId, match_title: tip.matchTitle, sport: tip.sport, prediction: tip.prediction, confidence: tip.confidence, odds: tip.odds, reasoning: tip.reasoning, created_at: tip.createdAt, is_premium: tip.isPremium, status: tip.status });
+    if (error) logger.error('DB', 'Erro ao salvar tip', error);
   },
 
   async updateTipStatus(tipId: string, status: TipStatus): Promise<void> {
     if (!isSupabaseConfigured()) return;
-
-    const { error } = await supabase
-      .from('tips')
-      .update({ status: status })
-      .eq('id', tipId);
-
-    if (error) {
-      console.error('Erro ao atualizar status da tip:', error.message || error);
-    }
+    const { error } = await supabase.from('tips').update({ status: status }).eq('id', tipId);
+    if (error) logger.error('DB', 'Erro ao atualizar status da tip', error);
   },
 
-  // --- NEWS ENGINE ---
   async getNews(): Promise<NewsProcessedItem[]> {
     if (!isSupabaseConfigured()) return [];
-
-    const { data, error } = await supabase
-      .from('news')
-      .select('*')
-      .order('processed_at', { ascending: false })
-      .limit(50); // Limite para não pesar o frontend
-
-    if (error) {
-      console.error('Erro ao buscar notícias:', error.message || error);
-      return [];
-    }
+    const { data, error } = await supabase.from('news').select('*').order('processed_at', { ascending: false }).limit(50);
+    if (error) { logger.error('DB', 'Erro ao buscar notícias', error); return []; }
     return data ? data.map(mapNewsFromDB) : [];
   },
 
   async saveNews(item: NewsProcessedItem): Promise<void> {
     if (!isSupabaseConfigured()) return;
-
-    const { error } = await supabase
-      .from('news')
-      .upsert({
-        id: item.id,
-        original_data: item.originalData,
-        relevance_score: item.relevanceScore,
-        impact_level: item.impactLevel,
-        impact_score: item.impactScore,
-        context: item.context,
-        fusion_summary: item.fusionSummary,
-        recommended_action: item.recommendedAction,
-        status: item.status,
-        processed_at: item.processedAt
-      });
-
-    if (error) console.error('Erro ao salvar notícia:', error.message || error);
+    const { error } = await supabase.from('news').upsert({ id: item.id, original_data: item.originalData, relevance_score: item.relevanceScore, impact_level: item.impactLevel, impact_score: item.impactScore, context: item.context, fusion_summary: item.fusionSummary, recommended_action: item.recommendedAction, status: item.status, processed_at: item.processedAt });
+    if (error) logger.error('DB', 'Erro ao salvar notícia', error);
   },
 
   async archiveNews(id: string): Promise<void> {
     if (!isSupabaseConfigured()) return;
-
-    const { error } = await supabase
-      .from('news')
-      .update({ status: 'ARCHIVED' })
-      .eq('id', id);
-
-    if (error) console.error('Erro ao arquivar notícia:', error.message || error);
+    const { error } = await supabase.from('news').update({ status: 'ARCHIVED' }).eq('id', id);
+    if (error) logger.error('DB', 'Erro ao arquivar notícia', error);
   },
 
-  // --- MONKEY STATS ---
   async getStats(): Promise<StatProcessedItem[]> {
     if (!isSupabaseConfigured()) return [];
-
-    const { data, error } = await supabase
-      .from('monkey_stats')
-      .select('*')
-      .order('processed_at', { ascending: false })
-      .limit(50);
-
-    if (error) {
-      console.error('Erro ao buscar stats:', error.message || error);
-      return [];
-    }
+    const { data, error } = await supabase.from('monkey_stats').select('*').order('processed_at', { ascending: false }).limit(50);
+    if (error) { logger.error('DB', 'Erro ao buscar stats', error); return []; }
     return data ? data.map(mapStatFromDB) : [];
   },
 
   async saveStat(item: StatProcessedItem): Promise<void> {
     if (!isSupabaseConfigured()) return;
-
-    const { error } = await supabase
-      .from('monkey_stats')
-      .upsert({
-        id: item.id,
-        entity_name: item.entityName,
-        category: item.category,
-        raw_data: item.rawData,
-        market_focus: item.marketFocus,
-        probability: item.probability,
-        ai_analysis: item.aiAnalysis,
-        status: item.status,
-        processed_at: item.processedAt
-      });
-
-    if (error) console.error('Erro ao salvar stat:', error.message || error);
+    const { error } = await supabase.from('monkey_stats').upsert({ id: item.id, entity_name: item.entityName, category: item.category, raw_data: item.rawData, market_focus: item.marketFocus, probability: item.probability, ai_analysis: item.aiAnalysis, status: item.status, processed_at: item.processedAt });
+    if (error) logger.error('DB', 'Erro ao salvar stat', error);
   }
 };
