@@ -1,4 +1,5 @@
-import React, { useState, useEffect, Suspense, ReactNode, ErrorInfo } from 'react';
+
+import React, { useState, useEffect, Suspense, ReactNode, ErrorInfo, Component } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ClientDashboard } from './views/ClientDashboard';
 import { Match, Tip, SportType } from './types';
@@ -7,6 +8,7 @@ import { authService } from './services/authService';
 import { supabase } from './services/supabaseClient';
 
 // --- LAZY LOADED MODULES (SECURITY SEGREGATION) ---
+// Carregamento preguiçoso para proteger o código do Admin de ser baixado por usuários comuns
 const AdminDashboard = React.lazy(() => 
   import('./views/AdminDashboard').then(module => ({ default: module.AdminDashboard }))
 );
@@ -24,16 +26,10 @@ const INITIAL_MATCHES: Match[] = [
     startTime: '2025-11-25T21:30:00', 
     status: 'Finished', 
     stats: { 
-      homeScore: 1, 
-      awayScore: 1, 
-      currentMinute: 90, 
-      possession: 58, 
-      corners: { home: 7, away: 4, total: 11 }, 
-      shotsOnTarget: { home: 8, away: 3 }, 
-      shotsOffTarget: { home: 5, away: 4 }, 
-      attacks: { dangerous: 52, total: 105 }, 
-      cards: { yellow: 4, red: 0 }, 
-      recentForm: 'W W D W L' 
+      homeScore: 1, awayScore: 1, currentMinute: 90, possession: 58, 
+      corners: { home: 7, away: 4, total: 11 }, shotsOnTarget: { home: 8, away: 3 }, 
+      shotsOffTarget: { home: 5, away: 4 }, attacks: { dangerous: 52, total: 105 }, 
+      cards: { yellow: 4, red: 0 }, recentForm: 'W W D W L' 
     }
   },
   {
@@ -45,21 +41,9 @@ const INITIAL_MATCHES: Match[] = [
     startTime: '2025-11-27T23:00:00', 
     status: 'Scheduled',
     stats: { 
-      homeScore: 0, 
-      awayScore: 0, 
-      currentPeriod: 'Pre-Game', 
-      timeLeft: '00:00',
-      quarters: {
-        q1: { home: 0, away: 0 },
-        q2: { home: 0, away: 0 },
-        q3: { home: 0, away: 0 },
-        q4: { home: 0, away: 0 }
-      },
-      pace: 102.5, 
-      efficiency: 112.3,
-      turnovers: { home: 0, away: 0 },
-      rebounds: { home: 0, away: 0 },
-      threePointPercentage: { home: 0, away: 0 }
+      homeScore: 0, awayScore: 0, currentPeriod: 'Pre-Game', timeLeft: '00:00',
+      quarters: { q1: { home: 0, away: 0 }, q2: { home: 0, away: 0 }, q3: { home: 0, away: 0 }, q4: { home: 0, away: 0 } },
+      pace: 102.5, efficiency: 112.3, turnovers: { home: 0, away: 0 }, rebounds: { home: 0, away: 0 }, threePointPercentage: { home: 0, away: 0 }
     }
   }
 ];
@@ -77,19 +61,6 @@ const INITIAL_TIPS: Tip[] = [
     createdAt: '2025-11-24T14:00:00',
     isPremium: false,
     status: 'Won'
-  },
-  {
-    id: 't2',
-    matchId: 'm2',
-    matchTitle: 'Lakers x Celtics (NBA Classico)',
-    sport: SportType.BASKETBALL,
-    prediction: 'Over 228.5 Points',
-    confidence: 92,
-    odds: 1.90,
-    reasoning: 'ALTA CONFIANÇA: Ritmo projetado (Pace) acima de 105 posses. Defesas desfalcadas. Tendência clara de High Scoring Game.',
-    createdAt: new Date().toISOString(),
-    isPremium: true,
-    status: 'Pending'
   }
 ];
 
@@ -195,15 +166,11 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = {
     hasError: false,
     error: null
   };
-
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-  }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
@@ -261,21 +228,11 @@ export default function App() {
 
   useEffect(() => {
     const fetchLatestData = async () => {
-      // console.log('🔄 Syncing Data...');
-      
       const dbMatches = await dbService.getMatches();
-      if (dbMatches.length > 0) {
-        setMatches(dbMatches);
-      } else {
-        setMatches(INITIAL_MATCHES); 
-      }
+      if (dbMatches.length > 0) setMatches(dbMatches);
 
       const dbTips = await dbService.getTips();
-      if (dbTips.length > 0) {
-        setTips(dbTips);
-      } else {
-        setTips(INITIAL_TIPS);
-      }
+      if (dbTips.length > 0) setTips(dbTips);
     };
     
     fetchLatestData();
@@ -301,7 +258,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<ClientDashboard tips={tips} matches={matches} />} />
           
-          {/* SECURE ROUTES: Changed from /admin to obscure paths */}
+          {/* SECURE ROUTES: Access Separation */}
           <Route path="/system/access" element={session ? <Navigate to="/system/terminal" /> : <Login />} />
           <Route 
             path="/system/terminal" 
@@ -316,10 +273,8 @@ export default function App() {
             } 
           />
 
-          {/* HONEYPOT: Redirect standard admin paths to home to confuse scanners */}
+          {/* HONEYPOT: Security through obscurity */}
           <Route path="/admin" element={<Navigate to="/" replace />} />
-          <Route path="/admin/*" element={<Navigate to="/" replace />} />
-          <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
           <Route path="*" element={<Navigate to="/" />} />

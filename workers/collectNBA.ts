@@ -1,7 +1,8 @@
-import { sportsdataClient, NBAProjection, NBAGame } from "../services/sportsdataClient";
-import { dbService } from "../services/databaseService"; // Assumindo uso no backend com acesso ao DB
+
+import { sportsdataClient } from "../services/sportsdataClient";
 import { StatProcessedItem } from "../types";
 
+// Declarações para evitar erros de tipagem em ambientes mistos (Node/Browser)
 declare const require: any;
 declare const module: any;
 
@@ -12,7 +13,7 @@ declare const module: any;
  * 1. Coletar jogos do dia.
  * 2. Coletar projeções de jogadores.
  * 3. Identificar oportunidades de valor (+EV).
- * 4. Salvar no banco de dados para o painel Admin.
+ * 4. Preparar dados para o Monkey Stats.
  */
 
 const getTodayString = () => new Date().toISOString().split('T')[0];
@@ -27,7 +28,7 @@ export const runNBACollection = async () => {
 
     if (games.length === 0) {
         console.log("💤 Nenhum jogo da NBA hoje. Encerrando worker.");
-        return;
+        return [];
     }
 
     // 2. Buscar Projeções
@@ -45,7 +46,7 @@ export const runNBACollection = async () => {
 
     // 4. Transformar em formato Monkey Tips (StatProcessedItem)
     const processedStats: StatProcessedItem[] = targets.map(p => {
-        // Lógica simples de análise de valor (Simulação de IA)
+        // Lógica simples de análise de valor
         let marketFocus = "";
         let analysis = "";
 
@@ -66,32 +67,18 @@ export const runNBACollection = async () => {
             category: 'PLAYER_PROP',
             rawData: `Proj: ${p.Points} Pts, ${p.Rebounds} Reb, ${p.Assists} Ast. Min: ${p.Minutes}`,
             marketFocus: marketFocus,
-            probability: 75 + Math.floor(Math.random() * 15), // Mock de confiança inicial
+            probability: 75 + Math.floor(Math.random() * 15),
             aiAnalysis: `[AUTO-WORKER] ${analysis}`,
             status: 'PENDING',
             processedAt: new Date().toISOString()
         };
     });
 
-    // 5. Salvar (Simulação de persistência)
-    // Em um ambiente real de worker, chamariamos dbService.saveStat diretamente
-    // Como este arquivo pode rodar em Edge ou Node, verificamos o ambiente
-    console.log("💾 Salvando dados no Monkey Database...");
-    
-    let savedCount = 0;
-    for (const item of processedStats) {
-        // Aqui conectaríamos com o Supabase Service
-        // await dbService.saveStat(item); 
-        // Para fins de demonstração do arquivo gerado:
-        console.log(`   -> Salvo: ${item.entityName} | ${item.marketFocus}`);
-        savedCount++;
-    }
-
-    console.log(`✅ Coleta Finalizada. ${savedCount} insights gerados.`);
+    console.log(`✅ Coleta Finalizada. ${processedStats.length} insights gerados.`);
     return processedStats;
 };
 
 // Execução direta se chamado como script (node workers/collectNBA.ts)
-if (typeof require !== 'undefined' && require.main === module) {
+if (typeof require !== 'undefined' && typeof module !== 'undefined' && require.main === module) {
     runNBACollection().catch(console.error);
 }
