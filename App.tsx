@@ -9,7 +9,6 @@ import { supabase } from './services/supabaseClient';
 
 // --- LAZY LOADED MODULES (SECURITY SEGREGATION) ---
 // Carregamento preguiçoso para proteger o código do Admin de ser baixado por usuários comuns
-// Changed to simple import since AdminDashboard now has a default export
 const AdminDashboard = React.lazy(() => 
   import('./views/AdminDashboard')
 );
@@ -27,10 +26,16 @@ const INITIAL_MATCHES: Match[] = [
     startTime: '2025-11-25T21:30:00', 
     status: 'Finished', 
     stats: { 
-      homeScore: 1, awayScore: 1, currentMinute: 90, possession: 58, 
-      corners: { home: 7, away: 4, total: 11 }, shotsOnTarget: { home: 8, away: 3 }, 
-      shotsOffTarget: { home: 5, away: 4 }, attacks: { dangerous: 52, total: 105 }, 
-      cards: { yellow: 4, red: 0 }, recentForm: 'W W D W L' 
+      homeScore: 1, 
+      awayScore: 1, 
+      currentMinute: 90, 
+      possession: 58, 
+      corners: { home: 7, away: 4, total: 11 }, 
+      shotsOnTarget: { home: 8, away: 3 }, 
+      shotsOffTarget: { home: 5, away: 4 }, 
+      attacks: { dangerous: 52, total: 105 }, 
+      cards: { yellow: 4, red: 0 }, 
+      recentForm: 'W W D W L' 
     }
   },
   {
@@ -42,9 +47,21 @@ const INITIAL_MATCHES: Match[] = [
     startTime: '2025-11-27T23:00:00', 
     status: 'Scheduled',
     stats: { 
-      homeScore: 0, awayScore: 0, currentPeriod: 'Pre-Game', timeLeft: '00:00',
-      quarters: { q1: { home: 0, away: 0 }, q2: { home: 0, away: 0 }, q3: { home: 0, away: 0 }, q4: { home: 0, away: 0 } },
-      pace: 102.5, efficiency: 112.3, turnovers: { home: 0, away: 0 }, rebounds: { home: 0, away: 0 }, threePointPercentage: { home: 0, away: 0 }
+      homeScore: 0, 
+      awayScore: 0, 
+      currentPeriod: 'Pre-Game', 
+      timeLeft: '00:00',
+      quarters: {
+        q1: { home: 0, away: 0 },
+        q2: { home: 0, away: 0 },
+        q3: { home: 0, away: 0 },
+        q4: { home: 0, away: 0 }
+      },
+      pace: 102.5, 
+      efficiency: 112.3,
+      turnovers: { home: 0, away: 0 },
+      rebounds: { home: 0, away: 0 },
+      threePointPercentage: { home: 0, away: 0 }
     }
   }
 ];
@@ -180,7 +197,6 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-// Explicitly using React.Component to fix potential access issues
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = {
     hasError: false,
