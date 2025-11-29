@@ -9,8 +9,9 @@ import { supabase } from './services/supabaseClient';
 
 // --- LAZY LOADED MODULES (SECURITY SEGREGATION) ---
 // Carregamento preguiçoso para proteger o código do Admin de ser baixado por usuários comuns
+// Changed to simple import since AdminDashboard now has a default export
 const AdminDashboard = React.lazy(() => 
-  import('./views/AdminDashboard').then(module => ({ default: module.AdminDashboard }))
+  import('./views/AdminDashboard')
 );
 
 // --- MOCK DATA (Fallback) ---
@@ -61,6 +62,19 @@ const INITIAL_TIPS: Tip[] = [
     createdAt: '2025-11-24T14:00:00',
     isPremium: false,
     status: 'Won'
+  },
+  {
+    id: 't2',
+    matchId: 'm2',
+    matchTitle: 'Lakers x Celtics (NBA Classico)',
+    sport: SportType.BASKETBALL,
+    prediction: 'Over 228.5 Points',
+    confidence: 92,
+    odds: 1.90,
+    reasoning: 'ALTA CONFIANÇA: Ritmo projetado (Pace) acima de 105 posses. Defesas desfalcadas. Tendência clara de High Scoring Game.',
+    createdAt: new Date().toISOString(),
+    isPremium: true,
+    status: 'Pending'
   }
 ];
 
@@ -166,7 +180,8 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+// Explicitly using React.Component to fix potential access issues
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = {
     hasError: false,
     error: null
@@ -228,11 +243,21 @@ export default function App() {
 
   useEffect(() => {
     const fetchLatestData = async () => {
+      // console.log('🔄 Syncing Data...');
+      
       const dbMatches = await dbService.getMatches();
-      if (dbMatches.length > 0) setMatches(dbMatches);
+      if (dbMatches.length > 0) {
+        setMatches(dbMatches);
+      } else {
+        setMatches(INITIAL_MATCHES); 
+      }
 
       const dbTips = await dbService.getTips();
-      if (dbTips.length > 0) setTips(dbTips);
+      if (dbTips.length > 0) {
+        setTips(dbTips);
+      } else {
+        setTips(INITIAL_TIPS);
+      }
     };
     
     fetchLatestData();
@@ -258,7 +283,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<ClientDashboard tips={tips} matches={matches} />} />
           
-          {/* SECURE ROUTES: Access Separation */}
+          {/* SECURE ROUTES: Changed from /admin to obscure paths */}
           <Route path="/system/access" element={session ? <Navigate to="/system/terminal" /> : <Login />} />
           <Route 
             path="/system/terminal" 
@@ -273,8 +298,10 @@ export default function App() {
             } 
           />
 
-          {/* HONEYPOT: Security through obscurity */}
+          {/* HONEYPOT: Redirect standard admin paths to home to confuse scanners */}
           <Route path="/admin" element={<Navigate to="/" replace />} />
+          <Route path="/admin/*" element={<Navigate to="/" replace />} />
+          <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
           <Route path="*" element={<Navigate to="/" />} />

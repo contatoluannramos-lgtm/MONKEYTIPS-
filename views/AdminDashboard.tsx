@@ -9,7 +9,7 @@ import { Match, Tip, SportType, AdminView, TipStatus, TicketAnalysis, ScoutResul
 import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel, TipsHistoryPanel, CalibrationPanel, ScoutCard, FusionTerminal, NewsTerminal, NewsImplementationChecklist, MonkeyLivePanel, MonkeyStatsTerminal } from '../components/AdminComponents';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
-interface AdminDashboardProps {
+export interface AdminDashboardProps {
   tips: Tip[];
   setTips: React.Dispatch<React.SetStateAction<Tip[]>>;
   matches: Match[];
@@ -965,3 +965,5 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     </div>
   );
 };
+
+export default AdminDashboard;

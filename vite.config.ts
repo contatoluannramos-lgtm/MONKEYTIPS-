@@ -6,6 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // Carrega variáveis de ambiente baseado no modo (development/production)
+  // Cast (process as any) evita erros de tipagem em ambientes onde @types/node não está perfeito
   const env = loadEnv(mode, (process as any).cwd(), '');
 
   return {

@@ -8,7 +8,7 @@ import { supabase } from './services/supabaseClient';
 
 // --- LAZY LOADED MODULES (SECURITY SEGREGATION) ---
 const AdminDashboard = React.lazy(() => 
-  import('./views/AdminDashboard').then(module => ({ default: module.AdminDashboard }))
+  import('./views/AdminDashboard')
 );
 
 // --- MOCK DATA (Fallback) ---
