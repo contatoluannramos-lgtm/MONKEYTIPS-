@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, ReactNode, ErrorInfo, Component } from 'react';
+import React, { useState, useEffect, Suspense, ReactNode, ErrorInfo } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ClientDashboard } from './views/ClientDashboard';
 import { Match, Tip, SportType } from './types';
@@ -195,7 +195,7 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = {
     hasError: false,
     error: null

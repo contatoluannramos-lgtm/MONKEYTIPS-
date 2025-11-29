@@ -2,6 +2,7 @@ import { Match, SportType, FootballStats, TeamHistory } from "../types";
 
 const API_HOST = "v3.football.api-sports.io";
 const API_URL = "https://v3.football.api-sports.io";
+const DEFAULT_SPORTSDATA_KEY = "a16dcb80ea4e4b549fd90ffea502f49a"; // Chave fixa solicitada
 
 // Helper para data local (Brasil/Sistema) YYYY-MM-DD
 const getLocalDate = (addDays = 0) => {
@@ -356,13 +357,16 @@ export const fetchRealTeamStats = async (teamId: string): Promise<{name: string,
 };
 
 // --- SPORTSDATAIO INTEGRATION (REAL PLAYER PROPS) ---
-export const fetchSportsDataIOProps = async (apiKey: string) => {
-    if (!apiKey) return [];
+export const fetchSportsDataIOProps = async (apiKey?: string) => {
+    // Usa a chave passada OU a chave padrão fixa
+    const finalKey = apiKey && apiKey.length > 5 ? apiKey : DEFAULT_SPORTSDATA_KEY;
+    
+    if (!finalKey) return [];
 
     const today = new Date().toISOString().split('T')[0];
-    const url = `https://api.sportsdata.io/v3/nba/projections/json/PlayerGameProjectionStatsByDate/${today}?key=${apiKey}`;
+    const url = `https://api.sportsdata.io/v3/nba/projections/json/PlayerGameProjectionStatsByDate/${today}?key=${finalKey}`;
 
-    console.log(`🕷️ SPORTSDATA.IO SCAN: ${url.replace(apiKey, 'HIDDEN')}`);
+    console.log(`🕷️ SPORTSDATA.IO SCAN: ${url.replace(finalKey, 'HIDDEN')}`);
 
     try {
         const response = await fetch(url);
@@ -428,9 +432,10 @@ export const fetchPlayerStatsCrawler = async () => {
 };
 
 // --- STATS PROVIDER TEST ---
-export const testStatsProvider = async (apiKey: string) => {
+export const testStatsProvider = async (apiKey?: string) => {
+    const finalKey = apiKey && apiKey.length > 5 ? apiKey : DEFAULT_SPORTSDATA_KEY;
     try {
-        const response = await fetch(`https://api.sportsdata.io/v3/nba/scores/json/teams?key=${apiKey}`);
+        const response = await fetch(`https://api.sportsdata.io/v3/nba/scores/json/teams?key=${finalKey}`);
         return response.ok;
     } catch {
         return false;
