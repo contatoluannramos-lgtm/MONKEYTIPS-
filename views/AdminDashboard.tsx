@@ -210,6 +210,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
     reader.readAsDataURL(file);
   };
 
+  // --- DEMO TICKET HANDLER ---
+  const handleLoadDemoTicket = () => {
+    setIsAnalyzingTicket(true);
+    // Simulate API delay for realism
+    setTimeout(() => {
+        setTicketAnalysis({
+            isValid: true,
+            extractedTeams: "Los Angeles Lakers vs Golden State Warriors",
+            extractedOdds: 1.90,
+            verdict: "APPROVED",
+            aiAnalysis: "Linha de pontos (Over 225.5) matematicamente ajustada. O ritmo (Pace) projetado é de 104 posses, indicando placar final próximo a 230 pontos. A defesa dos Warriors permite 118ppg fora de casa, criando valor na odd.",
+            suggestedAction: "Entrada Confirmada - Stake 1u"
+        });
+        setIsAnalyzingTicket(false);
+    }, 1500);
+  };
+
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
       // Allow pasting in Labs OR Vision
@@ -720,6 +737,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                     <p className="text-gray-500 font-mono text-xs max-w-xs mb-4">
                        Arraste a imagem, clique para selecionar ou <span className="text-brand-500 font-bold">Cole (Ctrl+V)</span> direto aqui.
                     </p>
+                    
+                    {/* DEMO BUTTON ADDED HERE */}
+                    <div className="mt-4 flex gap-4 z-20">
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleLoadDemoTicket();
+                            }}
+                            className="bg-brand-900/30 text-brand-500 border border-brand-500/30 px-4 py-2 text-[10px] font-bold uppercase hover:bg-brand-500/10"
+                        >
+                            Carregar Exemplo (Demo)
+                        </button>
+                    </div>
+
                     {isDragging && (
                        <div className="absolute inset-0 bg-brand-500/20 flex items-center justify-center backdrop-blur-sm">
                           <p className="text-brand-500 font-bold font-display text-xl animate-bounce">SOLTE PARA ANALISAR</p>
