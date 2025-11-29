@@ -1,8 +1,15 @@
 
 import { supabase, isSupabaseConfigured } from './supabaseClient';
-import type { ErroAutenticacao } from '../supabase/supabaseTypes';
 
-// Erro personalizado a ser retornado quando o Supabase não estiver configurado.
+// Tipagem mínima para evitar erros
+export type ErroAutenticacao = {
+    mensagem: string;
+    nome: string;
+    status: number;
+    code: string;
+    __isAuthError: boolean;
+};
+
 const erroConfiguracao: ErroAutenticacao = {
     mensagem: 'Supabase não configurado.',
     nome: 'Erro de configuração',
@@ -12,10 +19,9 @@ const erroConfiguracao: ErroAutenticacao = {
 };
 
 export const authService = {
-    // Serviço de autenticação
+    // ===== NOVOS MÉTODOS =====
     async login(email: string, senha: string) {
         if (!isSupabaseConfigured() || !supabase) {
-            console.warn('Tentativa de login sem configuração do Supabase!');
             return { dados: null, erro: erroConfiguracao };
         }
 
@@ -24,10 +30,7 @@ export const authService = {
             password: senha
         });
 
-        if (error) {
-            return { dados: null, erro: error };
-        }
-
+        if (error) return { dados: null, erro: error };
         return { dados: data, erro: null };
     },
 
@@ -37,11 +40,7 @@ export const authService = {
         }
 
         const { data, error } = await supabase.auth.getSession();
-
-        if (error) {
-            return { dados: null, erro: error };
-        }
-
+        if (error) return { dados: null, erro: error };
         return { dados: data, erro: null };
     },
 
@@ -51,11 +50,21 @@ export const authService = {
         }
 
         const { error } = await supabase.auth.signOut();
+        if (error) return { dados: null, erro: error };
+        return { dados: 'OK', erro: null };
+    },
 
-        if (error) {
-            return { dados: null, erro: error };
-        }
+    // ===== MÉTODOS ANTIGOS (COMPATIBILIDADE) =====
 
-        return { dados: 'Sessão encerrada com sucesso.', erro: null };
+    async signIn(email: string, senha: string) {
+        return this.login(email, senha);
+    },
+
+    async getSession() {
+        return this.obterSessao();
+    },
+
+    async signOut() {
+        return this.logout();
     }
 };
