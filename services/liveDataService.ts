@@ -421,37 +421,10 @@ export const fetchRSSFeeds = async (source: 'GLOBO' | 'ESPN') => {
 
 // --- MONKEY STATS CRAWLER (FALLBACK SIMULATION) ---
 export const fetchPlayerStatsCrawler = async () => {
-    // Calcula a validade (ex: válido pelas próximas 6 horas)
-    const now = new Date();
-    const validUntil = new Date(now.getTime() + 6 * 60 * 60 * 1000);
-    const timeString = validUntil.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-    // Dados enriquecidos para simular o ambiente REAL (High-End Simulation)
-    // Responde à pergunta: "Essas informações são reais até que horas?"
-    const crawledData = [
-        {
-            entity: "Giannis Antetokounmpo (MIL)",
-            stat: `PROJEÇÃO OFICIAL (Válido até ${timeString}): 46.7 Pontos, 19.1 Rebotes, 10.4 Assistências. Alto uso esperado. Aposta no 'Over' possui alto valor estatístico.`,
-            source: "MonkeyVision Core"
-        },
-        {
-            entity: "Shai Gilgeous-Alexander (OKC)",
-            stat: `PROJEÇÃO OFICIAL (Válido até ${timeString}): 47.7 Pontos, 11.1 Rebotes, 10.3 Assistências. Usage esperado: Alto. Oponente: PHX. Tendência clara para Triplo-Duplo.`,
-            source: "MonkeyVision Core"
-        },
-        {
-            entity: "Luka Dončić (DAL)",
-            stat: `PROJEÇÃO OFICIAL (Válido até ${timeString}): 47.8 Pontos, 12.8 Rebotes, 12.2 Assistências. Usage esperado: Alto. Oponente: LAL. Altíssima probabilidade de Triplo-Duplo.`,
-            source: "MonkeyVision Core"
-        },
-        {
-            entity: "Nikola Jokić (DEN)",
-            stat: `Análise de Pivô (Válido até ${timeString}): 28.5 Pontos, 13.5 Rebotes. Oponente sem defesa no garrafão. Matchup favorável para Over Rebotes.`,
-            source: "MonkeyVision Core"
-        }
-    ];
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    return crawledData;
+    // FALLBACK REMOVIDO CONFORME SOLICITAÇÃO. 
+    // AGORA RETORNA VAZIO PARA NÃO EXIBIR DADOS SIMULADOS SE A API FALHAR.
+    console.log("Simulação desativada. Retornando vazio.");
+    return [];
 };
 
 // --- STATS PROVIDER TEST ---

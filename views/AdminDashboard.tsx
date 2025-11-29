@@ -300,10 +300,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
   const handleGenerateIntelligence = async () => {
     const geminiKey = localStorage.getItem('monkey_gemini_api_key');
     const footballKey = localStorage.getItem('monkey_football_api_key') || '';
-
-    // NOTE: Gemini Key is now loaded from Environment Variable automatically in geminiService
-    // We only check if we should warn user about custom API keys for other services if needed.
-    // Since we removed the key input from UI, we assume Env Var is set or we rely on system defaults.
     
     setIsGenerating(true);
     const matchesToAnalyze = matches.filter(m => 
