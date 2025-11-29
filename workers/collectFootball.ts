@@ -7,10 +7,13 @@ import { Match } from '../types';
 // Declarações para evitar erros de tipagem em ambientes mistos (Node/Browser)
 declare const require: any;
 declare const module: any;
+declare const process: any;
 
 export const runFootballCollection = async () => {
   logger.info('F-BALL', 'Iniciando Coleta de Futebol...');
-  const apiKey = typeof window !== 'undefined' ? localStorage.getItem('monkey_football_api_key') : undefined;
+  const apiKey = typeof window !== 'undefined' 
+    ? localStorage.getItem('monkey_football_api_key') 
+    : process.env.MONKEY_FOOTBALL_API_KEY;
 
   if (!apiKey) {
     logger.error('F-BALL', 'API Key para Futebol não encontrada. Worker encerrado.');

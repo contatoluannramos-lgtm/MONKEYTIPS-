@@ -28,9 +28,9 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips, matches 
 
           // 2. Developer Backdoor (Admin Session)
           try {
-              // FIX: Correctly destructure the session object from the response.
-              const { data: { session } } = await authService.getSession();
-              if (session?.user) {
+              const { data, error } = await authService.getSession();
+              if (error) throw error;
+              if (data?.session?.user) {
                   console.log("👑 Developer Access Granted: Premium Content Unlocked");
                   setIsPremiumUser(true);
               }
