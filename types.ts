@@ -1,3 +1,4 @@
+
 // types.ts
 
 export enum SportType {
@@ -34,7 +35,6 @@ export interface FootballStats {
   attacks?: { dangerous: number; total: number };
   cards?: { yellow: number; red: number };
   xg?: { home: number; away: number };
-  // FIX: Added missing recentForm property to align with its usage in liveDataService.
   recentForm?: string;
 }
 
@@ -190,7 +190,7 @@ export interface StatProcessedItem {
   processedAt: string;
 }
 
-// --- MISC ---
+// --- MISC & ADMIN ---
 
 export interface SubscriptionPlan {
   id: 'monthly' | 'quarterly';
@@ -201,7 +201,6 @@ export interface SubscriptionPlan {
   recommended?: boolean;
 }
 
-// FIX: Added missing types for admin components
 export interface ImprovementProposal {
   title: string;
   desc: string;

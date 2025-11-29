@@ -1,6 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tip, Match, TipStatus, FusionAnalysis, ScoutResult, NewsProcessedItem, CalibrationConfig, StatProcessedItem, ImprovementProposal, ChecklistItem, RoadmapPhase, RoadmapTask, BotNewsPayload } from '../types';
-// FIX: Updated imports to point to the new engine files instead of deprecated services.
 import { DEFAULT_CALIBRATION } from '../engines/scoutEngine';
 import { geminiEngine } from '../engines/geminiEngine';
 import { fetchPlayerStatsCrawler, testStatsProvider, fetchRSSFeeds, fetchRealTeamStats, fetchSportsDataIOProps } from '../services/liveDataService';
@@ -32,7 +32,10 @@ export const KellyCalculator = () => {
     const calculate = () => {
         const o = parseFloat(odds);
         const p = parseFloat(prob) / 100;
-        if (!o || !p) return;
+        if (!o || !p || o <= 1 || p <= 0 || p > 100) {
+            setResult(null);
+            return;
+        }
 
         const b = o - 1;
         const q = 1 - p;
@@ -66,10 +69,12 @@ export const KellyCalculator = () => {
             >
                 Calculate Stake
             </button>
-            {result && (
+            {result !== null && (
                 <div className="mt-2 text-center">
                     <span className="text-[10px] text-gray-500 uppercase">Sugestão de Stake:</span>
-                    <p className={`font-mono font-bold ${parseFloat(result) > 0 ? 'text-green-500' : 'text-red-500'}`}>{result}%</p>
+                    <p className={`font-mono font-bold ${parseFloat(result) > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {parseFloat(result) > 0 ? `${result}%` : 'No Value Bet'}
+                    </p>
                 </div>
             )}
         </div>
@@ -97,7 +102,7 @@ export const ActivationPanel = () => {
         localStorage.setItem('monkey_webhook_url', webhookUrl);
         localStorage.setItem('supabase_project_url', supabaseUrl);
         localStorage.setItem('supabase_anon_key', supabaseKey);
-        alert('Configurações salvas no armazenamento local seguro.');
+        alert('Configurações salvas no armazenamento local seguro. A página será recarregada para aplicar.');
         window.location.reload(); // Reload to apply configs
     };
 
@@ -242,7 +247,11 @@ export const CalibrationPanel = () => {
     useEffect(() => {
         const saved = localStorage.getItem('monkey_calibration_config');
         if (saved) {
-            setConfig(JSON.parse(saved));
+            try {
+                setConfig(JSON.parse(saved));
+            } catch(e) {
+                console.error("Failed to parse calibration config", e);
+            }
         }
     }, []);
 
@@ -387,7 +396,7 @@ export const FusionTerminal = ({ analysis }: { analysis: FusionAnalysis }) => {
                  </div>
                  <div className="flex justify-between border-b border-white/5 pb-1">
                      <span className="text-gray-500">News Impact</span>
-                     <span className="text-white">{analysis.newsImpactScore > 0 ? `+${analysis.newsImpactScore}` : analysis.newsImpactScore}</span>
+                     <span className="text-white">{analysis.newsImpactScore && analysis.newsImpactScore > 0 ? `+${analysis.newsImpactScore}` : analysis.newsImpactScore || 0}</span>
                  </div>
              </div>
 
@@ -426,7 +435,6 @@ export const NewsTerminal = ({ newsQueue, onNewsProcessed, onArchiveNews }: {
                     url: item.link
                 };
                 
-                // FIX: Updated to use geminiEngine
                 const processedResult = await geminiEngine.processBotNews(payload);
                 if(processedResult) {
                     const fullItem: NewsProcessedItem = {
@@ -436,7 +444,7 @@ export const NewsTerminal = ({ newsQueue, onNewsProcessed, onArchiveNews }: {
                         status: 'PENDING',
                         processedAt: new Date().toISOString()
                     };
-                    onNewsProcessed(fullItem);
+                    await onNewsProcessed(fullItem);
                 }
             }
             alert(`✅ Feed ${source} processado com sucesso!`);
@@ -460,7 +468,6 @@ export const NewsTerminal = ({ newsQueue, onNewsProcessed, onArchiveNews }: {
             url: mode === 'URL' ? input : ''
         };
 
-        // FIX: Updated to use geminiEngine
         const processedResult = await geminiEngine.processBotNews(payload);
         if (processedResult) {
              const fullItem: NewsProcessedItem = {
@@ -470,7 +477,7 @@ export const NewsTerminal = ({ newsQueue, onNewsProcessed, onArchiveNews }: {
                 status: 'PENDING',
                 processedAt: new Date().toISOString()
             };
-            onNewsProcessed(fullItem);
+            await onNewsProcessed(fullItem);
             setInput('');
         }
         setIsProcessing(false);
@@ -478,7 +485,7 @@ export const NewsTerminal = ({ newsQueue, onNewsProcessed, onArchiveNews }: {
 
     const activeNews = newsQueue.filter(n => n.status !== 'ARCHIVED');
     const filteredQueue = activeNews.filter(item => 
-        selectedFilter === 'ALL' || item.originalData.league.toUpperCase() === selectedFilter
+        selectedFilter === 'ALL' || (item.originalData.league && item.originalData.league.toUpperCase() === selectedFilter)
     );
 
     return (
@@ -640,7 +647,7 @@ export const MonkeyLivePanel = ({ matches, tips }: { matches: Match[], tips: Tip
                                 AP
                             </div>
                             <div>
-                                <span className="block text-white font-bold">{match.stats.shotsOnTarget?.home + match.stats.shotsOnTarget?.away || 0}</span>
+                                <span className="block text-white font-bold">{(match.stats.shotsOnTarget?.home || 0) + (match.stats.shotsOnTarget?.away || 0)}</span>
                                 Chutes
                             </div>
                             <div>
@@ -666,7 +673,7 @@ export const OperationalChecklist = () => (
                 { label: 'Scout Engine v2.1', status: 'Operational', color: 'text-green-500' },
                 { label: 'Fusion Core (Gemini)', status: 'Standby', color: 'text-yellow-500' },
                 { label: 'Database Sync', status: 'Operational', color: 'text-green-500' },
-            ].map((item, i) => (
+            ].map((item: ChecklistItem, i) => (
                 <li key={i} className="flex justify-between items-center text-xs font-mono border-b border-white/5 pb-2 last:border-0">
                     <span className="text-gray-300">{item.label}</span>
                     <span className={`font-bold ${item.color} uppercase`}>● {item.status}</span>
@@ -683,7 +690,7 @@ export const ImprovementsPanel = () => (
              {[
                  { title: 'Scout de Basquete', desc: 'Ajustar peso do Pace para jogos Back-to-Back.' },
                  { title: 'Filtro de Notícias', desc: 'Ignorar notícias de fofoca, focar em lesões.' }
-             ].map((item, i) => (
+             ].map((item: ImprovementProposal, i) => (
                  <li key={i} className="group">
                      <p className="text-white font-bold text-xs mb-1 group-hover:text-brand-500 transition-colors">» {item.title}</p>
                      <p className="text-gray-500 text-[10px] pl-3 border-l border-white/10">{item.desc}</p>
@@ -700,7 +707,7 @@ export const ProjectEvolutionRoadmap = () => (
             { phase: '02', title: 'Inteligência', status: 'In Progress', desc: 'Fusion Engine e Scout Avançado.' },
             { phase: '03', title: 'Automação', status: 'Pending', desc: 'Bots de Telegram e Auto-Bet.' },
             { phase: '04', title: 'Escala', status: 'Pending', desc: 'SaaS Multi-Tenant.' }
-        ].map((p, i) => (
+        ].map((p: RoadmapPhase, i) => (
             <div key={i} className={`border p-4 relative overflow-hidden ${p.status === 'In Progress' ? 'border-brand-500 bg-brand-500/5' : 'border-white/10 bg-surface-900/50'}`}>
                 <span className="text-[40px] font-bold absolute -right-2 -top-4 opacity-5 text-white">{p.phase}</span>
                 <p className={`text-[10px] uppercase font-bold mb-2 ${p.status === 'Completed' ? 'text-green-500' : p.status === 'In Progress' ? 'text-brand-500' : 'text-gray-600'}`}>
@@ -722,7 +729,7 @@ export const NewsImplementationChecklist = () => (
                 { label: 'Análise de Sentimento (Gemini)', done: true },
                 { label: 'Correlação com Scout Engine', done: false },
                 { label: 'Alerta de "Breaking News"', done: false }
-            ].map((task, i) => (
+            ].map((task: RoadmapTask, i) => (
                 <li key={i} className="flex items-center gap-2 text-xs text-gray-300">
                     <span className={task.done ? 'text-green-500' : 'text-gray-600'}>{task.done ? '☑' : '☐'}</span>
                     <span className={task.done ? 'line-through opacity-50' : ''}>{task.label}</span>
@@ -776,7 +783,6 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
         setIsProcessing(true);
         
         try {
-            // FIX: Updated to use geminiEngine
             const result = await geminiEngine.processRawStat(entity, rawStat);
             if (result) {
                 setIsProcessing(false);
@@ -819,7 +825,6 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
             }
 
             for (const item of crawlerData) {
-                // FIX: Updated to use geminiEngine
                 const result = await geminiEngine.processRawStat(item.entity, item.stat);
                 if (result) {
                      const fullItem: StatProcessedItem = {
@@ -953,7 +958,7 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
                         ) : (
                             statsQueue.map(item => {
                                 // Verifica se é um dado de demonstração
-                                const isDemo = item.entityName.includes('[DEMO]') || item.rawData.includes('[DEMO]');
+                                const isDemo = (item.entityName && item.entityName.includes('[DEMO]')) || (item.rawData && item.rawData.includes('[DEMO]'));
                                 
                                 return (
                                     <div key={item.id} className={`bg-[#121214] border border-[#1C1C1F] p-4 flex gap-4 hover:border-blue-500/30 transition-all group relative ${isDemo ? 'opacity-90' : ''}`}>

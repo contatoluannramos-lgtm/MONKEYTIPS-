@@ -2,6 +2,7 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { Match, Tip, SportType, TicketAnalysis, CalibrationConfig, ScreenAnalysisData, BotNewsPayload, NewsProcessedItem, StatProcessedItem } from "../types";
 import { DEFAULT_CALIBRATION } from "./scoutEngine";
+import { logger } from "../utils/logger";
 
 const TARGET_TEAMS_BRASILEIRAO = [
   "Botafogo", "Palmeiras", "Fortaleza", "Flamengo", "Internacional", 
@@ -79,7 +80,7 @@ const statSchema: Schema = {
 
 const getAIClient = () => {
   if (!process.env.API_KEY) {
-    console.error("Gemini API Key is missing from process.env.API_KEY");
+    logger.error("GEMINI", "Gemini API Key is missing from process.env.API_KEY");
     return null;
   }
   return new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -105,19 +106,25 @@ const generateContentWithSchema = async (prompt: string, schema: Schema, model =
     const ai = getAIClient();
     if (!ai) throw new Error("Gemini client not initialized.");
     
-    const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: schema,
-            temperature: 0.3,
-        },
-    });
+    logger.info("GEMINI", "Generating content with schema...", { model });
+    try {
+        const response = await ai.models.generateContent({
+            model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: schema,
+                temperature: 0.3,
+            },
+        });
 
-    const text = response.text;
-    if (!text) throw new Error("Empty response from Gemini API.");
-    return JSON.parse(text);
+        const text = response.text;
+        if (!text) throw new Error("Empty response from Gemini API.");
+        return JSON.parse(text);
+    } catch (error) {
+        logger.error("GEMINI", "Error in generateContentWithSchema", error);
+        throw error;
+    }
 };
 
 const generateMultimodalContent = async (textPrompt: string, base64Image: string, schema: Schema) => {
@@ -126,23 +133,28 @@ const generateMultimodalContent = async (textPrompt: string, base64Image: string
 
     const cleanBase64 = base64Image.split(',')[1] || base64Image;
 
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [
-            { inlineData: { mimeType: "image/jpeg", data: cleanBase64 } },
-            { text: textPrompt }
-        ],
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: schema
-        }
-    });
-    
-    const text = response.text;
-    if (!text) throw new Error("Empty response from Gemini Vision API.");
-    return JSON.parse(text);
+    logger.info("GEMINI", "Generating multimodal content...");
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [
+                { inlineData: { mimeType: "image/jpeg", data: cleanBase64 } },
+                { text: textPrompt }
+            ],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: schema
+            }
+        });
+        
+        const text = response.text;
+        if (!text) throw new Error("Empty response from Gemini Vision API.");
+        return JSON.parse(text);
+    } catch (error) {
+        logger.error("GEMINI", "Error in generateMultimodalContent", error);
+        throw error;
+    }
 };
-
 
 export const geminiEngine = {
     async generateMatchAnalysis(match: Match): Promise<Partial<Tip>> {

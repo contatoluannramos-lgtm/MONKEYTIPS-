@@ -11,7 +11,7 @@ const configError: AuthError = {
 
 export const authService = {
   async signIn(email: string, password: string) {
-    if (!isSupabaseConfigured()) {
+    if (!isSupabaseConfigured() || !supabase) {
       return { data: { user: null, session: null }, error: configError };
     }
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -22,19 +22,19 @@ export const authService = {
   },
 
   async signOut() {
-    if (!isSupabaseConfigured()) return { error: null };
+    if (!isSupabaseConfigured() || !supabase) return { error: null };
     const { error } = await supabase.auth.signOut();
     return { error };
   },
 
   async getSession() {
-    if (!isSupabaseConfigured()) return { session: null, error: null };
+    if (!isSupabaseConfigured() || !supabase) return { data: { session: null }, error: null };
     const { data, error } = await supabase.auth.getSession();
-    return { session: data.session, error };
+    return { data, error };
   },
 
   async getUser() {
-    if (!isSupabaseConfigured()) return null;
+    if (!isSupabaseConfigured() || !supabase) return null;
     const { data: { user } } = await supabase.auth.getUser();
     return user;
   }

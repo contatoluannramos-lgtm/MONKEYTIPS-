@@ -1,5 +1,6 @@
 
 import { Match, SportType, ScoutResult, CalibrationConfig, FootballStats, BasketballStats, VolleyballStats } from "../types";
+import { logger } from "../utils/logger";
 
 export const DEFAULT_CALIBRATION: CalibrationConfig = {
   football: { 
@@ -35,7 +36,9 @@ export const DEFAULT_CALIBRATION: CalibrationConfig = {
 const calculateBayesianProbability = (priorProb: number, liveProb: number, progress: number): number => {
     const liveWeight = Math.min(progress, 0.8);
     const priorWeight = 1.0 - liveWeight;
-    return ((priorProb * priorWeight) + (liveProb * liveWeight));
+    const result = ((priorProb * priorWeight) + (liveProb * liveWeight));
+    logger.info("SCOUT", `Bayesian Calc: (prior: ${priorProb} * ${priorWeight.toFixed(2)}) + (live: ${liveProb} * ${liveWeight.toFixed(2)}) = ${result.toFixed(2)}`);
+    return result;
 };
 
 const detectHotGame = (sport: SportType, stats: any): boolean => {
@@ -77,10 +80,10 @@ export const runScoutAnalysis = (match: Match, config: CalibrationConfig): Scout
     let finalProb = priorProb;
     let details = "PRE-GAME | Scout baseado em Histórico (Prior)";
 
-    if (isLive) {
-        const estimatedXG = stats.xg ? (stats.xg.home + stats.xg.away) : ((stats.shotsOnTarget?.home || 0) + (stats.shotsOnTarget?.away || 0)) / 3;
+    if (isLive && stats.currentMinute > 0) {
+        const estimatedXG = stats.xg ? (stats.xg.home + stats.xg.away) : (((stats.shotsOnTarget?.home || 0) + (stats.shotsOnTarget?.away || 0)) / 3);
         const liveProb = (estimatedXG > 2.0) ? (75 * config.football.poissonStrength) + 25 : 30;
-        const matchProgress = Math.min((stats.currentMinute || 0) / 90, 1);
+        const matchProgress = Math.min(stats.currentMinute / 90, 1);
         finalProb = calculateBayesianProbability(priorProb, liveProb, matchProgress);
         isHot = detectHotGame(SportType.FOOTBALL, stats);
         spikeInfo = detectSpikes(SportType.FOOTBALL, stats);
@@ -132,6 +135,7 @@ export const runScoutAnalysis = (match: Match, config: CalibrationConfig): Scout
   }
 
   // Default fallback
+  logger.warn("SCOUT", `Scout analysis fallback for match ${match.id} (Sport: ${match.sport})`);
   return {
     matchId: match.id,
     calculatedProbability: 55, 

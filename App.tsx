@@ -200,7 +200,8 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // FIX: Resolved errors with `this.state` and `this.props` not being recognized by switching to class field syntax for state initialization. This is a robust alternative to using a constructor and can bypass certain build tool misconfigurations.
+  // FIX: Changed constructor to a state class property to fix `this` context issues.
+  // This resolves errors related to `this.state` and `this.props` being undefined.
   state: ErrorBoundaryState = {
     hasError: false,
     error: null,
@@ -242,7 +243,7 @@ export default function App() {
   const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
 
   useEffect(() => {
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && supabase) {
       supabase.auth.getSession().then(({ data: { session } }) => {
         setSession(session);
         setLoadingSession(false);
@@ -260,7 +261,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) {
+    if (!isSupabaseConfigured() || !supabase) {
       console.warn("Supabase not configured. Using initial mock data.");
       return; 
     }
@@ -284,7 +285,9 @@ export default function App() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if(supabase) {
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 

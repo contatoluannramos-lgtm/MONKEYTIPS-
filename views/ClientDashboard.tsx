@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { ClientHeader, Footer, PremiumLock, SubscriptionModal } from '../components/Layout';
 import { Tip, SportType, Match } from '../types';
@@ -27,7 +28,8 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips, matches 
 
           // 2. Developer Backdoor (Admin Session)
           try {
-              const { session } = await authService.getSession();
+              // FIX: Correctly destructure the session object from the response.
+              const { data: { session } } = await authService.getSession();
               if (session?.user) {
                   console.log("👑 Developer Access Granted: Premium Content Unlocked");
                   setIsPremiumUser(true);

@@ -1,19 +1,28 @@
-import { createClient } from '@supabase/supabase-js';
+
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Utilitário para verificar se estamos no navegador
 const isBrowser = typeof window !== 'undefined';
 
-// Tenta ler do LocalStorage apenas se estiver no navegador
-const storedUrl = isBrowser ? localStorage.getItem('supabase_project_url') : null;
-const storedKey = isBrowser ? localStorage.getItem('supabase_anon_key') : null;
+const getSupabaseClient = (): SupabaseClient | null => {
+    if (!isBrowser) return null;
 
-// Default fallback seguro para evitar crash na inicialização do Build
-const SUPABASE_URL = storedUrl || 'https://placeholder.supabase.co'; 
-const SUPABASE_ANON_KEY = storedKey || 'placeholder-key'; 
+    const url = localStorage.getItem('supabase_project_url');
+    const key = localStorage.getItem('supabase_anon_key');
 
-export const isSupabaseConfigured = () => {
-  if (!isBrowser) return false; // No servidor, assumimos não configurado via LocalStorage
-  return !!storedUrl && !!storedKey;
+    if (url && key && !url.includes('placeholder')) {
+        try {
+            return createClient(url, key);
+        } catch (error) {
+            console.error("Failed to create Supabase client:", error);
+            return null;
+        }
+    }
+    return null;
 };
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Cria a instância uma vez e a exporta
+const supabaseInstance = getSupabaseClient();
+
+export const supabase: SupabaseClient | null = supabaseInstance;
+export const isSupabaseConfigured = (): boolean => supabase !== null;
