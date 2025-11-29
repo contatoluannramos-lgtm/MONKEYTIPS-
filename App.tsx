@@ -200,7 +200,6 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // FIX: Changed state initialization to a class field to resolve TypeScript errors about 'state' and 'props' not existing on the component instance.
   state: ErrorBoundaryState = {
     hasError: false,
     error: null,
@@ -230,7 +229,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         </div>
       );
     }
-    return this.props.children || null; 
+    // FIX: The error "Property 'props' does not exist on type 'ErrorBoundary'" can be misleading. A potential cause is a subtle type inference issue. The `|| null` is redundant as React's render method can handle `undefined` children by rendering nothing. Removing it simplifies the code and makes it more robust against such issues.
+    return this.props.children;
   }
 }
 
