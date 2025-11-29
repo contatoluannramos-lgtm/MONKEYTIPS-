@@ -1,41 +1,61 @@
 
 import { supabase, isSupabaseConfigured } from './supabaseClient';
-import type { AuthError } from '@supabase/supabase-js';
+import type { ErroAutenticacao } from '../supabase/supabaseTypes';
 
-// Custom error to be returned when Supabase is not configured.
-const configError: AuthError = { 
-    message: 'Supabase not configured.', 
-    name: 'ConfigError',
-    status: 500
+// Erro personalizado a ser retornado quando o Supabase não estiver configurado.
+const erroConfiguracao: ErroAutenticacao = {
+    mensagem: 'Supabase não configurado.',
+    nome: 'Erro de configuração',
+    status: 500,
+    code: 'CONFIG_ERROR',
+    __isAuthError: true
 };
 
 export const authService = {
-  async signIn(email: string, password: string) {
-    if (!isSupabaseConfigured() || !supabase) {
-      return { data: { user: null, session: null }, error: configError };
+    // Serviço de autenticação
+    async login(email: string, senha: string) {
+        if (!isSupabaseConfigured() || !supabase) {
+            console.warn('Tentativa de login sem configuração do Supabase!');
+            return { dados: null, erro: erroConfiguracao };
+        }
+
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password: senha
+        });
+
+        if (error) {
+            return { dados: null, erro: error };
+        }
+
+        return { dados: data, erro: null };
+    },
+
+    async obterSessao() {
+        if (!isSupabaseConfigured() || !supabase) {
+            return { dados: null, erro: erroConfiguracao };
+        }
+
+        const { data, error } = await supabase.auth.getSession();
+
+        if (error) {
+            return { dados: null, erro: error };
+        }
+
+        return { dados: data, erro: null };
+    },
+
+    async logout() {
+        if (!isSupabaseConfigured() || !supabase) {
+            return { dados: null, erro: erroConfiguracao };
+        }
+
+        const { error } = await supabase.auth.signOut();
+
+        if (error) {
+            return { dados: null, erro: error };
+        }
+
+        return { dados: 'Sessão encerrada com sucesso.', erro: null };
     }
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { data, error };
-  },
-
-  async signOut() {
-    if (!isSupabaseConfigured() || !supabase) return { error: null };
-    const { error } = await supabase.auth.signOut();
-    return { error };
-  },
-
-  async getSession() {
-    if (!isSupabaseConfigured() || !supabase) return { data: { session: null }, error: null };
-    const { data, error } = await supabase.auth.getSession();
-    return { data, error };
-  },
-
-  async getUser() {
-    if (!isSupabaseConfigured() || !supabase) return null;
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
-  }
 };
