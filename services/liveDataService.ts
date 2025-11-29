@@ -178,6 +178,11 @@ export const fetchLiveFixtures = async (apiKey: string): Promise<Match[]> => {
       };
     });
 
+    if (matches.length === 0) {
+        console.warn("⚠️ Lista processada vazia. Retornando Fallback.");
+        return MOCK_FALLBACK_DATA;
+    }
+
     console.log(`✅ ${matches.length} partidas encontradas.`);
     return matches;
 

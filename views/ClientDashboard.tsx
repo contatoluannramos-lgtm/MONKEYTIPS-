@@ -1,8 +1,7 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { ClientHeader, Footer, PremiumLock, SubscriptionModal } from '../components/Layout';
 import { Tip, SportType, Match } from '../types';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell } from 'recharts'; // Removed ResponsiveContainer import
 import { authService } from '../services/authService';
 
 interface ClientDashboardProps {
@@ -147,16 +146,14 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ tips, matches 
                 <p className="text-gray-500 text-xs font-mono uppercase tracking-wider mb-2">Confiança &gt; 75%</p>
                 <h2 className="text-4xl font-mono font-light text-brand-500">{stats.highConfidence.toString().padStart(2, '0')}</h2>
                </div>
-               <div className="h-16 w-16 opacity-80">
-                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                   <PieChart>
-                     <Pie data={chartData} innerRadius={18} outerRadius={28} paddingAngle={0} stroke="none" dataKey="value">
-                       {chartData.map((entry, index) => (
-                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                       ))}
-                     </Pie>
-                   </PieChart>
-                 </ResponsiveContainer>
+               <div className="h-16 w-16 opacity-80 flex items-center justify-center">
+                 <PieChart width={64} height={64}>
+                   <Pie data={chartData} innerRadius={18} outerRadius={28} paddingAngle={0} stroke="none" dataKey="value">
+                     {chartData.map((entry, index) => (
+                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                     ))}
+                   </Pie>
+                 </PieChart>
                </div>
             </div>
 
