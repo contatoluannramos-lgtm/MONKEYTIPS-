@@ -1,4 +1,5 @@
 import { Match, SportType, FootballStats, TeamHistory } from "../types";
+import { sportsdataClient } from "./sportsdataClient";
 
 const API_HOST = "v3.football.api-sports.io";
 const API_URL = "https://v3.football.api-sports.io";
@@ -356,45 +357,26 @@ export const fetchRealTeamStats = async (teamId: string): Promise<{name: string,
     }
 };
 
-// --- SPORTSDATAIO INTEGRATION (REAL PLAYER PROPS) ---
+// --- SPORTSDATAIO INTEGRATION (VIA NEW ROBUST CLIENT) ---
 export const fetchSportsDataIOProps = async (apiKey?: string) => {
-    // Usa a chave passada OU a chave padrão fixa
-    const finalKey = apiKey && apiKey.length > 5 ? apiKey : DEFAULT_SPORTSDATA_KEY;
-    
-    if (!finalKey) return [];
-
     const today = new Date().toISOString().split('T')[0];
-    const url = `https://api.sportsdata.io/v3/nba/projections/json/PlayerGameProjectionStatsByDate/${today}?key=${finalKey}`;
+    
+    // Utiliza o cliente robusto para buscar os dados
+    const projections = await sportsdataClient.getNBAProjections(today, apiKey);
 
-    console.log(`🕷️ SPORTSDATA.IO SCAN: ${url.replace(finalKey, 'HIDDEN')}`);
+    if (!projections || projections.length === 0) return [];
 
-    try {
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            console.error("SportsDataIO Error:", response.status, response.statusText);
-            throw new Error("Falha na autenticação ou cota excedida.");
-        }
+    // Filtra e formata para o formato simplificado esperado pela UI
+    const relevantPlayers = projections
+        .filter((p: any) => p.Minutes > 25 && p.Points > 15)
+        .sort((a, b) => b.Points - a.Points) 
+        .slice(0, 5); 
 
-        const data = await response.json();
-
-        if (!Array.isArray(data)) return [];
-
-        const relevantPlayers = data
-            .filter((p: any) => p.Minutes > 25 && p.Points > 15)
-            .sort((a, b) => b.Points - a.Points) 
-            .slice(0, 5); 
-
-        return relevantPlayers.map((p: any) => ({
-            entity: `${p.Name} (${p.Team})`,
-            stat: `PROJEÇÃO OFICIAL HOJE: ${p.Points} Pontos, ${p.Rebounds} Rebotes, ${p.Assists} Assistências. Usage esperado: Alto. Oponente: ${p.Opponent}.`,
-            source: "SportsDataIO"
-        }));
-
-    } catch (e) {
-        console.error("SportsDataIO Fetch Error", e);
-        return [];
-    }
+    return relevantPlayers.map((p: any) => ({
+        entity: `${p.Name} (${p.Team})`,
+        stat: `PROJEÇÃO OFICIAL HOJE: ${p.Points} Pontos, ${p.Rebounds} Rebotes, ${p.Assists} Assistências. Usage esperado: Alto. Oponente: ${p.Opponent}.`,
+        source: "SportsDataIO"
+    }));
 };
 
 // --- NEWS FEED CRAWLER (RSS BRIDGE) ---
@@ -433,11 +415,7 @@ export const fetchPlayerStatsCrawler = async () => {
 
 // --- STATS PROVIDER TEST ---
 export const testStatsProvider = async (apiKey?: string) => {
-    const finalKey = apiKey && apiKey.length > 5 ? apiKey : DEFAULT_SPORTSDATA_KEY;
-    try {
-        const response = await fetch(`https://api.sportsdata.io/v3/nba/scores/json/teams?key=${finalKey}`);
-        return response.ok;
-    } catch {
-        return false;
-    }
+    const today = new Date().toISOString().split('T')[0];
+    const games = await sportsdataClient.getNBAGamesByDate(today, apiKey);
+    return games.length >= 0; // Se retornar array (mesmo vazio), a chave é válida
 };

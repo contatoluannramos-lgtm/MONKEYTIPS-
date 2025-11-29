@@ -34,9 +34,10 @@ export interface NBAGame {
 }
 
 /**
- * Obtém a chave de API (Ambiente > Argumento > Default)
+ * Obtém a chave de API (Override > Ambiente > Default)
  */
-const getKey = (): string => {
+const getKey = (overrideKey?: string): string => {
+  if (overrideKey && overrideKey.length > 5) return overrideKey;
   if (typeof process !== 'undefined' && process.env.SPORTSDATA_KEY) {
     return process.env.SPORTSDATA_KEY;
   }
@@ -46,12 +47,22 @@ const getKey = (): string => {
 /**
  * Wrapper genérico para Fetch com tratamento de erro
  */
-const get = async <T>(endpoint: string, league: 'nba' | 'soccer' = 'nba'): Promise<T | null> => {
-  const key = getKey();
-  const url = `${BASE_URL}/${league}/scores/json/${endpoint}?key=${key}`; 
-
-  const finalUrl = endpoint.startsWith('http') ? `${endpoint}&key=${key}` : 
-                   (endpoint.includes('Projection') ? `${BASE_URL}/${league}/projections/json/${endpoint}?key=${key}` : url);
+const get = async <T>(endpoint: string, league: 'nba' | 'soccer' = 'nba', apiKey?: string): Promise<T | null> => {
+  const key = getKey(apiKey);
+  
+  // Constrói URLs baseadas no endpoint solicitado
+  // Se for uma URL completa, apenas anexa a chave. Se for parcial, constrói o caminho.
+  let finalUrl = '';
+  
+  if (endpoint.startsWith('http')) {
+     finalUrl = `${endpoint}${endpoint.includes('?') ? '&' : '?'}key=${key}`;
+  } else if (endpoint.includes('Projection')) {
+     // Projections endpoint structure varies slightly
+     finalUrl = `${BASE_URL}/${league}/projections/json/${endpoint}?key=${key}`;
+  } else {
+     // Standard scores endpoint
+     finalUrl = `${BASE_URL}/${league}/scores/json/${endpoint}?key=${key}`;
+  }
 
   console.log(`📡 [SportsDataIO] Fetching: ${endpoint.split('?')[0]}...`);
 
@@ -94,16 +105,16 @@ export const sportsdataClient = {
   /**
    * Busca jogos agendados para uma data (YYYY-MM-DD)
    */
-  async getNBAGamesByDate(date: string): Promise<NBAGame[]> {
-    const data = await get<NBAGame[]>(`GamesByDate/${date}`, 'nba');
+  async getNBAGamesByDate(date: string, apiKey?: string): Promise<NBAGame[]> {
+    const data = await get<NBAGame[]>(`GamesByDate/${date}`, 'nba', apiKey);
     return data || [];
   },
 
   /**
    * Busca projeções de jogadores para hoje
    */
-  async getNBAProjections(date: string): Promise<NBAProjection[]> {
+  async getNBAProjections(date: string, apiKey?: string): Promise<NBAProjection[]> {
     // Endpoint específico de projeções
-    return get<NBAProjection[]>(`PlayerGameProjectionStatsByDate/${date}`, 'nba') || [];
+    return get<NBAProjection[]>(`PlayerGameProjectionStatsByDate/${date}`, 'nba', apiKey) || [];
   }
 };
