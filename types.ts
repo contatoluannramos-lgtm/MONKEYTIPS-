@@ -1,4 +1,6 @@
 
+
+
 // types.ts
 
 export enum SportType {
@@ -20,7 +22,19 @@ export type AdminView =
   'MONKEY_LABS' | 
   'CALIBRATION' | 
   'ACTIVATION' | 
-  'PERFORMANCE';
+  'PERFORMANCE' |
+  'SYSTEM_LOGS';
+
+// --- LOGGING INTERFACES ---
+
+export interface LogEntry {
+  id: string;
+  timestamp: string;
+  level: 'INFO' | 'WARN' | 'ERROR';
+  tag: string;
+  message: string;
+  data?: any;
+}
 
 // --- STATS & DATA INTERFACES ---
 

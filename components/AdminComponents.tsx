@@ -1,10 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
-import { Tip, Match, TipStatus, FusionAnalysis, ScoutResult, NewsProcessedItem, CalibrationConfig, StatProcessedItem, ImprovementProposal, ChecklistItem, RoadmapPhase, RoadmapTask, BotNewsPayload } from '../types';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { Tip, Match, TipStatus, FusionAnalysis, ScoutResult, NewsProcessedItem, CalibrationConfig, StatProcessedItem, ImprovementProposal, ChecklistItem, RoadmapPhase, RoadmapTask, BotNewsPayload, LogEntry } from '../types';
 import { DEFAULT_CALIBRATION } from '../engines/scoutEngine';
 import { geminiEngine } from '../engines/geminiEngine';
 import { fetchPlayerStatsCrawler, testStatsProvider, fetchRSSFeeds, fetchRealTeamStats, fetchSportsDataIOProps } from '../services/liveDataService';
 import { webhookService } from '../services/webhookService';
+import { logger } from '../utils/logger';
 
 // --- SHARED COMPONENTS ---
 
@@ -81,6 +83,161 @@ export const KellyCalculator = () => {
     );
 };
 
+// --- SYSTEM LOGS PANEL (NEW) ---
+export const SystemLogsPanel = () => {
+    const [logs, setLogs] = useState<LogEntry[]>([]);
+    const [filterLevel, setFilterLevel] = useState<'ALL' | 'INFO' | 'WARN' | 'ERROR'>('ALL');
+    const [filterTag, setFilterTag] = useState<string>('ALL');
+    const [autoScroll, setAutoScroll] = useState(true);
+    const logsEndRef = useRef<HTMLDivElement>(null);
+
+    // Load initial history and subscribe
+    useEffect(() => {
+        setLogs(logger.getHistory());
+        const unsubscribe = logger.subscribe((newLog) => {
+            setLogs(prev => [newLog, ...prev]);
+        });
+        return unsubscribe;
+    }, []);
+
+    // Auto-scroll effect
+    useEffect(() => {
+        if (autoScroll && logsEndRef.current) {
+            logsEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [logs, autoScroll]);
+
+    const uniqueTags = ['ALL', ...Array.from(new Set(logs.map(l => l.tag)))].sort();
+
+    const filteredLogs = logs.filter(log => {
+        if (filterLevel !== 'ALL' && log.level !== filterLevel) return false;
+        if (filterTag !== 'ALL' && log.tag !== filterTag) return false;
+        return true;
+    });
+
+    const handleClear = () => {
+        logger.clear();
+        setLogs([]);
+    };
+
+    return (
+        <div className="bg-[#09090B] border border-[#1C1C1F] h-full flex flex-col font-mono text-xs shadow-2xl relative overflow-hidden">
+            <div className="scanline pointer-events-none"></div>
+            
+            {/* Header / Toolbar */}
+            <div className="bg-[#121214] p-4 border-b border-[#1C1C1F] flex flex-col md:flex-row gap-4 justify-between items-center z-10">
+                <div className="flex items-center gap-4">
+                    <h3 className="text-white font-bold flex items-center gap-2">
+                        <span className="animate-pulse text-green-500">●</span> SYSTEM LOGS
+                    </h3>
+                    <div className="flex gap-1 bg-black/50 p-1 rounded border border-white/5">
+                        {['ALL', 'INFO', 'WARN', 'ERROR'].map(lvl => (
+                            <button
+                                key={lvl}
+                                onClick={() => setFilterLevel(lvl as any)}
+                                className={`px-3 py-1 rounded text-[10px] font-bold ${
+                                    filterLevel === lvl 
+                                    ? 'bg-white text-black' 
+                                    : 'text-gray-500 hover:text-white'
+                                }`}
+                            >
+                                {lvl}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                        <span className="text-gray-500 text-[10px] uppercase">Filter Tag:</span>
+                        <select 
+                            value={filterTag}
+                            onChange={(e) => setFilterTag(e.target.value)}
+                            className="bg-black text-gray-300 border border-white/10 px-2 py-1 outline-none focus:border-brand-500 rounded text-[10px] min-w-[100px]"
+                        >
+                            {uniqueTags.map(tag => (
+                                <option key={tag} value={tag}>{tag}</option>
+                            ))}
+                        </select>
+                    </div>
+                    
+                    <button 
+                        onClick={() => setAutoScroll(!autoScroll)}
+                        className={`px-3 py-1 border text-[10px] font-bold rounded uppercase ${autoScroll ? 'border-brand-500 text-brand-500' : 'border-white/10 text-gray-500'}`}
+                    >
+                        {autoScroll ? 'Scroll: ON' : 'Scroll: OFF'}
+                    </button>
+
+                    <button 
+                        onClick={handleClear}
+                        className="text-red-500 hover:bg-red-500/10 px-3 py-1 rounded border border-red-500/30 text-[10px] uppercase font-bold"
+                    >
+                        Clear
+                    </button>
+                </div>
+            </div>
+
+            {/* Logs Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-0.5 custom-scrollbar bg-black/80 font-mono text-[11px] leading-relaxed relative z-0">
+                {filteredLogs.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-gray-700 space-y-2 opacity-50">
+                        <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                        <p>BUFFER EMPTY / WAITING FOR EVENTS</p>
+                    </div>
+                ) : (
+                    // Invert array order for display if we want newest at bottom (standard terminal)
+                    // But logger keeps newest at top [0]. 
+                    // Let's render normally, the logger logic uses unshift to add to top.
+                    // If we want terminal style (append bottom), we should map reversed or change logger.
+                    // Let's stick to "Newest First" (Top) as per current logger implementation, easier to read on web.
+                    filteredLogs.map((log) => (
+                        <div key={log.id} className="flex gap-2 hover:bg-white/5 p-1 rounded transition-colors group items-start border-l-2 border-transparent hover:border-white/20">
+                            <span className="text-gray-600 min-w-[70px] select-none text-[10px] pt-0.5">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                            
+                            <span className={`min-w-[45px] font-bold text-center text-[10px] pt-0.5 rounded px-1 ${
+                                log.level === 'INFO' ? 'text-blue-400 bg-blue-900/10' :
+                                log.level === 'WARN' ? 'text-yellow-400 bg-yellow-900/10' :
+                                'text-red-400 bg-red-900/20'
+                            }`}>
+                                {log.level}
+                            </span>
+                            
+                            <span className="text-gray-500 min-w-[70px] text-right font-bold pr-2 border-r border-white/10 pt-0.5">[{log.tag}]</span>
+                            
+                            <div className="flex-1 min-w-0">
+                                <span className={`break-all ${log.level === 'ERROR' ? 'text-red-300' : 'text-gray-300'}`}>
+                                    {log.message}
+                                </span>
+                                
+                                {log.data && (
+                                    <details className="mt-1">
+                                        <summary className="cursor-pointer text-gray-500 hover:text-white text-[9px] uppercase inline-block border border-white/10 px-1 rounded select-none">Show Data Payload</summary>
+                                        <div className="mt-1 p-2 bg-[#0B0B0D] border border-white/10 rounded overflow-x-auto">
+                                            <pre className="text-green-500 text-[10px] font-mono whitespace-pre-wrap break-all">
+                                                {JSON.stringify(log.data, null, 2)}
+                                            </pre>
+                                        </div>
+                                    </details>
+                                )}
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* Footer Status */}
+            <div className="bg-[#121214] p-2 border-t border-[#1C1C1F] flex justify-between text-[10px] text-gray-600 z-10">
+                <span>Total Events: {logs.length}</span>
+                <span className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                    LIVE STREAM ACTIVE
+                </span>
+                <span>Buffer Limit: 500</span>
+            </div>
+        </div>
+    );
+};
+
 // --- ACTIVATION PANEL ---
 export const ActivationPanel = () => {
     const [footballKey, setFootballKey] = useState('');
@@ -102,13 +259,17 @@ export const ActivationPanel = () => {
         localStorage.setItem('monkey_webhook_url', webhookUrl);
         localStorage.setItem('supabase_project_url', supabaseUrl);
         localStorage.setItem('supabase_anon_key', supabaseKey);
+        logger.info('ADMIN', 'Configurações de API salvas pelo usuário.');
         alert('Configurações salvas no armazenamento local seguro. A página será recarregada para aplicar.');
         window.location.reload(); // Reload to apply configs
     };
 
     const testWebhook = async () => {
         if (!webhookUrl) return alert("Configure a URL primeiro");
+        logger.info('ADMIN', 'Iniciando teste de Webhook...');
         const success = await webhookService.sendTestMessage(webhookUrl);
+        if (success) logger.info('ADMIN', 'Webhook disparado com sucesso.');
+        else logger.error('ADMIN', 'Falha ao disparar Webhook de teste.');
         alert(success ? "Webhook disparado com sucesso!" : "Falha ao disparar webhook.");
     };
 
@@ -257,6 +418,7 @@ export const CalibrationPanel = () => {
 
     const handleSave = () => {
         localStorage.setItem('monkey_calibration_config', JSON.stringify(config));
+        logger.info('SCOUT', 'Parâmetros de Calibragem atualizados.');
         alert('Calibragem salva com sucesso!');
     };
 
@@ -421,6 +583,7 @@ export const NewsTerminal = ({ newsQueue, onNewsProcessed, onArchiveNews }: {
 
     const handleRSSIngest = async (source: 'GLOBO' | 'ESPN') => {
         setIsFetchingRSS(true);
+        logger.info('MONKEY_NEWS', `Iniciando varredura RSS: ${source}`);
         try {
             const items = await fetchRSSFeeds(source);
             // Processa apenas as 3 mais recentes para evitar sobrecarga
@@ -447,8 +610,10 @@ export const NewsTerminal = ({ newsQueue, onNewsProcessed, onArchiveNews }: {
                     await onNewsProcessed(fullItem);
                 }
             }
+            logger.info('MONKEY_NEWS', `RSS ${source} processado com sucesso.`);
             alert(`✅ Feed ${source} processado com sucesso!`);
         } catch (e) {
+            logger.error('MONKEY_NEWS', 'Erro ao processar RSS', e);
             alert("Erro ao buscar RSS: " + e);
         }
         setIsFetchingRSS(false);
@@ -765,6 +930,7 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
 
     const handleSaveConfig = () => {
         localStorage.setItem('monkey_stats_api_key', configKey);
+        logger.info('MONKEY_STATS', 'Chave de API de Stats atualizada.');
         alert("Chave de API salva com sucesso! O módulo agora usará esta credencial.");
     };
 
@@ -773,14 +939,18 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
         try {
             const success = await testStatsProvider(configKey);
             setConnectionStatus(success ? 'success' : 'error');
-        } catch {
+            if (success) logger.info('MONKEY_STATS', 'Conexão com API de Stats bem-sucedida.');
+            else logger.error('MONKEY_STATS', 'Falha no teste de conexão com API de Stats.');
+        } catch (e) {
             setConnectionStatus('error');
+            logger.error('MONKEY_STATS', 'Erro ao testar conexão', e);
         }
     };
 
     const handleManualProcess = async () => {
         if (!entity || !rawStat) return;
         setIsProcessing(true);
+        logger.info('MONKEY_STATS', `Processando stat manual: ${entity}`);
         
         try {
             const result = await geminiEngine.processRawStat(entity, rawStat);
@@ -796,11 +966,13 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
                     processedAt: new Date().toISOString()
                 };
                 await onStatProcessed(fullItem);
+                logger.info('MONKEY_STATS', `Stat processada e salva: ${result.marketFocus}`);
                 setEntity('');
                 setRawStat('');
             }
         } catch (e) {
             console.error("Pipeline Error", e);
+            logger.error('MONKEY_STATS', 'Erro no pipeline de processamento', e);
             alert("Erro no fluxo de processamento. Tente novamente.");
         } finally {
             setIsProcessing(false);
@@ -810,6 +982,7 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
 
     const handleCrawler = async () => {
         setIsCrawling(true);
+        logger.info('MONKEY_STATS', 'Iniciando Crawler...');
         try {
             // Tenta usar a API Real se a chave estiver configurada
             let crawlerData = [];
@@ -818,6 +991,7 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
                 crawlerData = await fetchSportsDataIOProps(configKey);
                 if (crawlerData.length === 0) {
                     alert("Aviso: Nenhum dado retornado da SportsDataIO. Usando fallback de simulação.");
+                    logger.warn('MONKEY_STATS', 'SportsDataIO retornou vazio. Usando fallback.');
                     crawlerData = await fetchPlayerStatsCrawler();
                 }
             } else {
@@ -838,8 +1012,10 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
                     await onStatProcessed(fullItem);
                 }
             }
+            logger.info('MONKEY_STATS', `Crawler finalizado. ${crawlerData.length} itens processados.`);
         } catch (e) {
             console.error(e);
+            logger.error('MONKEY_STATS', 'Erro crítico no Crawler', e);
         }
         setIsCrawling(false);
     };
@@ -856,11 +1032,14 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
             if (result) {
                 setEntity(result.name);
                 setRawStat(result.stat);
+                logger.info('MONKEY_STATS', `Dados reais recuperados para ${result.name}`);
             } else {
                 alert("Não foi possível encontrar dados recentes para este time ou API Key inválida.");
+                logger.warn('MONKEY_STATS', `Time não encontrado: ${entity}`);
             }
         } catch(e) {
             console.error(e);
+            logger.error('MONKEY_STATS', 'Erro ao buscar dados reais do time', e);
         }
         setIsProcessing(false);
     };
@@ -969,80 +1148,4 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
                                             <span className="text-[9px] text-gray-600 font-mono opacity-0 group-hover:opacity-100 transition-opacity">{new Date(item.processedAt).toLocaleTimeString()}</span>
                                         </div>
                                         <div className="flex flex-col items-center justify-center border-r border-[#1C1C1F] pr-4 w-24">
-                                            <span className={`text-2xl font-bold ${item.probability > 70 ? 'text-green-500' : 'text-white'}`}>{item.probability}%</span>
-                                            <span className="text-[9px] text-gray-500 uppercase">Probabilidade</span>
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex justify-between mb-1">
-                                                <h4 className="text-brand-500 font-bold text-sm">{item.entityName}</h4>
-                                                <span className="text-[9px] text-gray-500 uppercase bg-[#1C1C1F] px-2 py-0.5 rounded border border-white/5">{item.category}</span>
-                                            </div>
-                                            <p className="text-gray-400 text-xs mb-3 font-mono border-l-2 border-white/10 pl-2">"{item.rawData}"</p>
-                                            <div className="bg-[#0B0B0D] p-3 border border-[#1C1C1F] border-l-2 border-l-blue-500">
-                                                <p className="text-[9px] text-blue-500 uppercase font-bold mb-1 tracking-wider">Market Opportunity</p>
-                                                <p className="text-sm font-bold text-white mb-1">{item.marketFocus}</p>
-                                                <p className="text-[10px] text-gray-500 italic">{item.aiAnalysis}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
-                </div>
-            ) : (
-                <div className="p-12 max-w-3xl mx-auto w-full">
-                    <div className="bg-[#121214] border border-[#1C1C1F] p-8 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl">🕷️</div>
-                        <h3 className="text-xl font-bold text-white mb-2 font-display">Configuração de Fonte de Dados</h3>
-                        <p className="text-gray-500 text-sm mb-8 font-mono">Conecte provedores externos (NBA API, Sportmonks ou Custom Crawler) para alimentar o módulo de estatísticas avançadas.</p>
-                        
-                        <div className="space-y-6">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Endpoint API Key / Crawler Token</label>
-                                <div className="flex gap-4">
-                                    <input 
-                                        type="password" 
-                                        className="flex-1 bg-black/50 border border-white/10 p-4 text-white font-mono text-sm focus:border-blue-500 outline-none"
-                                        placeholder="sk_live_..."
-                                        value={configKey}
-                                        onChange={(e) => setConfigKey(e.target.value)}
-                                    />
-                                    <button 
-                                        onClick={handleSaveConfig}
-                                        className="bg-white text-black font-bold uppercase text-xs px-6 hover:bg-gray-200"
-                                    >
-                                        Salvar
-                                    </button>
-                                </div>
-                                <p className="text-[10px] text-gray-600 mt-2">A chave é armazenada localmente e usada apenas para requisições de Player Props.</p>
-                            </div>
-
-                            <div className="border-t border-white/5 pt-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <h4 className="text-sm font-bold text-white">Teste de Conectividade</h4>
-                                        <p className="text-xs text-gray-500">Verifique se o endpoint está respondendo corretamente.</p>
-                                    </div>
-                                    <button 
-                                        onClick={handleTestConnection}
-                                        disabled={connectionStatus === 'loading' || !configKey}
-                                        className={`px-6 py-3 text-xs font-bold uppercase tracking-widest border transition-all ${
-                                            connectionStatus === 'success' ? 'bg-green-500/20 border-green-500 text-green-500' :
-                                            connectionStatus === 'error' ? 'bg-red-500/20 border-red-500 text-red-500' :
-                                            'bg-surface-800 border-white/10 text-gray-400 hover:text-white'
-                                        }`}
-                                    >
-                                        {connectionStatus === 'loading' ? 'Testando...' : 
-                                         connectionStatus === 'success' ? '● Conectado' : 
-                                         connectionStatus === 'error' ? 'Erro de Conexão' : 'Testar Conexão'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
+                                            <span className={`text-

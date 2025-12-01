@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 // FIX: Updated imports to point to new engine files.
 import { geminiEngine } from '../engines/geminiEngine';
@@ -7,7 +8,7 @@ import { authService } from '../services/authService';
 import { runScoutAnalysis, DEFAULT_CALIBRATION } from '../engines/scoutEngine';
 import { runFusionEngine } from '../engines/fusionEngine';
 import { Match, Tip, SportType, AdminView, TipStatus, TicketAnalysis, ScoutResult, FusionAnalysis, ScreenAnalysisData, NewsProcessedItem, StatProcessedItem } from '../types';
-import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel, TipsHistoryPanel, CalibrationPanel, ScoutCard, FusionTerminal, NewsTerminal, NewsImplementationChecklist, MonkeyLivePanel, MonkeyStatsTerminal } from '../components/AdminComponents';
+import { StatCard, ImprovementsPanel, OperationalChecklist, ProjectEvolutionRoadmap, ActivationPanel, TipsHistoryPanel, CalibrationPanel, ScoutCard, FusionTerminal, NewsTerminal, NewsImplementationChecklist, MonkeyLivePanel, MonkeyStatsTerminal, SystemLogsPanel } from '../components/AdminComponents';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export interface AdminDashboardProps {
@@ -471,6 +472,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
             { name: 'Monkey Stats', icon: '📊', id: 'MONKEY_STATS' },
             { name: 'News Engine', icon: '📰', id: 'MONKEY_NEWS' },
             { name: 'Laboratório IA', icon: '🧪', id: 'MONKEY_LABS' },
+            { name: 'System Logs', icon: '📟', id: 'SYSTEM_LOGS' },
             { name: 'Calibragem', icon: '🎛️', id: 'CALIBRATION' },
             { name: 'Ativação', icon: '🗝️', id: 'ACTIVATION' },
             { name: 'Performance', icon: '📈', id: 'PERFORMANCE' }, 
@@ -521,6 +523,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
               {currentView === 'SCOUT_ENGINE' && 'Scout Engine: Matemática Pura'}
               {currentView === 'FUSION_CENTER' && 'Monkey Fusion: Decision Core'}
               {currentView === 'MONKEY_STATS' && 'Monkey Stats: Player Props & Advanced Data'}
+              {currentView === 'SYSTEM_LOGS' && 'System Logs & Audit Tracing'}
             </h2>
             <p className="text-gray-500 text-sm mt-1 font-mono">SERVER_TIME: {new Date().toLocaleTimeString('pt-BR')}</p>
           </div>
@@ -595,6 +598,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tips, setTips, m
                   statsQueue={statsQueue}
                   onStatProcessed={handleStatProcessed}
                />
+           </div>
+        )}
+
+        {currentView === 'SYSTEM_LOGS' && (
+           <div className="relative z-10 max-w-7xl mx-auto h-[80vh]">
+              <SystemLogsPanel />
            </div>
         )}
         
