@@ -1,9 +1,19 @@
 
-import { supabase, isSupabaseConfigured } from './supabaseClient';
-import { Match, Tip, SportType, TipStatus, NewsProcessedItem, StatProcessedItem } from '../types';
-import { logger } from '../utils/logger';
+import { supabase, isSupabaseConfigured } from "./supabaseClient";
+import {
+  Match,
+  Tip,
+  SportType,
+  TipStatus,
+  NewsProcessedItem,
+  StatProcessedItem
+} from "../types";
+import { logger } from "../utils/logger";
 
-// Mappers para converter snake_case (banco) para camelCase (app)
+/* ============================================================================
+    HELPERS DE MAPEAMENTO (snake_case → camelCase)
+============================================================================ */
+
 const mapMatchFromDB = (data: any): Match => ({
   id: data.id,
   sport: data.sport as SportType,
@@ -12,7 +22,7 @@ const mapMatchFromDB = (data: any): Match => ({
   league: data.league,
   startTime: data.start_time,
   status: data.status,
-  stats: data.stats || {}
+  stats: data.stats ?? {}
 });
 
 const mapTipFromDB = (data: any): Tip => ({
@@ -26,7 +36,7 @@ const mapTipFromDB = (data: any): Tip => ({
   reasoning: data.reasoning,
   createdAt: data.created_at,
   isPremium: data.is_premium,
-  status: data.status || 'Pending'
+  status: data.status ?? "Pending"
 });
 
 const mapNewsFromDB = (data: any): NewsProcessedItem => ({
@@ -54,68 +64,194 @@ const mapStatFromDB = (data: any): StatProcessedItem => ({
   processedAt: data.processed_at
 });
 
+/* ============================================================================
+    SERVIÇO PRINCIPAL DE BANCO DE DADOS
+============================================================================ */
+
 export const dbService = {
+  /* ============================================================================
+      MATCHES
+  ============================================================================ */
+
   async getMatches(): Promise<Match[]> {
     if (!isSupabaseConfigured() || !supabase) return [];
-    const { data, error } = await supabase.from('matches').select('*').order('start_time', { ascending: true });
-    if (error) { logger.error('DB', 'Erro ao buscar partidas', error); return []; }
-    return data ? data.map(mapMatchFromDB) : [];
+
+    const { data, error } = await supabase
+      .from("matches")
+      .select("*")
+      .order("start_time", { ascending: true });
+
+    if (error) {
+      logger.error("DB", "Erro ao buscar partidas", error);
+      return [];
+    }
+
+    return data?.map(mapMatchFromDB) ?? [];
   },
 
   async saveMatch(match: Match): Promise<void> {
     if (!isSupabaseConfigured() || !supabase) return;
-    const { error } = await supabase.from('matches').upsert({ id: match.id, sport: match.sport, team_a: match.teamA, team_b: match.teamB, league: match.league, start_time: match.startTime, status: match.status, stats: match.stats });
-    if (error) logger.error('DB', 'Erro ao salvar partida', error);
+
+    const payload = {
+      id: match.id,
+      sport: match.sport,
+      team_a: match.teamA,
+      team_b: match.teamB,
+      league: match.league,
+      start_time: match.startTime,
+      status: match.status,
+      stats: match.stats
+    };
+
+    const { error } = await supabase.from("matches").upsert(payload);
+
+    if (error) logger.error("DB", "Erro ao salvar partida", error);
   },
+
+  /* ============================================================================
+      TIPS
+  ============================================================================ */
 
   async getTips(): Promise<Tip[]> {
     if (!isSupabaseConfigured() || !supabase) return [];
-    const { data, error } = await supabase.from('tips').select('*').order('created_at', { ascending: false });
-    if (error) { logger.error('DB', 'Erro ao buscar tips', error); return []; }
-    return data ? data.map(mapTipFromDB) : [];
+
+    const { data, error } = await supabase
+      .from("tips")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      logger.error("DB", "Erro ao buscar tips", error);
+      return [];
+    }
+
+    return data?.map(mapTipFromDB) ?? [];
   },
 
   async saveTip(tip: Tip): Promise<void> {
     if (!isSupabaseConfigured() || !supabase) return;
-    const { error } = await supabase.from('tips').insert({ id: tip.id, match_id: tip.matchId, match_title: tip.matchTitle, sport: tip.sport, prediction: tip.prediction, confidence: tip.confidence, odds: tip.odds, reasoning: tip.reasoning, created_at: tip.createdAt, is_premium: tip.isPremium, status: tip.status });
-    if (error) logger.error('DB', 'Erro ao salvar tip', error);
+
+    const payload = {
+      id: tip.id,
+      match_id: tip.matchId,
+      match_title: tip.matchTitle,
+      sport: tip.sport,
+      prediction: tip.prediction,
+      confidence: tip.confidence,
+      odds: tip.odds,
+      reasoning: tip.reasoning,
+      created_at: tip.createdAt,
+      is_premium: tip.isPremium,
+      status: tip.status
+    };
+
+    const { error } = await supabase.from("tips").upsert(payload);
+
+    if (error) logger.error("DB", "Erro ao salvar tip", error);
   },
 
   async updateTipStatus(tipId: string, status: TipStatus): Promise<void> {
     if (!isSupabaseConfigured() || !supabase) return;
-    const { error } = await supabase.from('tips').update({ status: status }).eq('id', tipId);
-    if (error) logger.error('DB', 'Erro ao atualizar status da tip', error);
+
+    const { error } = await supabase
+      .from("tips")
+      .update({ status })
+      .eq("id", tipId);
+
+    if (error) logger.error("DB", "Erro ao atualizar status da tip", error);
   },
+
+  /* ============================================================================
+      NEWS
+  ============================================================================ */
 
   async getNews(): Promise<NewsProcessedItem[]> {
     if (!isSupabaseConfigured() || !supabase) return [];
-    const { data, error } = await supabase.from('news').select('*').order('processed_at', { ascending: false }).limit(50);
-    if (error) { logger.error('DB', 'Erro ao buscar notícias', error); return []; }
-    return data ? data.map(mapNewsFromDB) : [];
+
+    const { data, error } = await supabase
+      .from("news")
+      .select("*")
+      .order("processed_at", { ascending: false })
+      .limit(50);
+
+    if (error) {
+      logger.error("DB", "Erro ao buscar notícias", error);
+      return [];
+    }
+
+    return data?.map(mapNewsFromDB) ?? [];
   },
 
   async saveNews(item: NewsProcessedItem): Promise<void> {
     if (!isSupabaseConfigured() || !supabase) return;
-    const { error } = await supabase.from('news').upsert({ id: item.id, original_data: item.originalData, relevance_score: item.relevanceScore, impact_level: item.impactLevel, impact_score: item.impactScore, context: item.context, fusion_summary: item.fusionSummary, recommended_action: item.recommendedAction, status: item.status, processed_at: item.processedAt });
-    if (error) logger.error('DB', 'Erro ao salvar notícia', error);
+
+    const payload = {
+      id: item.id,
+      original_data: item.originalData,
+      relevance_score: item.relevanceScore,
+      impact_level: item.impactLevel,
+      impact_score: item.impactScore,
+      context: item.context,
+      fusion_summary: item.fusionSummary,
+      recommended_action: item.recommendedAction,
+      status: item.status,
+      processed_at: item.processedAt
+    };
+
+    const { error } = await supabase.from("news").upsert(payload);
+
+    if (error) logger.error("DB", "Erro ao salvar notícia", error);
   },
 
   async archiveNews(id: string): Promise<void> {
     if (!isSupabaseConfigured() || !supabase) return;
-    const { error } = await supabase.from('news').update({ status: 'ARCHIVED' }).eq('id', id);
-    if (error) logger.error('DB', 'Erro ao arquivar notícia', error);
+
+    const { error } = await supabase
+      .from("news")
+      .update({ status: "ARCHIVED" })
+      .eq("id", id);
+
+    if (error) logger.error("DB", "Erro ao arquivar notícia", error);
   },
+
+  /* ============================================================================
+      STATS
+  ============================================================================ */
 
   async getStats(): Promise<StatProcessedItem[]> {
     if (!isSupabaseConfigured() || !supabase) return [];
-    const { data, error } = await supabase.from('monkey_stats').select('*').order('processed_at', { ascending: false }).limit(50);
-    if (error) { logger.error('DB', 'Erro ao buscar stats', error); return []; }
-    return data ? data.map(mapStatFromDB) : [];
+
+    const { data, error } = await supabase
+      .from("monkey_stats")
+      .select("*")
+      .order("processed_at", { ascending: false })
+      .limit(50);
+
+    if (error) {
+      logger.error("DB", "Erro ao buscar stats", error);
+      return [];
+    }
+
+    return data?.map(mapStatFromDB) ?? [];
   },
 
   async saveStat(item: StatProcessedItem): Promise<void> {
     if (!isSupabaseConfigured() || !supabase) return;
-    const { error } = await supabase.from('monkey_stats').upsert({ id: item.id, entity_name: item.entityName, category: item.category, raw_data: item.rawData, market_focus: item.marketFocus, probability: item.probability, ai_analysis: item.aiAnalysis, status: item.status, processed_at: item.processedAt });
-    if (error) logger.error('DB', 'Erro ao salvar stat', error);
+
+    const payload = {
+      id: item.id,
+      entity_name: item.entityName,
+      category: item.category,
+      raw_data: item.rawData,
+      market_focus: item.marketFocus,
+      probability: item.probability,
+      ai_analysis: item.aiAnalysis,
+      status: item.status,
+      processed_at: item.processedAt
+    };
+
+    const { error } = await supabase.from("monkey_stats").upsert(payload);
+
+    if (error) logger.error("DB", "Erro ao salvar stat", error);
   }
 };
