@@ -1,41 +1,46 @@
 
-import { supabase, isSupabaseConfigured } from './supabaseClient';
-import type { AuthError } from '@supabase/supabase-js';
+// services/authService.ts
+// Autenticação + controle de sessão (Admin Panel)
 
-// Custom error to be returned when Supabase is not configured.
-const configError: AuthError = { 
-    message: 'Supabase not configured.', 
-    name: 'ConfigError',
-    status: 500
-};
+import { supabase } from "./supabaseClient";
 
 export const authService = {
-  async signIn(email: string, password: string) {
-    if (!isSupabaseConfigured() || !supabase) {
-      return { data: { user: null, session: null }, error: configError };
-    }
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { data, error };
-  },
+    async login(email: string, password: string) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
 
-  async signOut() {
-    if (!isSupabaseConfigured() || !supabase) return { error: null };
-    const { error } = await supabase.auth.signOut();
-    return { error };
-  },
+        if (error) {
+            return {
+                success: false,
+                message: "Erro ao fazer login",
+                error: error.message,
+            };
+        }
 
-  async getSession() {
-    if (!isSupabaseConfigured() || !supabase) return { data: { session: null }, error: null };
-    const { data, error } = await supabase.auth.getSession();
-    return { data, error };
-  },
+        return {
+            success: true,
+            user: data.user,
+        };
+    },
 
-  async getUser() {
-    if (!isSupabaseConfigured() || !supabase) return null;
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
-  }
+    async logout() {
+        const { error } = await supabase.auth.signOut();
+
+        if (error) {
+            return {
+                success: false,
+                message: "Erro ao sair",
+                error: error.message,
+            };
+        }
+
+        return { success: true };
+    },
+
+    async getCurrentUser() {
+        const { data } = await supabase.auth.getUser();
+        return data.user || null;
+    },
 };
