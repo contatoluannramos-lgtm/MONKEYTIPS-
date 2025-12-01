@@ -1,46 +1,48 @@
 
 // services/authService.ts
-// Autenticação + controle de sessão (Admin Panel)
+import { supabase } from "../utils/supabaseClient";
 
-import { supabase } from "./supabaseClient";
-
-export const authService = {
+const authService = {
     async login(email: string, password: string) {
+        if (!supabase) throw new Error("Supabase não configurado.");
+
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
         });
 
-        if (error) {
-            return {
-                success: false,
-                message: "Erro ao fazer login",
-                error: error.message,
-            };
-        }
-
-        return {
-            success: true,
-            user: data.user,
-        };
+        if (error) throw new Error(error.message);
+        return data;
     },
 
     async logout() {
-        const { error } = await supabase.auth.signOut();
-
-        if (error) {
-            return {
-                success: false,
-                message: "Erro ao sair",
-                error: error.message,
-            };
-        }
-
-        return { success: true };
+        if (!supabase) throw new Error("Supabase não configurado.");
+        await supabase.auth.signOut();
+        return true;
     },
 
     async getCurrentUser() {
+        if (!supabase) return null;
+
         const { data } = await supabase.auth.getUser();
         return data.user || null;
     },
+
+    async onAuthChange(callback: (event: string, session: any) => void) {
+        if (!supabase) return;
+
+        supabase.auth.onAuthStateChange((event, session) => {
+            callback(event, session);
+        });
+    },
+
+    async isLoggedIn() {
+        if (!supabase) return false;
+
+        const { data } = await supabase.auth.getSession();
+        return !!data.session;
+    }
 };
+
+export default authService;
+
