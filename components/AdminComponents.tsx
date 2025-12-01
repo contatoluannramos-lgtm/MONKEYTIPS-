@@ -1149,3 +1149,33 @@ export const MonkeyStatsTerminal: React.FC<MonkeyStatsTerminalProps> = ({ statsQ
                                         </div>
                                         <div className="flex flex-col items-center justify-center border-r border-[#1C1C1F] pr-4 w-24">
                                             <span className={`text-
+<span 
+    className={`text-[32px] font-bold ${
+        item.isPositive ? 'text-green-500' : 'text-red-500'
+    }`}
+>
+    {item.impactValue}
+</span>
+</div>
+
+<div className="flex-1 flex flex-col justify-center">
+    <p className="text-white text-sm font-bold">{item.entityName}</p>
+    <p className="text-gray-400 text-xs">{item.rawData}</p>
+</div>
+</div>
+);
+})}
+</div>
+</div>
+) : (
+<div className="flex-1 bg-[#09090B] flex items-center justify-center text-gray-600 text-xs font-mono">
+    SEM DADOS PROCESSADOS
+</div>
+)}
+
+</div>
+</div>
+);
+};
+
+export default AdminComponents;
