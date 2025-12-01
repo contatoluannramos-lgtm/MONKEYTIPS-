@@ -1,26 +1,45 @@
 
-import { supabase, isSupabaseConfigured } from './supabaseClient';
+import { supabase, isSupabaseConfigured } from "./supabaseClient";
+import type { AuthError, Session, User } from "@supabase/supabase-js";
 
-// Tipagem mínima para evitar erros
-export type ErroAutenticacao = {
+/* ============================================================================
+    TIPAGEM PADRONIZADA
+============================================================================ */
+
+export interface RetornoAuth<T = any> {
+    dados: T | null;
+    erro: AuthError | ErroAutenticacao | null;
+}
+
+export interface ErroAutenticacao {
     mensagem: string;
     nome: string;
     status: number;
     code: string;
     __isAuthError: boolean;
-};
+}
+
+/* ============================================================================
+    ERRO PADRÃO DE CONFIGURAÇÃO
+============================================================================ */
 
 const erroConfiguracao: ErroAutenticacao = {
-    mensagem: 'Supabase não configurado.',
-    nome: 'Erro de configuração',
+    mensagem: "Supabase não configurado.",
+    nome: "Erro de configuração",
     status: 500,
-    code: 'CONFIG_ERROR',
+    code: "CONFIG_ERROR",
     __isAuthError: true
 };
 
+/* ============================================================================
+    MÉTODOS PRINCIPAIS
+============================================================================ */
+
 export const authService = {
-    // ===== NOVOS MÉTODOS =====
-    async login(email: string, senha: string) {
+    /**
+     * LOGIN DO USUÁRIO
+     */
+    async login(email: string, senha: string): Promise<RetornoAuth> {
         if (!isSupabaseConfigured() || !supabase) {
             return { dados: null, erro: erroConfiguracao };
         }
@@ -30,31 +49,47 @@ export const authService = {
             password: senha
         });
 
-        if (error) return { dados: null, erro: error };
-        return { dados: data, erro: null };
+        return {
+            dados: error ? null : data,
+            erro: error ?? null
+        };
     },
 
-    async obterSessao() {
+    /**
+     * OBTÉM A SESSÃO ATUAL
+     */
+    async obterSessao(): Promise<RetornoAuth<Session>> {
         if (!isSupabaseConfigured() || !supabase) {
             return { dados: null, erro: erroConfiguracao };
         }
 
         const { data, error } = await supabase.auth.getSession();
-        if (error) return { dados: null, erro: error };
-        return { dados: data, erro: null };
+
+        return {
+            dados: error ? null : data.session,
+            erro: error ?? null
+        };
     },
 
-    async logout() {
+    /**
+     * DESLOGAR
+     */
+    async logout(): Promise<RetornoAuth<"OK">> {
         if (!isSupabaseConfigured() || !supabase) {
             return { dados: null, erro: erroConfiguracao };
         }
 
         const { error } = await supabase.auth.signOut();
-        if (error) return { dados: null, erro: error };
-        return { dados: 'OK', erro: null };
+
+        return {
+            dados: error ? null : "OK",
+            erro: error ?? null
+        };
     },
 
-    // ===== MÉTODOS ANTIGOS (COMPATIBILIDADE) =====
+    /* ============================================================================
+        MÉTODOS ANTIGOS — Mantidos por compatibilidade
+    ============================================================================ */
 
     async signIn(email: string, senha: string) {
         return this.login(email, senha);
