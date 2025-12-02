@@ -24,18 +24,21 @@ class AdminDataEngine {
         };
 
         this.queue.push(item);
-        systemLogsService.add(`📥 Novo item adicionado à fila do AdminDataEngine (${item.entityName})`);
+        systemLogsService.add(
+            `📥 Novo item adicionado à fila do AdminDataEngine (${item.entityName})`
+        );
+
         return item;
     }
 
     /** Processamento Fake (placeholder para Gemini) */
     async processWithAI(rawData: string) {
-        systemLogsService.add(`🧠 Processando dado via Gemini...`);
+        systemLogsService.add("🧠 Processando dado via Gemini...");
 
-        // 🔥 Aqui entra o GEMINI real mais tarde
+        // Aqui entra o GEMINI real futuramente
         return {
             isPositive: rawData.length % 2 === 0,
-            impactValue: Math.floor(Math.random() * 100),
+            impactValue: Math.floor(Math.random() * 100)
         };
     }
 
