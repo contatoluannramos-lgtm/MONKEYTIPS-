@@ -1,69 +1,124 @@
 
+// engines/FusionEngine.ts
+// Monkey Tips Fire — Fusion Engine v3.0
+// Combinação oficial das fontes: Scout + AI + Mercado + Notícias
+
 import { Match, ScoutResult, FusionAnalysis, Tip } from "../types";
 import { logger } from "../utils/logger";
 
+// -----------------------------
+// NORMALIZAÇÃO
+// -----------------------------
+function normalize(value: number, max: number) {
+  return Math.min(Math.max(value / max, 0), 1);
+}
+
+// -----------------------------
+// PESOS DO FUSION ENGINE (v3.0)
+// -----------------------------
+const WEIGHTS = {
+  scout: 0.55,
+  ai: 0.20,
+  news: 0.10,
+  market: 0.15,
+};
+
 export const runFusionEngine = (
-  match: Match, 
-  scoutData: ScoutResult, 
+  match: Match,
+  scoutData: ScoutResult,
   aiTip: Tip | null,
   newsImpactScore: number = 0
 ): FusionAnalysis => {
-  logger.info("FUSION", `Running Fusion for match: ${match.id}`, { scoutProb: scoutData.calculatedProbability, newsImpact: newsImpactScore });
-  
-  // 1. Base Confidence from Scout (Math - Bayesian Adjusted)
-  let finalScore = scoutData.calculatedProbability;
 
-  // 2. Adjust with AI Context (Unstructured Data: Injuries, News)
+  logger.info("FUSION", `Running FusionEngine for match ${match.id}`);
+
+  // -----------------------------------
+  // 1) BASE: SCOUT ENGINE — (55% peso)
+  // -----------------------------------
+  const nScout = normalize(scoutData.calculatedProbability, 100);
+
+  // -----------------------------------
+  // 2) AI TIP — (20% peso)
+  // -----------------------------------
+  let aiBoost = 0;
+  let aiText = "Sem análise de IA disponível.";
+
   if (aiTip) {
-    const originalScore = finalScore;
-    if (scoutData.signal === 'STRONG_OVER' && aiTip.prediction.toLowerCase().includes('over')) {
-      finalScore += 10;
-    } 
-    else if (scoutData.signal === 'STRONG_OVER' && aiTip.prediction.toLowerCase().includes('under')) {
-      finalScore -= 15; // Penalidade maior por discordância
+    aiText = aiTip.reasoning;
+
+    const pred = aiTip.prediction.toLowerCase();
+
+    if (scoutData.signal.includes("OVER") && pred.includes("over")) {
+      aiBoost = 12; // concordância forte
+    } else if (scoutData.signal.includes("UNDER") && pred.includes("under")) {
+      aiBoost = 10;
+    } else {
+      aiBoost = -14; // desacordo penalizado
     }
-    logger.info("FUSION", `AI Context adjustment: ${originalScore} -> ${finalScore}`, { prediction: aiTip.prediction });
   }
+  const nAI = normalize(aiBoost, 25);
 
-  // 3. Hot Game Boost
-  if (scoutData.isHotGame && scoutData.signal.includes('OVER')) {
-      finalScore += 5;
-      logger.info("FUSION", `Hot Game Boost applied. New score: ${finalScore}`);
-  }
+  // -----------------------------------
+  // 3) NEWS ENGINE — (10% peso)
+  // -----------------------------------
+  const nNews = normalize(newsImpactScore, 20);
 
-  // 4. News Engine Impact
-  if (newsImpactScore !== 0) {
-    finalScore += newsImpactScore;
-    logger.info("FUSION", `News Impact applied (${newsImpactScore}). New score: ${finalScore}`);
-  }
-  
-  // 5. Market Odds (EV Calculation)
-  const marketOdd = aiTip ? aiTip.odds : 1.90; // Default odd if not present
+  // -----------------------------------
+  // 4) MARKET/Odds — (15% peso)
+  // -----------------------------------
+  const marketOdd = aiTip?.odds ?? 1.90;
   const impliedProb = (1 / marketOdd) * 100;
-  const ev = finalScore - impliedProb;
+  const ev = scoutData.calculatedProbability - impliedProb;
 
-  // 6. Confidence Level Definition
-  let confidenceLevel: 'LOW' | 'MEDIUM' | 'HIGH' = 'LOW';
-  if (finalScore >= 80) confidenceLevel = 'HIGH';
-  else if (finalScore >= 60) confidenceLevel = 'MEDIUM';
+  const nMarket = normalize(ev + 10, 30); // faixa média de EV ajustado
 
-  // 7. Final Verdict
-  let verdict: 'GREEN_LIGHT' | 'YELLOW_WARNING' | 'RED_ALERT' = 'RED_ALERT';
-  if (finalScore > 75 && ev > 5) verdict = 'GREEN_LIGHT';
-  else if (finalScore > 60 && ev > 0) verdict = 'YELLOW_WARNING';
+  // -----------------------------------
+  // 5) FUSION SCORE FINAL
+  // Fórmula híbrida (todos os pesos aplicados)
+  // -----------------------------------
+  const fusionScore =
+    (nScout * 100 * WEIGHTS.scout) +
+    (nAI * 100 * WEIGHTS.ai) +
+    (nNews * 100 * WEIGHTS.news) +
+    (nMarket * 100 * WEIGHTS.market);
 
+  const finalConfidence = Math.round(Math.min(Math.max(fusionScore, 0), 100));
+
+  // -----------------------------------
+  // 6) LEVEL DE CONFIANÇA
+  // -----------------------------------
+  let confidenceLevel: "LOW" | "MEDIUM" | "HIGH" = "LOW";
+  if (finalConfidence >= 78) confidenceLevel = "HIGH";
+  else if (finalConfidence >= 60) confidenceLevel = "MEDIUM";
+
+  // -----------------------------------
+  // 7) VERDICT (GREEN / YELLOW / RED)
+  // -----------------------------------
+  let verdict: "GREEN_LIGHT" | "YELLOW_WARNING" | "RED_ALERT" = "RED_ALERT";
+
+  if (finalConfidence > 80 && ev > 4) verdict = "GREEN_LIGHT";
+  else if (finalConfidence > 65 && ev > 0) verdict = "YELLOW_WARNING";
+
+  // -----------------------------------
+  // 8) OUTPUT FINAL
+  // -----------------------------------
   const result: FusionAnalysis = {
     matchId: match.id,
     scoutResult: scoutData,
-    aiContext: aiTip ? aiTip.reasoning : "Sem análise de IA disponível.",
-    finalConfidence: Math.min(Math.max(Math.round(finalScore), 0), 99),
+    aiContext: aiText,
+    finalConfidence,
     confidenceLevel,
     ev: Number(ev.toFixed(2)),
-    marketOdd: marketOdd,
+    marketOdd,
     verdict,
-    newsImpactScore
+    newsImpactScore,
+    fusionScore: finalConfidence,
+    powerRating: scoutData.powerRating ?? 50,   // compatível com PredictionEngine
+    momentum: scoutData.momentum ?? 50,
+    risk: scoutData.risk ?? 40,
   };
 
-  logger.info("FUSION", `Fusion complete for ${match.id}. Final Verdict: ${verdict}`, { finalConfidence: result.finalConfidence, ev: result.ev });
+  logger.info("FUSION", `FusionEngine Final Verdict: ${verdict}`, { finalConfidence, ev });
+
   return result;
 };
