@@ -1,16 +1,26 @@
 
 // NewsCoreEngine.ts
-// Avaliação de notícias + impacto no jogo — Versão revisada (Monkey News Engine v2.0)
+// Kernel central de notícias — Monkey News Engine v2.1 (Fire Edition)
+// Processa texto bruto, classifica, gera impacto e score final.
 
 export interface NewsOutput {
-  relevance: number;       // 0–100
-  impact: number;          // 0–100
-  category: string;        // lesão, suspensão, clima, crise, mercado, neutra
-  summary: string;         // resumo técnico
-  newsScore: number;       // impacto total (0–100)
+  relevance: number;   // tamanho + densidade informacional (0–100)
+  impact: number;      // impacto técnico direto (0–100)
+  category: string;    // lesao, suspensao, clima, crise, mercado, neutra
+  summary: string;     // resumo técnico do processamento
+  newsScore: number;   // força total da notícia (0–100)
 }
 
 export function runNewsCoreEngine(text: string): NewsOutput {
+  if (!text || typeof text !== "string") {
+    return {
+      relevance: 0,
+      impact: 0,
+      category: "neutra",
+      summary: "Texto inválido recebido",
+      newsScore: 0
+    };
+  }
 
   // --- 1. Limpeza básica ---
   const clean = text
@@ -19,34 +29,41 @@ export function runNewsCoreEngine(text: string): NewsOutput {
     .toLowerCase()
     .trim();
 
+  // Quanto maior o texto, maior a relevância (densidade informativa)
   const lengthScore = Math.min(100, clean.length / 3);
 
   // --- 2. Classificação por palavras-chave ---
   let category = "neutra";
   let baseImpact = 10;
 
-  if (clean.match(/les(ã|a)o|injury|machucado|desfalque/)) {
+  const match = (r: RegExp) => r.test(clean);
+
+  if (match(/les(ã|a)o|injury|machucado|desfalque/)) {
     category = "lesao";
     baseImpact = 70;
-  } else if (clean.match(/suspens(ã|a)o|cart(ã|a)o|banido/)) {
+
+  } else if (match(/suspens(ã|a)o|cart(ã|a)o|banido/)) {
     category = "suspensao";
     baseImpact = 60;
-  } else if (clean.match(/clima|chuva|gramado|tempestade|vento/)) {
+
+  } else if (match(/clima|chuva|gramado|tempestade|vento/)) {
     category = "clima";
     baseImpact = 40;
-  } else if (clean.match(/crise|racha|briga|atrito|pressao interna/)) {
+
+  } else if (match(/crise|racha|briga|atrito|press(ã|a)o interna/)) {
     category = "crise";
     baseImpact = 75;
-  } else if (clean.match(/contrata(ç|c)ao|proposta|mercado/)) {
+
+  } else if (match(/contrata(ç|c)ao|proposta|mercado/)) {
     category = "mercado";
     baseImpact = 30;
   }
 
   // --- 3. Impacto técnico ---
-  const impact = Math.min(100, (baseImpact + lengthScore * 0.4));
+  const impact = Math.min(100, baseImpact + lengthScore * 0.4);
 
-  // --- 4. Score final ---
-  const newsScore = Math.round((impact * 0.6) + (lengthScore * 0.4));
+  // --- 4. Score final (ponderação Fire Edition) ---
+  const newsScore = Math.round(impact * 0.65 + lengthScore * 0.35);
 
   return {
     relevance: lengthScore,
